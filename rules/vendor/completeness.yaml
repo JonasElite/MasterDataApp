@@ -1,13 +1,17 @@
 # Vollstaendigkeitsregeln Kreditor (FA-401).
+#
+# Pflichtfelder haengen von der Kontengruppe ab: ein CpD-Konto braucht keine
+# Bankverbindung, ein regulaerer Lieferant sehr wohl. Die Kontengruppen sind
+# je Projekt parametrisierbar (FA-413), weil ihre Bezeichnungen kundeneigen sind.
 rules:
 
   - id: VEN-COMP-001
     name: Kreditor ohne Umsatzsteuer-Identifikationsnummer
     description: >
       Kreditoren mit Sitz in einem EU-Land benoetigen fuer den innergemeinschaftlichen
-      Waren- und Dienstleistungsverkehr eine USt-IdNr. Fehlt sie, ist der
-      Steuerausweis nicht belegbar und der Vorsteuerabzug gefaehrdet.
-      Natuerliche Personen und CpD-Konten sind ausgenommen.
+      Waren- und Dienstleistungsverkehr eine USt-IdNr. Fehlt sie, ist der Steuerausweis
+      nicht belegbar und der Vorsteuerabzug gefaehrdet. Natuerliche Personen, CpD-Konten
+      und zur Loeschung vorgemerkte Saetze sind ausgenommen.
     category: completeness
     severity: high
     version: "1.0.0"
@@ -18,22 +22,16 @@ rules:
     requires:
       tables: [LFA1]
       fields:
-        LFA1: [LIFNR, LAND1, STCEG, KTOKK]
+        LFA1: [MANDT, LIFNR, NAME1, LAND1, STCEG, KTOKK, XCPDK, STKZN, LOEVM]
     params:
       eu_countries: [AT, BE, BG, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HR, HU, IE,
                      IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK]
       excluded_account_groups: [CPD, CPDL]
     remediation: >
-      USt-IdNr. beim Kreditor erfragen und im Feld STCEG pflegen; anschliessend
+      USt-IdNr. beim Kreditor erfragen und im Feld STCEG pflegen, anschliessend
       ueber den VIES-Abgleich bestaetigen lassen.
     sql: |
-      SELECT
-          MANDT,
-          LIFNR,
-          NAME1,
-          LAND1,
-          KTOKK,
-          STCEG
+      SELECT MANDT, LIFNR, NAME1, LAND1, KTOKK, STCEG
       FROM LFA1
       WHERE LAND1 IN ${eu_countries}
         AND COALESCE(KTOKK, '') NOT IN ${excluded_account_groups}
@@ -46,8 +44,8 @@ rules:
     name: Kreditor ohne Ort oder Postleitzahl
     description: >
       Ohne vollstaendige Anschrift lassen sich weder Rechnungen zustellen noch
-      Dubletten zuverlaessig erkennen. Die Adresse ist ausserdem Voraussetzung
-      fuer die umsatzsteuerliche Rechnungspflichtangabe.
+      Dubletten zuverlaessig erkennen. Die Anschrift ist ausserdem
+      umsatzsteuerliche Rechnungspflichtangabe.
     category: completeness
     severity: medium
     version: "1.0.0"
@@ -58,27 +56,199 @@ rules:
     requires:
       tables: [LFA1]
       fields:
-        LFA1: [LIFNR, ORT01, PSTLZ]
+        LFA1: [MANDT, LIFNR, NAME1, LAND1, ORT01, PSTLZ, LOEVM, XCPDK]
     params: {}
     remediation: Anschrift beim Kreditor erfragen und in LFA1 pflegen.
     sql: |
       SELECT
-          MANDT,
-          LIFNR,
-          NAME1,
-          LAND1,
-          ORT01,
-          PSTLZ,
-          CASE
-              WHEN ORT01 IS NULL OR is_placeholder_text(ORT01) THEN 'Ort fehlt'
-              ELSE ''
-          END AS befund_ort,
-          CASE
-              WHEN PSTLZ IS NULL OR is_placeholder_text(PSTLZ) THEN 'Postleitzahl fehlt'
-              ELSE ''
-          END AS befund_plz
+          MANDT, LIFNR, NAME1, LAND1, ORT01, PSTLZ,
+          concat_ws(', ',
+              CASE WHEN ORT01 IS NULL OR is_placeholder_text(ORT01) THEN 'Ort fehlt' END,
+              CASE WHEN PSTLZ IS NULL OR is_placeholder_text(PSTLZ) THEN 'Postleitzahl fehlt' END
+          ) AS befund
       FROM LFA1
       WHERE COALESCE(LOEVM, '') <> 'X'
         AND COALESCE(XCPDK, '') <> 'X'
         AND (ORT01 IS NULL OR is_placeholder_text(ORT01)
              OR PSTLZ IS NULL OR is_placeholder_text(PSTLZ))
+
+  - id: VEN-COMP-003
+    name: Kreditor ohne Strasse oder ohne Hausnummer
+    description: >
+      Eine Strassenangabe ohne Ziffer enthaelt in aller Regel keine Hausnummer.
+      Fuer die Zustellung und fuer den Adressabgleich bei der Dublettensuche ist
+      die vollstaendige Strasse noetig. Reine Postfachanschriften sind ausgenommen
+      und werden getrennt bewertet (VEN-RISK-002).
+    category: completeness
+    severity: low
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, STRAS, PFACH, LOEVM, XCPDK]
+    params: {}
+    remediation: Strasse mit Hausnummer nachpflegen oder Postfachanschrift kennzeichnen.
+    sql: |
+      SELECT
+          MANDT, LIFNR, NAME1, STRAS,
+          CASE
+              WHEN STRAS IS NULL OR is_placeholder_text(STRAS) THEN 'Strasse fehlt'
+              ELSE 'Strasse ohne Hausnummer'
+          END AS befund
+      FROM LFA1
+      WHERE COALESCE(LOEVM, '') <> 'X'
+        AND COALESCE(XCPDK, '') <> 'X'
+        AND (PFACH IS NULL OR trim(PFACH) = '')
+        AND (STRAS IS NULL OR is_placeholder_text(STRAS) OR NOT has_digit(STRAS))
+
+  - id: VEN-COMP-004
+    name: Kreditor ohne Steuernummer und ohne USt-IdNr.
+    description: >
+      Traegt ein Kreditor weder eine Steuernummer noch eine USt-IdNr., fehlt jede
+      steuerliche Identifikation. Das betrifft auch Inlandskreditoren, fuer die
+      keine USt-IdNr. noetig waere, wohl aber eine Steuernummer.
+    category: completeness
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, LAND1, STCD1, STCD2, STCEG, KTOKK, XCPDK, LOEVM]
+    params:
+      excluded_account_groups: [CPD, CPDL]
+    remediation: Steuerliche Identifikation beim Kreditor erfragen und pflegen.
+    sql: |
+      SELECT MANDT, LIFNR, NAME1, LAND1, KTOKK, STCD1, STCD2, STCEG
+      FROM LFA1
+      WHERE COALESCE(LOEVM, '') <> 'X'
+        AND COALESCE(XCPDK, '') <> 'X'
+        AND COALESCE(KTOKK, '') NOT IN ${excluded_account_groups}
+        AND (STCD1 IS NULL OR is_placeholder_text(STCD1))
+        AND (STCD2 IS NULL OR is_placeholder_text(STCD2))
+        AND (STCEG IS NULL OR is_placeholder_text(STCEG))
+
+  - id: VEN-COMP-005
+    name: Kreditor ohne Buchungskreisdaten
+    description: >
+      Ein Kreditor ohne Buchungskreissicht kann nicht bebucht werden. Solche
+      Saetze entstehen bei abgebrochener Anlage und bleiben als Karteileichen
+      liegen - sie belasten die Dublettensuche und die Pflegequalitaet.
+    category: completeness
+    severity: medium
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1, LFB1]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, KTOKK, ERDAT, LOEVM]
+        LFB1: [LIFNR]
+    params: {}
+    remediation: >
+      Buchungskreissicht anlegen oder den Stammsatz zur Loeschung vormerken und
+      archivieren.
+    sql: |
+      SELECT a.MANDT, a.LIFNR, a.NAME1, a.KTOKK, a.ERDAT
+      FROM LFA1 a
+      LEFT JOIN (SELECT DISTINCT LIFNR FROM LFB1) b ON a.LIFNR = b.LIFNR
+      WHERE b.LIFNR IS NULL
+        AND COALESCE(a.LOEVM, '') <> 'X'
+
+  - id: VEN-COMP-006
+    name: Buchungskreisdaten ohne Abstimmkonto
+    description: >
+      Das Abstimmkonto verbindet die Kreditorenbuchhaltung mit dem Hauptbuch.
+      Ohne Abstimmkonto ist keine Buchung moeglich; der Satz ist unbrauchbar.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor je Buchungskreis
+    key_columns: [LIFNR, BUKRS]
+    client_column: MANDT
+    company_code_column: BUKRS
+    requires:
+      tables: [LFB1]
+      fields:
+        LFB1: [MANDT, LIFNR, BUKRS, AKONT, LOEVM]
+    params: {}
+    remediation: Abstimmkonto gemaess Kontenplan nachpflegen.
+    sql: |
+      SELECT MANDT, LIFNR, BUKRS, AKONT
+      FROM LFB1
+      WHERE COALESCE(LOEVM, '') <> 'X'
+        AND (AKONT IS NULL OR is_placeholder_text(AKONT))
+
+  - id: VEN-COMP-007
+    name: Buchungskreisdaten ohne Zahlungsbedingung
+    description: >
+      Ohne Zahlungsbedingung wird beim Buchen der Standardwert gezogen oder das
+      Faelligkeitsdatum manuell gesetzt. Beides fuehrt zu falschen
+      Faelligkeitsanalysen und zu verschenkten Skontoertraegen.
+    category: completeness
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor je Buchungskreis
+    key_columns: [LIFNR, BUKRS]
+    client_column: MANDT
+    company_code_column: BUKRS
+    requires:
+      tables: [LFB1]
+      fields:
+        LFB1: [MANDT, LIFNR, BUKRS, ZTERM, LOEVM]
+    params: {}
+    remediation: Vereinbarte Zahlungsbedingung im Feld ZTERM hinterlegen.
+    sql: |
+      SELECT MANDT, LIFNR, BUKRS, ZTERM
+      FROM LFB1
+      WHERE COALESCE(LOEVM, '') <> 'X'
+        AND (ZTERM IS NULL OR is_placeholder_text(ZTERM))
+
+  - id: VEN-COMP-008
+    name: Zahlweg erfordert Bankverbindung, es ist aber keine hinterlegt
+    description: >
+      Ist ein Zahlweg fuer die Ueberweisung gepflegt, muss eine Bankverbindung
+      vorliegen. Andernfalls scheitert der Zahllauf und die Verbindlichkeit
+      bleibt offen, ohne dass es auffaellt.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor je Buchungskreis
+    key_columns: [LIFNR, BUKRS]
+    client_column: MANDT
+    company_code_column: BUKRS
+    requires:
+      tables: [LFB1, LFBK]
+      fields:
+        LFB1: [MANDT, LIFNR, BUKRS, ZWELS, LOEVM]
+        LFBK: [LIFNR, BANKN, IBAN]
+    params:
+      transfer_payment_methods: ["U", "T", "S", "E"]
+    remediation: Bankverbindung nachpflegen oder den Zahlweg auf Scheck umstellen.
+    sql: |
+      SELECT b.MANDT, b.LIFNR, b.BUKRS, b.ZWELS
+      FROM LFB1 b
+      LEFT JOIN (
+          SELECT DISTINCT LIFNR
+          FROM LFBK
+          WHERE COALESCE(BANKN, '') <> '' OR COALESCE(IBAN, '') <> ''
+      ) k ON b.LIFNR = k.LIFNR
+      WHERE k.LIFNR IS NULL
+        AND COALESCE(b.LOEVM, '') <> 'X'
+        AND b.ZWELS IS NOT NULL
+        AND EXISTS (
+            SELECT 1 FROM unnest(string_split(b.ZWELS, '')) AS t(zahlweg)
+            WHERE t.zahlweg IN ${transfer_payment_methods}
+        )

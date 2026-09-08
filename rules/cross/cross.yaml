@@ -1,0 +1,162 @@
+# Uebergreifende Regeln.
+#
+# Diese Regeln verbinden mehrere Objektbereiche - typischerweise Kreditor gegen
+# Debitor oder Stammsatz gegen Adress- und Bankenstamm. Sie finden Mangel, die
+# innerhalb eines Bereichs unsichtbar bleiben.
+rules:
+
+  - id: X-REF-001
+    name: Adressverweis zeigt auf eine nicht vorhandene Adresse
+    description: >
+      Der Kreditor verweist ueber ADRNR auf die zentrale Adressverwaltung. Zeigt
+      der Verweis ins Leere, ist die vollstaendige Anschrift nicht aufloesbar -
+      die Felder in LFA1 sind dann nur noch eine Kopie unbekannten Alters.
+    category: referential
+    severity: high
+    version: "1.0.0"
+    object_area: cross
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1, ADRC]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, ADRNR, LOEVM]
+        ADRC: [ADDRNUMBER]
+    params: {}
+    remediation: Adresse in der zentralen Adressverwaltung neu anlegen und verknuepfen.
+    sql: |
+      SELECT a.MANDT, a.LIFNR, a.NAME1, a.ADRNR
+      FROM LFA1 a
+      LEFT JOIN (SELECT DISTINCT ADDRNUMBER FROM ADRC) d ON a.ADRNR = d.ADDRNUMBER
+      WHERE a.ADRNR IS NOT NULL
+        AND trim(a.ADRNR) <> ''
+        AND COALESCE(a.LOEVM, '') <> 'X'
+        AND d.ADDRNUMBER IS NULL
+
+  - id: X-FMT-001
+    name: BIC im Bankenstamm ist ungueltig
+    description: >
+      Der BIC wird nach ISO 9362 geprueft: acht oder elf Stellen, Bankcode,
+      Landeskennzeichen, Ortskennung und optionale Filialkennung. Ein falscher
+      BIC fuehrt bei Auslandszahlungen zur Rueckweisung.
+    category: format
+    severity: high
+    version: "1.0.0"
+    object_area: cross
+    object_type: Bank
+    key_columns: [BANKS, BANKL]
+    client_column: MANDT
+    requires:
+      tables: [BNKA]
+      fields:
+        BNKA: [MANDT, BANKS, BANKL, BANKA, SWIFT, LOEVM]
+    params: {}
+    remediation: BIC gegen das SWIFT-Verzeichnis korrigieren.
+    sql: |
+      SELECT MANDT, BANKS, BANKL, BANKA, SWIFT, bic_reason(SWIFT) AS befund
+      FROM BNKA
+      WHERE SWIFT IS NOT NULL
+        AND trim(SWIFT) <> ''
+        AND COALESCE(LOEVM, '') <> 'X'
+        AND NOT bic_valid(SWIFT)
+
+  - id: X-CONS-001
+    name: Verknuepfung Kreditor und Debitor ist einseitig
+    description: >
+      Ist ein Partner zugleich Kunde und Lieferant, verweisen beide Stammsaetze
+      aufeinander. Nur ein einseitiger Verweis verhindert die Verrechnung offener
+      Posten - es wird gezahlt, obwohl eine Forderung gegensteht.
+    category: consistency
+    severity: high
+    version: "1.0.0"
+    object_area: cross
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1, KNA1]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, KUNNR, LOEVM]
+        KNA1: [KUNNR, NAME1, LIFNR]
+    params: {}
+    remediation: Gegenverweis im Debitor nachtragen und die Verrechnung aktivieren.
+    sql: |
+      SELECT
+          a.MANDT, a.LIFNR, a.NAME1, a.KUNNR AS verweist_auf_debitor,
+          k.LIFNR AS debitor_verweist_auf
+      FROM LFA1 a
+      JOIN KNA1 k ON a.KUNNR = k.KUNNR
+      WHERE a.KUNNR IS NOT NULL
+        AND trim(a.KUNNR) <> ''
+        AND COALESCE(a.LOEVM, '') <> 'X'
+        AND COALESCE(k.LIFNR, '') <> a.LIFNR
+
+  - id: X-RISK-001
+    name: Kreditor und Debitor teilen sich eine Bankverbindung
+    description: >
+      Dieselbe Kontoverbindung bei einem Kreditor und einem Debitor kann auf
+      einen Partner in Doppelrolle hindeuten - dann sollte die Verrechnung
+      eingerichtet sein. Sie kann aber auch eine Zahlungsumleitung verdecken.
+      Beides verdient eine Klaerung.
+    category: risk
+    severity: high
+    version: "1.0.0"
+    object_area: cross
+    object_type: Bankverbindung
+    key_columns: [LIFNR, KUNNR, IBAN]
+    client_column: MANDT
+    requires:
+      tables: [LFBK, KNBK]
+      fields:
+        LFBK: [MANDT, LIFNR, BANKS, BANKL, BANKN, IBAN]
+        KNBK: [KUNNR, BANKS, BANKL, BANKN, IBAN]
+    params: {}
+    remediation: >
+      Pruefen, ob ein Partner in Doppelrolle vorliegt; dann Verrechnung
+      einrichten. Andernfalls die Herkunft der Bankverbindung klaeren.
+    sql: |
+      SELECT DISTINCT
+          l.MANDT, l.LIFNR, k.KUNNR,
+          COALESCE(l.IBAN, l.BANKN) AS IBAN,
+          l.BANKS, l.BANKL
+      FROM LFBK l
+      JOIN KNBK k
+        ON (l.IBAN IS NOT NULL AND trim(l.IBAN) <> '' AND l.IBAN = k.IBAN)
+        OR (l.BANKS = k.BANKS AND l.BANKL = k.BANKL AND l.BANKN = k.BANKN
+            AND COALESCE(l.BANKN, '') <> '')
+
+  - id: X-CONS-002
+    name: Adresse in der zentralen Adressverwaltung weicht vom Stammsatz ab
+    description: >
+      LFA1 fuehrt eine Kopie der Anschrift, die fuehrende Fassung steht in ADRC.
+      Weichen Ort oder Postleitzahl voneinander ab, ist unklar, welche Anschrift
+      gilt - Rechnungen und Mahnungen gehen dann an unterschiedliche Adressen.
+    category: consistency
+    severity: medium
+    version: "1.0.0"
+    object_area: cross
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1, ADRC]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, ADRNR, ORT01, PSTLZ, LOEVM]
+        ADRC: [ADDRNUMBER, CITY1, POST_CODE1]
+    params: {}
+    remediation: Anschriften abgleichen und die fuehrende Fassung durchschreiben.
+    sql: |
+      SELECT
+          a.MANDT, a.LIFNR, a.NAME1, a.ADRNR,
+          a.ORT01 AS ort_stammsatz, d.CITY1 AS ort_adressverwaltung,
+          a.PSTLZ AS plz_stammsatz, d.POST_CODE1 AS plz_adressverwaltung
+      FROM LFA1 a
+      JOIN ADRC d ON a.ADRNR = d.ADDRNUMBER
+      WHERE COALESCE(a.LOEVM, '') <> 'X'
+        AND (
+            (a.ORT01 IS NOT NULL AND d.CITY1 IS NOT NULL
+             AND upper(trim(a.ORT01)) <> upper(trim(d.CITY1)))
+         OR (a.PSTLZ IS NOT NULL AND d.POST_CODE1 IS NOT NULL
+             AND trim(a.PSTLZ) <> trim(d.POST_CODE1))
+        )

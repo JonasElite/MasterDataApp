@@ -1,0 +1,623 @@
+# Regelwerk Materialstamm (FA-401 bis FA-406).
+#
+# Der Materialstamm ist sichtenorientiert: allgemeine Daten (MARA), Werksdaten
+# (MARC), Bewertung (MBEW) und Kurztexte (MAKT). Der in FA-403 ausdruecklich
+# genannte Zusammenhang Bewertungsklasse gegen Materialart wird ueber die
+# Kontenkategorie-Referenz aus T134 und T025 geprueft.
+rules:
+
+  # ------------------------------------------------------ Vollstaendigkeit
+  - id: MAT-COMP-001
+    name: Material ohne Kurztext
+    description: >
+      Ohne Materialkurztext ist das Material in Bestellungen, Lieferscheinen und
+      Rechnungen nicht benennbar. Es ist ausserdem der wichtigste Anhaltspunkt
+      der Dublettenerkennung im Materialstamm.
+    category: completeness
+    severity: high
+    version: "1.0.0"
+    object_area: material
+    object_type: Material
+    key_columns: [MATNR]
+    client_column: MANDT
+    requires:
+      tables: [MARA, MAKT]
+      fields:
+        MARA: [MANDT, MATNR, MTART, MATKL, ERSDA, LVORM]
+        MAKT: [MATNR, SPRAS, MAKTX]
+    params:
+      required_language: "D"
+    remediation: Kurztext in der Pflegesprache nachtragen.
+    sql: |
+      SELECT a.MANDT, a.MATNR, a.MTART, a.MATKL, a.ERSDA
+      FROM MARA a
+      LEFT JOIN MAKT t
+             ON a.MATNR = t.MATNR
+            AND t.SPRAS = ${required_language}
+            AND t.MAKTX IS NOT NULL
+            AND NOT is_placeholder_text(t.MAKTX)
+      WHERE COALESCE(a.LVORM, '') <> 'X'
+        AND t.MATNR IS NULL
+
+  - id: MAT-COMP-002
+    name: Material ohne Warengruppe
+    description: >
+      Die Warengruppe steuert die Kontenfindung im Einkauf und ist Grundlage
+      jeder Beschaffungsanalyse. Ohne sie laufen Bestellungen auf das
+      Sammelkonto und die Ausgabenanalyse ist wertlos.
+    category: completeness
+    severity: high
+    version: "1.0.0"
+    object_area: material
+    object_type: Material
+    key_columns: [MATNR]
+    client_column: MANDT
+    requires:
+      tables: [MARA]
+      fields:
+        MARA: [MANDT, MATNR, MTART, MATKL, ERSDA, LVORM]
+    params: {}
+    remediation: Warengruppe gemaess Warengruppenschluessel nachpflegen.
+    sql: |
+      SELECT MANDT, MATNR, MTART, MATKL, ERSDA
+      FROM MARA
+      WHERE COALESCE(LVORM, '') <> 'X'
+        AND (MATKL IS NULL OR is_placeholder_text(MATKL))
+
+  - id: MAT-COMP-003
+    name: Material ohne Basismengeneinheit
+    description: >
+      Die Basismengeneinheit ist Bezugsgroesse fuer Bestand, Bewertung und alle
+      Mengenumrechnungen. Ohne sie ist das Material nicht bewegbar.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: material
+    object_type: Material
+    key_columns: [MATNR]
+    client_column: MANDT
+    requires:
+      tables: [MARA]
+      fields:
+        MARA: [MANDT, MATNR, MTART, MEINS, LVORM]
+    params: {}
+    remediation: Basismengeneinheit nachpflegen.
+    sql: |
+      SELECT MANDT, MATNR, MTART, MEINS
+      FROM MARA
+      WHERE COALESCE(LVORM, '') <> 'X'
+        AND (MEINS IS NULL OR trim(MEINS) = '')
+
+  - id: MAT-COMP-004
+    name: Material ohne Werksdaten
+    description: >
+      Ein Material ohne Werkssicht kann nirgends beschafft, gelagert oder
+      gefertigt werden. Es ist entweder eine Fehlanlage oder eine unvollstaendig
+      angelegte Neuanlage.
+    category: completeness
+    severity: medium
+    version: "1.0.0"
+    object_area: material
+    object_type: Material
+    key_columns: [MATNR]
+    client_column: MANDT
+    requires:
+      tables: [MARA, MARC]
+      fields:
+        MARA: [MANDT, MATNR, MTART, ERSDA, LVORM]
+        MARC: [MATNR]
+    params: {}
+    remediation: Werkssicht anlegen oder das Material zur Loeschung vormerken.
+    sql: |
+      SELECT a.MANDT, a.MATNR, a.MTART, a.ERSDA
+      FROM MARA a
+      LEFT JOIN (SELECT DISTINCT MATNR FROM MARC) c ON a.MATNR = c.MATNR
+      WHERE c.MATNR IS NULL AND COALESCE(a.LVORM, '') <> 'X'
+
+  - id: MAT-COMP-005
+    name: Bewertungssatz ohne Bewertungsklasse
+    description: >
+      Die Bewertungsklasse bestimmt das Bestandskonto im Hauptbuch. Fehlt sie,
+      findet die automatische Kontenfindung kein Konto und die Warenbewegung
+      scheitert.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: material
+    object_type: Material je Bewertungskreis
+    key_columns: [MATNR, BWKEY, BWTAR]
+    client_column: MANDT
+    requires:
+      tables: [MBEW]
+      fields:
+        MBEW: [MANDT, MATNR, BWKEY, BWTAR, BKLAS, LVORM]
+    params: {}
+    remediation: Bewertungsklasse gemaess Materialart nachpflegen.
+    sql: |
+      SELECT MANDT, MATNR, BWKEY, BWTAR, BKLAS
+      FROM MBEW
+      WHERE COALESCE(LVORM, '') <> 'X'
+        AND (BKLAS IS NULL OR trim(BKLAS) = '')
+
+  - id: MAT-COMP-006
+    name: Werksdaten ohne Dispomerkmal
+    description: >
+      Ohne Dispomerkmal wird das Material von der Bedarfsplanung nicht
+      beruecksichtigt. Bedarfe entstehen dann nur ueber manuelle Bestellungen -
+      mit entsprechenden Fehlmengen.
+    category: completeness
+    severity: medium
+    version: "1.0.0"
+    object_area: material
+    object_type: Material je Werk
+    key_columns: [MATNR, WERKS]
+    client_column: MANDT
+    requires:
+      tables: [MARC]
+      fields:
+        MARC: [MANDT, MATNR, WERKS, DISMM, LVORM]
+    params: {}
+    remediation: Dispomerkmal festlegen und pflegen.
+    sql: |
+      SELECT MANDT, MATNR, WERKS, DISMM
+      FROM MARC
+      WHERE COALESCE(LVORM, '') <> 'X'
+        AND (DISMM IS NULL OR trim(DISMM) = '')
+
+  # -------------------------------------------------------------- Format
+  - id: MAT-FMT-001
+    name: EAN mit falscher Laenge oder falscher Pruefziffer
+    description: >
+      Die EAN wird nach dem Modulo-10-Verfahren der GS1 geprueft. Eine falsche
+      EAN fuehrt beim Scannen zu falschen Materialzuordnungen im Wareneingang
+      und im Handel zu Kassendifferenzen.
+    category: format
+    severity: medium
+    version: "1.0.0"
+    object_area: material
+    object_type: Material
+    key_columns: [MATNR]
+    client_column: MANDT
+    requires:
+      tables: [MARA]
+      fields:
+        MARA: [MANDT, MATNR, MTART, EAN11, LVORM]
+    params: {}
+    remediation: EAN gegen die Herstellerangabe korrigieren.
+    sql: |
+      SELECT MANDT, MATNR, MTART, EAN11, gtin_reason(EAN11) AS befund
+      FROM MARA
+      WHERE EAN11 IS NOT NULL
+        AND trim(EAN11) <> ''
+        AND COALESCE(LVORM, '') <> 'X'
+        AND NOT gtin_valid(EAN11)
+
+  - id: MAT-FMT-002
+    name: Materialkurztext ist ein Platzhalter
+    description: >
+      Kurztexte wie "TEST", "xxx" oder "noch offen" erfuellen die
+      Pflichtfeldpruefung, benennen das Material aber nicht. Sie machen die
+      Dublettenerkennung im Materialstamm wirkungslos.
+    category: format
+    severity: medium
+    version: "1.0.0"
+    object_area: material
+    object_type: Material
+    key_columns: [MATNR, SPRAS]
+    client_column: MANDT
+    requires:
+      tables: [MAKT]
+      fields:
+        MAKT: [MANDT, MATNR, SPRAS, MAKTX]
+    params: {}
+    remediation: Aussagekraeftigen Kurztext nachtragen.
+    sql: |
+      SELECT MANDT, MATNR, SPRAS, MAKTX
+      FROM MAKT
+      WHERE MAKTX IS NOT NULL AND is_placeholder_text(MAKTX)
+
+  # ------------------------------------------------------------ Konsistenz
+  - id: MAT-CONS-001
+    name: Bewertungsklasse passt nicht zur Materialart
+    description: >
+      Materialart und Bewertungsklasse sind ueber die Kontenkategorie-Referenz
+      verbunden: T134 nennt die Referenz der Materialart, T025 die der
+      Bewertungsklasse. Stimmen sie nicht ueberein, bucht die Warenbewegung auf
+      ein sachlich falsches Bestandskonto - der Fehler faellt erst bei der
+      Bilanzanalyse auf. Dies ist der in FA-403 ausdruecklich genannte
+      Zusammenhang.
+    category: consistency
+    severity: critical
+    version: "1.0.0"
+    object_area: material
+    object_type: Material je Bewertungskreis
+    key_columns: [MATNR, BWKEY, BWTAR]
+    client_column: MANDT
+    requires:
+      tables: [MARA, MBEW, T134, T025]
+      fields:
+        MARA: [MATNR, MTART]
+        MBEW: [MANDT, MATNR, BWKEY, BWTAR, BKLAS, LVORM]
+        T134: [MTART, KKREF]
+        T025: [BKLAS, KKREF]
+    params: {}
+    remediation: >
+      Bewertungsklasse auf eine zur Materialart passende umstellen; bereits
+      gebuchte Bestaende gegebenenfalls umbuchen.
+    sql: |
+      SELECT
+          b.MANDT, b.MATNR, b.BWKEY, b.BWTAR, b.BKLAS, a.MTART,
+          t.KKREF AS referenz_materialart,
+          k.KKREF AS referenz_bewertungsklasse
+      FROM MBEW b
+      JOIN MARA a ON b.MATNR = a.MATNR
+      JOIN T134 t ON a.MTART = t.MTART
+      JOIN T025 k ON b.BKLAS = k.BKLAS
+      WHERE COALESCE(b.LVORM, '') <> 'X'
+        AND t.KKREF IS NOT NULL
+        AND k.KKREF IS NOT NULL
+        AND t.KKREF <> k.KKREF
+
+  - id: MAT-CONS-002
+    name: Werksdaten ohne allgemeine Daten
+    description: >
+      Ein MARC-Satz ohne MARA-Satz ist eine Inkonsistenz, die im laufenden System
+      nicht entstehen kann.
+    category: consistency
+    severity: critical
+    version: "1.0.0"
+    object_area: material
+    object_type: Material je Werk
+    key_columns: [MATNR, WERKS]
+    client_column: MANDT
+    requires:
+      tables: [MARA, MARC]
+      fields:
+        MARA: [MATNR]
+        MARC: [MANDT, MATNR, WERKS]
+    params: {}
+    remediation: Lieferumfang pruefen; sonst Inkonsistenz im Quellsystem klaeren.
+    sql: |
+      SELECT c.MANDT, c.MATNR, c.WERKS
+      FROM MARC c
+      LEFT JOIN MARA a ON c.MATNR = a.MATNR
+      WHERE a.MATNR IS NULL
+
+  - id: MAT-CONS-003
+    name: Standardpreissteuerung ohne Standardpreis
+    description: >
+      Bei Preissteuerung "S" bewertet das System den Bestand mit dem
+      Standardpreis. Ist dieser null, wird der Zugang mit Wert null gebucht und
+      der Bestandswert in der Bilanz ist zu niedrig.
+    category: consistency
+    severity: critical
+    version: "1.0.0"
+    object_area: material
+    object_type: Material je Bewertungskreis
+    key_columns: [MATNR, BWKEY, BWTAR]
+    client_column: MANDT
+    requires:
+      tables: [MBEW]
+      fields:
+        MBEW: [MANDT, MATNR, BWKEY, BWTAR, VPRSV, STPRS, LBKUM, LVORM]
+    params: {}
+    remediation: Standardpreis kalkulieren und setzen.
+    sql: |
+      SELECT MANDT, MATNR, BWKEY, BWTAR, VPRSV, STPRS, LBKUM
+      FROM MBEW
+      WHERE COALESCE(LVORM, '') <> 'X'
+        AND VPRSV = 'S'
+        AND COALESCE(STPRS, 0) = 0
+
+  - id: MAT-CONS-004
+    name: Bestand vorhanden, aber kein Bewertungspreis
+    description: >
+      Ein bewerteter Bestand ohne Preis ergibt einen Bestandswert von null. Das
+      ist entweder eine falsche Bewertung oder ein Hinweis auf einen
+      abgebrochenen Preispflegelauf.
+    category: consistency
+    severity: critical
+    version: "1.0.0"
+    object_area: material
+    object_type: Material je Bewertungskreis
+    key_columns: [MATNR, BWKEY, BWTAR]
+    client_column: MANDT
+    requires:
+      tables: [MBEW]
+      fields:
+        MBEW: [MANDT, MATNR, BWKEY, BWTAR, VPRSV, STPRS, VERPR, LBKUM, SALK3, LVORM]
+    params: {}
+    remediation: Preis pflegen und den Bestandswert korrigieren.
+    sql: |
+      SELECT MANDT, MATNR, BWKEY, BWTAR, VPRSV, STPRS, VERPR, LBKUM, SALK3
+      FROM MBEW
+      WHERE COALESCE(LVORM, '') <> 'X'
+        AND COALESCE(LBKUM, 0) > 0
+        AND COALESCE(STPRS, 0) = 0
+        AND COALESCE(VERPR, 0) = 0
+
+  - id: MAT-CONS-005
+    name: Bestandswert passt nicht zu Menge und Preis
+    description: >
+      Der Bestandswert muss sich aus Menge, Preis und Preiseinheit ergeben.
+      Weicht er ab, wurde entweder der Preis nachtraeglich geaendert, ohne den
+      Bestand umzubewerten, oder es liegt eine Inkonsistenz in der
+      Materialbewertung vor. Die Toleranz ist parametrisierbar, weil kleine
+      Rundungsdifferenzen normal sind.
+    category: consistency
+    severity: high
+    version: "1.0.0"
+    object_area: material
+    object_type: Material je Bewertungskreis
+    key_columns: [MATNR, BWKEY, BWTAR]
+    client_column: MANDT
+    requires:
+      tables: [MBEW]
+      fields:
+        MBEW: [MANDT, MATNR, BWKEY, BWTAR, VPRSV, STPRS, VERPR, PEINH, LBKUM, SALK3, LVORM]
+    params:
+      tolerance_absolute: 1.0
+      tolerance_relative: 0.01
+    remediation: Materialbewertung pruefen und den Bestandswert richtigstellen.
+    sql: |
+      WITH bewertet AS (
+          SELECT
+              MANDT, MATNR, BWKEY, BWTAR, VPRSV, LBKUM, SALK3, PEINH,
+              CASE WHEN VPRSV = 'S' THEN STPRS ELSE VERPR END AS preis,
+              LBKUM * CASE WHEN VPRSV = 'S' THEN STPRS ELSE VERPR END
+                    / nullif(COALESCE(PEINH, 1), 0) AS erwarteter_wert
+          FROM MBEW
+          WHERE COALESCE(LVORM, '') <> 'X'
+            AND COALESCE(LBKUM, 0) <> 0
+      )
+      SELECT
+          MANDT, MATNR, BWKEY, BWTAR, VPRSV, LBKUM, preis, PEINH,
+          SALK3 AS bestandswert,
+          round(erwarteter_wert, 2) AS erwarteter_wert,
+          round(SALK3 - erwarteter_wert, 2) AS abweichung
+      FROM bewertet
+      WHERE erwarteter_wert IS NOT NULL
+        AND abs(SALK3 - erwarteter_wert) > ${tolerance_absolute}
+        AND abs(SALK3 - erwarteter_wert) > abs(erwarteter_wert) * ${tolerance_relative}
+
+  - id: MAT-CONS-006
+    name: Loeschvormerkung mandantenweit gesetzt, im Werk aber nicht
+    description: >
+      Ein mandantenweit vorgemerktes Material bleibt im Werk disponierbar. Die
+      Vormerkung wirkt dann nicht wie beabsichtigt.
+    category: consistency
+    severity: medium
+    version: "1.0.0"
+    object_area: material
+    object_type: Material je Werk
+    key_columns: [MATNR, WERKS]
+    client_column: MANDT
+    requires:
+      tables: [MARA, MARC]
+      fields:
+        MARA: [MATNR, MTART, LVORM]
+        MARC: [MANDT, MATNR, WERKS, LVORM]
+    params: {}
+    remediation: Loeschvormerkung im Werk nachziehen.
+    sql: |
+      SELECT c.MANDT, c.MATNR, a.MTART, c.WERKS,
+             a.LVORM AS lvorm_mandant, c.LVORM AS lvorm_werk
+      FROM MARC c
+      JOIN MARA a ON c.MATNR = a.MATNR
+      WHERE COALESCE(a.LVORM, '') = 'X' AND COALESCE(c.LVORM, '') <> 'X'
+
+  # ------------------------------------------------------ Referenzintegritaet
+  - id: MAT-REF-001
+    name: Materialart ist im Customizing nicht definiert
+    description: >
+      Die Materialart steuert Sichtenauswahl, Nummernkreis und Kontenfindung.
+      Ein Verweis auf eine unbekannte Materialart macht diese Steuerung
+      wirkungslos.
+    category: referential
+    severity: high
+    version: "1.0.0"
+    object_area: material
+    object_type: Material
+    key_columns: [MATNR]
+    client_column: MANDT
+    requires:
+      tables: [MARA, T134]
+      fields:
+        MARA: [MANDT, MATNR, MTART]
+        T134: [MTART]
+    params: {}
+    remediation: Materialart pruefen und korrigieren.
+    sql: |
+      SELECT a.MANDT, a.MATNR, a.MTART
+      FROM MARA a
+      LEFT JOIN (SELECT DISTINCT MTART FROM T134) t ON a.MTART = t.MTART
+      WHERE a.MTART IS NOT NULL AND t.MTART IS NULL
+
+  - id: MAT-REF-002
+    name: Warengruppe ist im Customizing nicht definiert
+    description: >
+      Eine unbekannte Warengruppe bricht die Kontenfindung im Einkauf und
+      verfaelscht jede Ausgabenanalyse.
+    category: referential
+    severity: high
+    version: "1.0.0"
+    object_area: material
+    object_type: Material
+    key_columns: [MATNR]
+    client_column: MANDT
+    requires:
+      tables: [MARA, T023]
+      fields:
+        MARA: [MANDT, MATNR, MTART, MATKL]
+        T023: [MATKL]
+    params: {}
+    remediation: Warengruppe pruefen und korrigieren.
+    sql: |
+      SELECT a.MANDT, a.MATNR, a.MTART, a.MATKL
+      FROM MARA a
+      LEFT JOIN (SELECT DISTINCT MATKL FROM T023) t ON a.MATKL = t.MATKL
+      WHERE a.MATKL IS NOT NULL AND t.MATKL IS NULL
+
+  - id: MAT-REF-003
+    name: Basismengeneinheit ist im Customizing nicht definiert
+    description: >
+      Eine unbekannte Mengeneinheit macht jede Mengenumrechnung unmoeglich.
+    category: referential
+    severity: high
+    version: "1.0.0"
+    object_area: material
+    object_type: Material
+    key_columns: [MATNR]
+    client_column: MANDT
+    requires:
+      tables: [MARA, T006]
+      fields:
+        MARA: [MANDT, MATNR, MEINS]
+        T006: [MSEHI]
+    params: {}
+    remediation: Mengeneinheit korrigieren.
+    sql: |
+      SELECT a.MANDT, a.MATNR, a.MEINS
+      FROM MARA a
+      LEFT JOIN (SELECT DISTINCT MSEHI FROM T006) t ON a.MEINS = t.MSEHI
+      WHERE a.MEINS IS NOT NULL AND t.MSEHI IS NULL
+
+  - id: MAT-REF-004
+    name: Werk existiert nicht
+    description: >
+      Werksdaten zu einem nicht vorhandenen Werk sind verwaist und stoeren jede
+      Bestandsauswertung.
+    category: referential
+    severity: high
+    version: "1.0.0"
+    object_area: material
+    object_type: Material je Werk
+    key_columns: [MATNR, WERKS]
+    client_column: MANDT
+    requires:
+      tables: [MARC, T001W]
+      fields:
+        MARC: [MANDT, MATNR, WERKS]
+        T001W: [WERKS]
+    params: {}
+    remediation: Verwaiste Werkssaetze bereinigen.
+    sql: |
+      SELECT c.MANDT, c.MATNR, c.WERKS
+      FROM MARC c
+      LEFT JOIN (SELECT DISTINCT WERKS FROM T001W) t ON c.WERKS = t.WERKS
+      WHERE t.WERKS IS NULL
+
+  - id: MAT-REF-005
+    name: Bewertungsklasse ist im Customizing nicht definiert
+    description: >
+      Eine unbekannte Bewertungsklasse findet kein Bestandskonto; die
+      Warenbewegung scheitert.
+    category: referential
+    severity: high
+    version: "1.0.0"
+    object_area: material
+    object_type: Material je Bewertungskreis
+    key_columns: [MATNR, BWKEY, BWTAR]
+    client_column: MANDT
+    requires:
+      tables: [MBEW, T025]
+      fields:
+        MBEW: [MANDT, MATNR, BWKEY, BWTAR, BKLAS, LVORM]
+        T025: [BKLAS]
+    params: {}
+    remediation: Bewertungsklasse korrigieren.
+    sql: |
+      SELECT b.MANDT, b.MATNR, b.BWKEY, b.BWTAR, b.BKLAS
+      FROM MBEW b
+      LEFT JOIN (SELECT DISTINCT BKLAS FROM T025) t ON b.BKLAS = t.BKLAS
+      WHERE b.BKLAS IS NOT NULL AND COALESCE(b.LVORM, '') <> 'X' AND t.BKLAS IS NULL
+
+  # ---------------------------------------------------------- Lifecycle
+  - id: MAT-LC-001
+    name: Loeschvormerkung gesetzt, Material aber weiterhin im Bestand
+    description: >
+      Ein zur Loeschung vorgemerktes Material, das nie archiviert wurde, belastet
+      Auswertungen und Dublettensuche. Traegt es zudem noch Bestand, ist die
+      Vormerkung fachlich fragwuerdig.
+    category: lifecycle
+    severity: medium
+    version: "1.0.0"
+    object_area: material
+    object_type: Material
+    key_columns: [MATNR]
+    client_column: MANDT
+    requires:
+      tables: [MARA]
+      fields:
+        MARA: [MANDT, MATNR, MTART, ERSDA, LVORM]
+    params:
+      months_since_creation: 12
+    remediation: Archivierungslauf fuer vorgemerkte Materialien anstossen.
+    sql: |
+      SELECT MANDT, MATNR, MTART, ERSDA,
+             date_diff('month', ERSDA, current_date) AS monate_seit_anlage
+      FROM MARA
+      WHERE COALESCE(LVORM, '') = 'X'
+        AND ERSDA IS NOT NULL
+        AND date_diff('month', ERSDA, current_date) >= ${months_since_creation}
+
+  - id: MAT-LC-002
+    name: Material zur Loeschung vorgemerkt, aber mit Bestand
+    description: >
+      Ein Material mit Bestand laesst sich nicht archivieren. Die Vormerkung
+      bleibt wirkungslos stehen und der Bestand bleibt unbewirtschaftet.
+    category: lifecycle
+    severity: high
+    version: "1.0.0"
+    object_area: material
+    object_type: Material je Bewertungskreis
+    key_columns: [MATNR, BWKEY, BWTAR]
+    client_column: MANDT
+    requires:
+      tables: [MARA, MBEW]
+      fields:
+        MARA: [MATNR, MTART, LVORM]
+        MBEW: [MANDT, MATNR, BWKEY, BWTAR, LBKUM, SALK3]
+    params: {}
+    remediation: Bestand abbauen oder die Loeschvormerkung zuruecknehmen.
+    sql: |
+      SELECT b.MANDT, b.MATNR, a.MTART, b.BWKEY, b.BWTAR, b.LBKUM, b.SALK3
+      FROM MBEW b
+      JOIN MARA a ON b.MATNR = a.MATNR
+      WHERE COALESCE(a.LVORM, '') = 'X'
+        AND COALESCE(b.LBKUM, 0) <> 0
+
+  - id: MAT-LC-003
+    name: Material seit langem unveraendert und ohne Bestand
+    description: >
+      Ein Material, das seit Jahren weder geaendert wurde noch Bestand traegt,
+      ist ein Kandidat fuer die Stilllegung. Die Aussage stuetzt sich auf das
+      Aenderungsdatum im Stammsatz, nicht auf Bewegungsdaten - diese sind
+      ausdruecklich nicht im Umfang (Kapitel 2.3).
+    category: lifecycle
+    severity: low
+    version: "1.0.0"
+    object_area: material
+    object_type: Material
+    key_columns: [MATNR]
+    client_column: MANDT
+    requires:
+      tables: [MARA, MBEW]
+      fields:
+        MARA: [MANDT, MATNR, MTART, ERSDA, LAEDA, LVORM]
+        MBEW: [MATNR, LBKUM]
+    params:
+      months_inactive: 36
+    remediation: Sortimentsentscheidung treffen und das Material stilllegen.
+    sql: |
+      SELECT
+          a.MANDT, a.MATNR, a.MTART, a.ERSDA, a.LAEDA,
+          date_diff('month', COALESCE(a.LAEDA, a.ERSDA), current_date) AS monate_inaktiv,
+          COALESCE(sum(b.LBKUM), 0) AS bestand
+      FROM MARA a
+      LEFT JOIN MBEW b ON a.MATNR = b.MATNR
+      WHERE COALESCE(a.LVORM, '') <> 'X'
+        AND COALESCE(a.LAEDA, a.ERSDA) IS NOT NULL
+      GROUP BY a.MANDT, a.MATNR, a.MTART, a.ERSDA, a.LAEDA
+      HAVING COALESCE(sum(b.LBKUM), 0) = 0
+         AND date_diff('month', COALESCE(a.LAEDA, a.ERSDA), current_date) >= ${months_inactive}

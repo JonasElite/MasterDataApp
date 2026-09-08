@@ -1,0 +1,86 @@
+# Externe Validierung (FA-408).
+#
+# Diese Regeln verlassen die lokale Verarbeitung und uebertragen Daten an einen
+# externen Dienst. Sie laufen ausschliesslich, wenn beides vorliegt:
+#
+#   * rules.allow_external_validation ist in der Projektkonfiguration gesetzt,
+#   * eine Netzwerkverbindung besteht.
+#
+# Ohne ausdrueckliche Freigabe werden sie abgeschaltet und im Coverage-Report
+# als entfallen ausgewiesen - nicht stillschweigend uebergangen. Massgeblich
+# ist DS-04: keine Uebertragung von Kundendaten an externe Dienste ohne
+# dokumentierte Freigabe. Die Freigabe ist vor dem Lauf mit dem Datenschutz
+# abzustimmen (offener Punkt OP-04).
+rules:
+
+  - id: VEN-EXT-001
+    name: USt-IdNr. des Kreditors ist laut VIES nicht gueltig
+    description: >
+      Das Bestaetigungsverfahren der Europaeischen Kommission (VIES) prueft, ob
+      eine USt-IdNr. zum Abfragezeitpunkt tatsaechlich vergeben und gueltig ist.
+      Die Formatpruefung (VEN-FMT-001) kann das nicht leisten: eine formal
+      richtige Nummer kann erloschen oder nie vergeben worden sein.
+
+      Uebertragen werden ausschliesslich Laenderkennzeichen und Nummer, keine
+      Namen und keine Adressen. Ergebnisse werden zwischengespeichert, damit
+      Wiederholungslaeufe den Dienst nicht erneut belasten.
+    category: external
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    external: true
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, LAND1, STCEG, LOEVM]
+    params: {}
+    remediation: >
+      Gueltige USt-IdNr. beim Kreditor anfordern. Bis dahin keine steuerfreien
+      innergemeinschaftlichen Umsaetze mit diesem Partner abrechnen.
+    sql: |
+      SELECT MANDT, LIFNR, NAME1, LAND1, STCEG,
+             vies_check_reason(LAND1, STCEG) AS befund
+      FROM LFA1
+      WHERE STCEG IS NOT NULL
+        AND trim(STCEG) <> ''
+        AND COALESCE(LOEVM, '') <> 'X'
+        AND vat_id_valid(LAND1, STCEG)
+        AND NOT vies_check_valid(LAND1, STCEG)
+
+  - id: CUS-EXT-001
+    name: USt-IdNr. des Debitors ist laut VIES nicht gueltig
+    description: >
+      Fuer steuerfreie innergemeinschaftliche Lieferungen ist die qualifizierte
+      Bestaetigung der USt-IdNr. des Empfaengers Voraussetzung. Eine nicht
+      bestaetigte Nummer laesst die Steuerfreiheit entfallen - der Befund wiegt
+      beim Debitor deshalb schwerer als beim Kreditor.
+
+      Uebertragen werden ausschliesslich Laenderkennzeichen und Nummer.
+    category: external
+    severity: critical
+    version: "1.0.0"
+    object_area: customer
+    object_type: Debitor
+    external: true
+    key_columns: [KUNNR]
+    client_column: MANDT
+    requires:
+      tables: [KNA1]
+      fields:
+        KNA1: [MANDT, KUNNR, NAME1, LAND1, STCEG, LOEVM]
+    params: {}
+    remediation: >
+      Qualifizierte Bestaetigung einholen und dokumentieren. Bis dahin keine
+      steuerfreie innergemeinschaftliche Lieferung abrechnen.
+    sql: |
+      SELECT MANDT, KUNNR, NAME1, LAND1, STCEG,
+             vies_check_reason(LAND1, STCEG) AS befund
+      FROM KNA1
+      WHERE STCEG IS NOT NULL
+        AND trim(STCEG) <> ''
+        AND COALESCE(LOEVM, '') <> 'X'
+        AND vat_id_valid(LAND1, STCEG)
+        AND NOT vies_check_valid(LAND1, STCEG)

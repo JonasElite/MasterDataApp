@@ -35,6 +35,8 @@ UDF_DEFINITIONS: tuple[tuple[str, object, list[str], str], ...] = (
     ("is_po_box", validators.is_po_box, ["VARCHAR"], "BOOLEAN"),
     ("has_digit", validators.has_digit, ["VARCHAR"], "BOOLEAN"),
     ("is_placeholder_text", validators.is_placeholder_text, ["VARCHAR"], "BOOLEAN"),
+    ("gtin_valid", validators.gtin_valid, ["VARCHAR"], "BOOLEAN"),
+    ("gtin_reason", validators.gtin_reason, ["VARCHAR"], "VARCHAR"),
 )
 
 

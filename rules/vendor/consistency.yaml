@@ -1,0 +1,212 @@
+# Konsistenz ueber Sichten hinweg, Kreditor (FA-403).
+#
+# Der Kreditorenstamm besteht aus drei Sichten: allgemeine Daten (LFA1),
+# Buchungskreisdaten (LFB1) und Einkaufsorganisationsdaten (LFM1). Widersprueche
+# zwischen ihnen entstehen, wenn eine Sicht gepflegt und die andere vergessen
+# wird - und fallen im Tagesgeschaeft erst auf, wenn eine Buchung scheitert.
+rules:
+
+  - id: VEN-CONS-001
+    name: Buchungskreisdaten ohne allgemeine Daten
+    description: >
+      Ein LFB1-Satz ohne zugehoerigen LFA1-Satz ist eine Dateninkonsistenz, die im
+      laufenden System nicht entstehen kann. Sie deutet auf eine unvollstaendige
+      Lieferung oder auf eine fehlerhafte Migration hin.
+    category: consistency
+    severity: critical
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor je Buchungskreis
+    key_columns: [LIFNR, BUKRS]
+    client_column: MANDT
+    company_code_column: BUKRS
+    requires:
+      tables: [LFA1, LFB1]
+      fields:
+        LFA1: [LIFNR]
+        LFB1: [MANDT, LIFNR, BUKRS, AKONT]
+    params: {}
+    remediation: >
+      Zuerst pruefen, ob LFA1 vollstaendig geliefert wurde. Bleibt der Befund
+      bestehen, liegt eine echte Inkonsistenz im Quellsystem vor.
+    sql: |
+      SELECT b.MANDT, b.LIFNR, b.BUKRS, b.AKONT
+      FROM LFB1 b
+      LEFT JOIN LFA1 a ON b.LIFNR = a.LIFNR
+      WHERE a.LIFNR IS NULL
+
+  - id: VEN-CONS-002
+    name: Einkaufsorganisationsdaten ohne allgemeine Daten
+    description: >
+      Ein LFM1-Satz ohne zugehoerigen LFA1-Satz kann im laufenden System nicht
+      entstehen und deutet auf eine unvollstaendige Lieferung oder eine fehlerhafte
+      Migration hin.
+    category: consistency
+    severity: critical
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor je Einkaufsorganisation
+    key_columns: [LIFNR, EKORG]
+    client_column: MANDT
+    requires:
+      tables: [LFA1, LFM1]
+      fields:
+        LFA1: [LIFNR]
+        LFM1: [MANDT, LIFNR, EKORG, WAERS]
+    params: {}
+    remediation: Lieferumfang pruefen; sonst Inkonsistenz im Quellsystem klaeren.
+    sql: |
+      SELECT m.MANDT, m.LIFNR, m.EKORG, m.WAERS
+      FROM LFM1 m
+      LEFT JOIN LFA1 a ON m.LIFNR = a.LIFNR
+      WHERE a.LIFNR IS NULL
+
+  - id: VEN-CONS-003
+    name: Loeschvormerkung zentral gesetzt, im Buchungskreis aber nicht
+    description: >
+      Ist ein Kreditor zentral zur Loeschung vorgemerkt, im Buchungskreis aber
+      nicht, bleibt er dort bebuchbar. Die zentrale Vormerkung erweckt den
+      Eindruck, der Satz sei stillgelegt - er ist es nicht.
+    category: consistency
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor je Buchungskreis
+    key_columns: [LIFNR, BUKRS]
+    client_column: MANDT
+    company_code_column: BUKRS
+    requires:
+      tables: [LFA1, LFB1]
+      fields:
+        LFA1: [LIFNR, NAME1, LOEVM]
+        LFB1: [MANDT, LIFNR, BUKRS, LOEVM]
+    params: {}
+    remediation: Loeschvormerkung im Buchungskreis nachziehen oder zentral zuruecknehmen.
+    sql: |
+      SELECT b.MANDT, b.LIFNR, a.NAME1, b.BUKRS,
+             a.LOEVM AS loevm_zentral, b.LOEVM AS loevm_buchungskreis
+      FROM LFB1 b
+      JOIN LFA1 a ON b.LIFNR = a.LIFNR
+      WHERE COALESCE(a.LOEVM, '') = 'X'
+        AND COALESCE(b.LOEVM, '') <> 'X'
+
+  - id: VEN-CONS-004
+    name: Zentrale Sperre gesetzt, Buchungskreis nicht gesperrt
+    description: >
+      Eine zentrale Buchungssperre ohne Sperre im Buchungskreis wirkt nur
+      teilweise. Der Kreditor laesst sich weiterhin bebuchen, obwohl die zentrale
+      Sperre das Gegenteil nahelegt.
+    category: consistency
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor je Buchungskreis
+    key_columns: [LIFNR, BUKRS]
+    client_column: MANDT
+    company_code_column: BUKRS
+    requires:
+      tables: [LFA1, LFB1]
+      fields:
+        LFA1: [LIFNR, NAME1, SPERR]
+        LFB1: [MANDT, LIFNR, BUKRS, SPERR]
+    params: {}
+    remediation: Sperre im Buchungskreis nachziehen oder die zentrale Sperre aufheben.
+    sql: |
+      SELECT b.MANDT, b.LIFNR, a.NAME1, b.BUKRS,
+             a.SPERR AS sperre_zentral, b.SPERR AS sperre_buchungskreis
+      FROM LFB1 b
+      JOIN LFA1 a ON b.LIFNR = a.LIFNR
+      WHERE COALESCE(a.SPERR, '') = 'X'
+        AND COALESCE(b.SPERR, '') <> 'X'
+
+  - id: VEN-CONS-005
+    name: Laenderkennzeichen der USt-IdNr. weicht vom Land des Kreditors ab
+    description: >
+      Eine deutsche Anschrift mit oesterreichischer USt-IdNr. ist moeglich - etwa
+      bei einer Registrierung im Ausland -, aber begruendungsbeduerftig. Haeufiger
+      liegt eine Verwechslung mit einem anderen Konzernunternehmen vor.
+    category: consistency
+    severity: medium
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, LAND1, STCEG]
+    params: {}
+    remediation: >
+      Pruefen, ob eine auslaendische Registrierung vorliegt. Wenn ja, als Ausnahme
+      whitelisten; wenn nein, korrigieren.
+    sql: |
+      SELECT MANDT, LIFNR, NAME1, LAND1, STCEG, vat_id_country(STCEG) AS ustid_land
+      FROM LFA1
+      WHERE STCEG IS NOT NULL
+        AND LAND1 IS NOT NULL
+        AND vat_id_country(STCEG) IS NOT NULL
+        AND vat_id_country(STCEG) <> CASE WHEN LAND1 = 'GR' THEN 'EL' ELSE LAND1 END
+
+  - id: VEN-CONS-006
+    name: Zahlungsbedingung in Buchungskreis und Einkauf widerspruechlich
+    description: >
+      Buchungskreis und Einkaufsorganisation fuehren je eine Zahlungsbedingung.
+      Weichen sie voneinander ab, entscheidet der Belegfluss darueber, welche
+      greift - das Ergebnis ist nicht vorhersehbar und fuehrt zu Streit ueber
+      Skontoabzuege.
+    category: consistency
+    severity: medium
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR, BUKRS, EKORG]
+    client_column: MANDT
+    company_code_column: BUKRS
+    requires:
+      tables: [LFB1, LFM1]
+      fields:
+        LFB1: [MANDT, LIFNR, BUKRS, ZTERM, LOEVM]
+        LFM1: [LIFNR, EKORG, ZTERM, LOEVM]
+    params: {}
+    remediation: Zahlungsbedingung in beiden Sichten auf den vereinbarten Wert setzen.
+    sql: |
+      SELECT b.MANDT, b.LIFNR, b.BUKRS, m.EKORG,
+             b.ZTERM AS zterm_buchungskreis, m.ZTERM AS zterm_einkauf
+      FROM LFB1 b
+      JOIN LFM1 m ON b.LIFNR = m.LIFNR
+      WHERE COALESCE(b.LOEVM, '') <> 'X'
+        AND COALESCE(m.LOEVM, '') <> 'X'
+        AND b.ZTERM IS NOT NULL
+        AND m.ZTERM IS NOT NULL
+        AND b.ZTERM <> m.ZTERM
+
+  - id: VEN-CONS-007
+    name: Als natuerliche Person gekennzeichnet, Name traegt eine Rechtsform
+    description: >
+      Das Kennzeichen "natuerliche Person" steuert die steuerliche Behandlung und
+      den Umgang mit personenbezogenen Daten. Traegt der Name eine Rechtsform wie
+      GmbH oder AG, ist das Kennzeichen mit hoher Wahrscheinlichkeit falsch
+      gesetzt - mit Folgen fuer Quellensteuer und Meldepflichten.
+    category: consistency
+    severity: medium
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, NAME2, LAND1, STKZN]
+    params:
+      legal_form_pattern: '(?i)\b(gmbh|aktiengesellschaft|\bag\b|kgaa|\bkg\b|\bohg\b|\be\.?k\.?\b|ltd|limited|\bplc\b|\binc\b|\bllc\b|\bs\.?a\.?\b|\bb\.?v\.?\b|\bn\.?v\.?\b|\bs\.?r\.?l\.?\b|\bsarl\b|\bspa\b|\bab\b|\bas\b|\boy\b|\bsp\.? ?z ?o\.?o\.?\b|gesellschaft|genossenschaft|\beg\b|\bev\b|stiftung)\b'
+    remediation: >
+      Kennzeichen STKZN pruefen und korrigieren; bei echten Einzelunternehmen als
+      Ausnahme whitelisten.
+    sql: |
+      SELECT MANDT, LIFNR, NAME1, NAME2, LAND1, STKZN
+      FROM LFA1
+      WHERE COALESCE(STKZN, '') = 'X'
+        AND NAME1 IS NOT NULL
+        AND regexp_matches(concat_ws(' ', NAME1, NAME2), ${legal_form_pattern})

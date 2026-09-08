@@ -1,0 +1,215 @@
+# Risiko- und Compliance-Indikatoren, Kreditor (FA-407).
+#
+# Diese Regeln erzeugen keine Schuldvermutung. Sie benennen Konstellationen, die
+# aus Sicht des internen Kontrollsystems eine Erklaerung verdienen. Ein Befund
+# ist ein Pruefauftrag, kein Vorwurf - das gehoert so in den Bericht.
+rules:
+
+  - id: VEN-RISK-001
+    name: Bankverbindung des Kreditors stimmt mit einer Mitarbeiterbankverbindung ueberein
+    description: >
+      Stimmt die Kontoverbindung eines Kreditors mit der eines Mitarbeiters
+      ueberein, kann das eine legitime Reisekostenerstattung ueber ein
+      Kreditorenkonto sein - oder ein Zahlungsumleitungsrisiko. Die Regel laeuft
+      nur, wenn der Personalstamm ausdruecklich mitgeliefert wurde.
+    category: risk
+    severity: critical
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Bankverbindung des Kreditors
+    key_columns: [LIFNR, BANKS, BANKL, BANKN]
+    client_column: MANDT
+    requires:
+      tables: [LFBK, PA0009]
+      fields:
+        LFBK: [MANDT, LIFNR, BANKS, BANKL, BANKN, IBAN]
+        PA0009: [PERNR, BANKS, BANKL, BANKN, IBAN, ENDDA]
+    params: {}
+    remediation: >
+      Konstellation mit der Innenrevision klaeren und dokumentieren. Bei
+      berechtigten Faellen als begruendete Ausnahme whitelisten.
+    sql: |
+      SELECT DISTINCT
+          k.MANDT, k.LIFNR, k.BANKS, k.BANKL, k.BANKN,
+          CASE WHEN k.IBAN IS NOT NULL AND p.IBAN IS NOT NULL AND k.IBAN = p.IBAN
+               THEN 'Uebereinstimmung ueber IBAN'
+               ELSE 'Uebereinstimmung ueber Bankschluessel und Kontonummer' END AS befund
+      FROM LFBK k
+      JOIN PA0009 p
+        ON (k.IBAN IS NOT NULL AND k.IBAN = p.IBAN)
+        OR (k.BANKS = p.BANKS AND k.BANKL = p.BANKL AND k.BANKN = p.BANKN
+            AND COALESCE(k.BANKN, '') <> '')
+      WHERE p.ENDDA IS NULL OR p.ENDDA >= current_date
+
+  - id: VEN-RISK-002
+    name: Kreditor mit reiner Postfachanschrift
+    description: >
+      Eine Anschrift, die nur ein Postfach nennt, laesst den Sitz des Partners
+      offen. Fuer die umsatzsteuerliche Rechnungsanschrift ist sie in vielen
+      Faellen nicht ausreichend, und fuer Sorgfaltspflichten nach dem
+      Geldwaeschegesetz ist sie unbrauchbar.
+    category: risk
+    severity: medium
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, LAND1, STRAS, PFACH, ORT01, LOEVM]
+    params: {}
+    remediation: Ladungsfaehige Anschrift beim Kreditor erfragen und nachpflegen.
+    sql: |
+      SELECT MANDT, LIFNR, NAME1, LAND1, STRAS, PFACH, ORT01
+      FROM LFA1
+      WHERE COALESCE(LOEVM, '') <> 'X'
+        AND (
+              (PFACH IS NOT NULL AND trim(PFACH) <> ''
+               AND (STRAS IS NULL OR trim(STRAS) = '' OR is_placeholder_text(STRAS)))
+           OR is_po_box(STRAS)
+        )
+
+  - id: VEN-RISK-003
+    name: Bankdaten des Kreditors kuerzlich geaendert
+    description: >
+      Die Aenderung einer Bankverbindung ist der haeufigste Ansatzpunkt fuer
+      Zahlungsumleitung durch gefaelschte Lieferantenschreiben. Kuerzlich
+      geaenderte Bankdaten gehoeren vor dem naechsten Zahllauf gegen einen
+      unabhaengigen Kanal bestaetigt.
+    category: risk
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1, CDHDR, CDPOS]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1]
+        CDHDR: [OBJECTCLAS, OBJECTID, CHANGENR, UDATE, USERNAME]
+        CDPOS: [OBJECTCLAS, OBJECTID, CHANGENR, TABNAME, FNAME, CHNGIND]
+    params:
+      days_back: 90
+      change_object_class: KRED
+      bank_tables: [LFBK, TIBAN]
+      bank_fields: [BANKN, BANKL, BANKS, IBAN, BKONT]
+    remediation: >
+      Aenderung gegen einen unabhaengig beschafften Kontakt des Kreditors
+      bestaetigen (Rueckruf an eine bekannte Nummer, nicht an die im Schreiben
+      genannte).
+    sql: |
+      SELECT
+          a.MANDT, a.LIFNR, a.NAME1,
+          max(h.UDATE) AS letzte_bankaenderung,
+          count(*) AS anzahl_aenderungen,
+          string_agg(DISTINCT h.USERNAME, ', ') AS geaendert_von
+      FROM LFA1 a
+      JOIN CDHDR h ON h.OBJECTCLAS = ${change_object_class} AND h.OBJECTID = a.LIFNR
+      JOIN CDPOS p ON p.OBJECTCLAS = h.OBJECTCLAS
+                  AND p.OBJECTID = h.OBJECTID
+                  AND p.CHANGENR = h.CHANGENR
+      WHERE p.TABNAME IN ${bank_tables}
+        AND p.FNAME IN ${bank_fields}
+        AND h.UDATE >= current_date - INTERVAL (${days_back}) DAY
+      GROUP BY a.MANDT, a.LIFNR, a.NAME1
+
+  - id: VEN-RISK-004
+    name: Kreditor angelegt und Bankdaten vom selben Benutzer geaendert
+    description: >
+      Legt derselbe Benutzer einen Kreditor an und aendert spaeter dessen
+      Bankverbindung, fehlt die Funktionstrennung. Das ist eine der klassischen
+      Feststellungen der Abschlusspruefung zum internen Kontrollsystem.
+    category: risk
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1, CDHDR, CDPOS]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, ERNAM, ERDAT]
+        CDHDR: [OBJECTCLAS, OBJECTID, CHANGENR, UDATE, USERNAME]
+        CDPOS: [OBJECTCLAS, OBJECTID, CHANGENR, TABNAME, FNAME]
+    params:
+      change_object_class: KRED
+      bank_tables: [LFBK, TIBAN]
+      bank_fields: [BANKN, BANKL, BANKS, IBAN]
+    remediation: >
+      Berechtigungskonzept pruefen und die Funktionstrennung zwischen
+      Stammdatenanlage und Bankdatenpflege durchsetzen.
+    sql: |
+      SELECT
+          a.MANDT, a.LIFNR, a.NAME1, a.ERNAM, a.ERDAT,
+          max(h.UDATE) AS bankaenderung_am,
+          h.USERNAME AS geaendert_von
+      FROM LFA1 a
+      JOIN CDHDR h ON h.OBJECTCLAS = ${change_object_class} AND h.OBJECTID = a.LIFNR
+      JOIN CDPOS p ON p.OBJECTCLAS = h.OBJECTCLAS
+                  AND p.OBJECTID = h.OBJECTID
+                  AND p.CHANGENR = h.CHANGENR
+      WHERE p.TABNAME IN ${bank_tables}
+        AND p.FNAME IN ${bank_fields}
+        AND a.ERNAM IS NOT NULL
+        AND upper(trim(h.USERNAME)) = upper(trim(a.ERNAM))
+      GROUP BY a.MANDT, a.LIFNR, a.NAME1, a.ERNAM, a.ERDAT, h.USERNAME
+
+  - id: VEN-RISK-005
+    name: CpD-Konto mit fest hinterlegter Bankverbindung
+    description: >
+      Ein CpD-Konto sammelt einmalige Geschaeftspartner; die Zahlungsdaten werden
+      je Beleg erfasst. Eine fest hinterlegte Bankverbindung hebt diese Kontrolle
+      auf: Zahlungen an wechselnde Empfaenger laufen dann unbemerkt auf ein festes
+      Konto.
+    category: risk
+    severity: critical
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1, LFBK]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, XCPDK, KTOKK]
+        LFBK: [LIFNR, BANKS, BANKL, BANKN, IBAN]
+    params: {}
+    remediation: Bankverbindung vom CpD-Konto entfernen und je Beleg erfassen.
+    sql: |
+      SELECT DISTINCT a.MANDT, a.LIFNR, a.NAME1, a.KTOKK, k.BANKS, k.BANKL
+      FROM LFA1 a
+      JOIN LFBK k ON a.LIFNR = k.LIFNR
+      WHERE COALESCE(a.XCPDK, '') = 'X'
+        AND (COALESCE(k.BANKN, '') <> '' OR COALESCE(k.IBAN, '') <> '')
+
+  - id: VEN-RISK-006
+    name: Zur Loeschung vorgemerkter Kreditor ohne Zahlsperre
+    description: >
+      Ein zur Loeschung vorgemerkter Kreditor bleibt ohne Zahlsperre im Zahllauf
+      beruecksichtigt. Die Vormerkung allein verhindert keine Zahlung.
+    category: risk
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor je Buchungskreis
+    key_columns: [LIFNR, BUKRS]
+    client_column: MANDT
+    company_code_column: BUKRS
+    requires:
+      tables: [LFA1, LFB1]
+      fields:
+        LFA1: [LIFNR, NAME1, LOEVM]
+        LFB1: [MANDT, LIFNR, BUKRS, ZAHLS, SPERR]
+    params: {}
+    remediation: Zahlsperre setzen, bis die Archivierung abgeschlossen ist.
+    sql: |
+      SELECT b.MANDT, b.LIFNR, a.NAME1, b.BUKRS, b.ZAHLS, b.SPERR
+      FROM LFB1 b
+      JOIN LFA1 a ON b.LIFNR = a.LIFNR
+      WHERE COALESCE(a.LOEVM, '') = 'X'
+        AND COALESCE(b.ZAHLS, '') = ''
+        AND COALESCE(b.SPERR, '') <> 'X'

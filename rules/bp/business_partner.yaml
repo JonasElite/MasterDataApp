@@ -1,0 +1,263 @@
+# Regelwerk Business Partner (S/4HANA).
+#
+# In S/4HANA ist der Geschaeftspartner das fuehrende Objekt; LFA1 und KNA1
+# bleiben als Sichten bestehen. Diese Regeln laufen deshalb nur, wenn BUT000
+# und die zugehoerigen Tabellen geliefert wurden (Annahme A-03). Bei einer
+# ECC-Lieferung entfallen sie und erscheinen im Coverage-Report.
+rules:
+
+  - id: BP-COMP-001
+    name: Geschaeftspartner ohne Namen
+    description: >
+      Je nach Partnertyp traegt der Name entweder die Organisationsfelder oder
+      Vor- und Nachname. Ist keines davon gefuellt, ist der Partner nicht
+      identifizierbar.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: business_partner
+    object_type: Geschaeftspartner
+    key_columns: [PARTNER]
+    client_column: CLIENT
+    requires:
+      tables: [BUT000]
+      fields:
+        BUT000: [CLIENT, PARTNER, TYPE, BU_GROUP, NAME_ORG1, NAME_LAST, NAME_FIRST, XDELE]
+    params: {}
+    remediation: Namen des Geschaeftspartners nachpflegen.
+    sql: |
+      SELECT CLIENT, PARTNER, TYPE, BU_GROUP, NAME_ORG1, NAME_LAST, NAME_FIRST
+      FROM BUT000
+      WHERE COALESCE(XDELE, '') <> 'X'
+        AND (NAME_ORG1 IS NULL OR is_placeholder_text(NAME_ORG1))
+        AND (NAME_LAST IS NULL OR is_placeholder_text(NAME_LAST))
+
+  - id: BP-COMP-002
+    name: Geschaeftspartner ohne Adresse
+    description: >
+      Ein Geschaeftspartner ohne Adresszuordnung laesst sich weder beliefern noch
+      anschreiben. In S/4HANA ist die Adresse ueber BUT020 mit der zentralen
+      Adressverwaltung verbunden.
+    category: completeness
+    severity: high
+    version: "1.0.0"
+    object_area: business_partner
+    object_type: Geschaeftspartner
+    key_columns: [PARTNER]
+    client_column: CLIENT
+    requires:
+      tables: [BUT000, BUT020]
+      fields:
+        BUT000: [CLIENT, PARTNER, TYPE, BU_GROUP, NAME_ORG1, NAME_LAST, XDELE]
+        BUT020: [PARTNER, ADDRNUMBER]
+    params: {}
+    remediation: Adresse anlegen und dem Geschaeftspartner zuordnen.
+    sql: |
+      SELECT b.CLIENT, b.PARTNER, b.TYPE, b.BU_GROUP,
+             COALESCE(b.NAME_ORG1, b.NAME_LAST) AS name
+      FROM BUT000 b
+      LEFT JOIN (SELECT DISTINCT PARTNER FROM BUT020) a ON b.PARTNER = a.PARTNER
+      WHERE a.PARTNER IS NULL AND COALESCE(b.XDELE, '') <> 'X'
+
+  - id: BP-COMP-003
+    name: Geschaeftspartner ohne Rolle
+    description: >
+      Erst die Rolle macht den Geschaeftspartner nutzbar - als Lieferant, als
+      Kunde oder in beiden Funktionen. Ohne Rolle ist er eine leere Huelle aus
+      einer abgebrochenen Anlage.
+    category: completeness
+    severity: medium
+    version: "1.0.0"
+    object_area: business_partner
+    object_type: Geschaeftspartner
+    key_columns: [PARTNER]
+    client_column: CLIENT
+    requires:
+      tables: [BUT000, BUT100]
+      fields:
+        BUT000: [CLIENT, PARTNER, TYPE, BU_GROUP, NAME_ORG1, NAME_LAST, XDELE]
+        BUT100: [PARTNER, RLTYP]
+    params: {}
+    remediation: Benoetigte Rolle zuordnen oder den Partner loeschen.
+    sql: |
+      SELECT b.CLIENT, b.PARTNER, b.TYPE, b.BU_GROUP,
+             COALESCE(b.NAME_ORG1, b.NAME_LAST) AS name
+      FROM BUT000 b
+      LEFT JOIN (SELECT DISTINCT PARTNER FROM BUT100) r ON b.PARTNER = r.PARTNER
+      WHERE r.PARTNER IS NULL AND COALESCE(b.XDELE, '') <> 'X'
+
+  - id: BP-FMT-001
+    name: IBAN des Geschaeftspartners ist ungueltig
+    description: >
+      Die Bankverbindung des Geschaeftspartners wird nach ISO 13616 geprueft.
+      Eine falsche IBAN fuehrt zur Rueckweisung im Zahllauf.
+    category: format
+    severity: critical
+    version: "1.0.0"
+    object_area: business_partner
+    object_type: Bankverbindung des Geschaeftspartners
+    key_columns: [PARTNER, BKVID]
+    client_column: CLIENT
+    requires:
+      tables: [BUT0BK]
+      fields:
+        BUT0BK: [CLIENT, PARTNER, BKVID, BANKS, BANKL, BANKN, IBAN]
+    params: {}
+    remediation: IBAN anhand eines Originalbelegs korrigieren.
+    sql: |
+      SELECT CLIENT, PARTNER, BKVID, BANKS, BANKL, BANKN, IBAN,
+             iban_reason(IBAN) AS befund
+      FROM BUT0BK
+      WHERE IBAN IS NOT NULL AND trim(IBAN) <> '' AND NOT iban_valid(IBAN)
+
+  - id: BP-CONS-001
+    name: Partnertyp passt nicht zu den gefuellten Namensfeldern
+    description: >
+      Eine Organisation traegt ihren Namen in den Organisationsfeldern, eine
+      natuerliche Person in Vor- und Nachname. Ist es umgekehrt, sind Anrede,
+      Serienbrieffelder und die datenschutzrechtliche Einordnung falsch.
+    category: consistency
+    severity: medium
+    version: "1.0.0"
+    object_area: business_partner
+    object_type: Geschaeftspartner
+    key_columns: [PARTNER]
+    client_column: CLIENT
+    requires:
+      tables: [BUT000]
+      fields:
+        BUT000: [CLIENT, PARTNER, TYPE, NAME_ORG1, NAME_LAST, NAME_FIRST, XDELE]
+    params:
+      organisation_type: "2"
+      person_type: "1"
+    remediation: Partnertyp oder Namensfelder korrigieren.
+    sql: |
+      SELECT
+          CLIENT, PARTNER, TYPE, NAME_ORG1, NAME_LAST, NAME_FIRST,
+          CASE
+              WHEN TYPE = ${organisation_type}
+                  THEN 'Als Organisation gefuehrt, aber Personennamen gepflegt'
+              ELSE 'Als natuerliche Person gefuehrt, aber Organisationsname gepflegt'
+          END AS befund
+      FROM BUT000
+      WHERE COALESCE(XDELE, '') <> 'X'
+        AND (
+            (TYPE = ${organisation_type}
+             AND (NAME_ORG1 IS NULL OR trim(NAME_ORG1) = '')
+             AND NAME_LAST IS NOT NULL AND trim(NAME_LAST) <> '')
+         OR (TYPE = ${person_type}
+             AND NAME_ORG1 IS NOT NULL AND trim(NAME_ORG1) <> '')
+        )
+
+  - id: BP-CONS-002
+    name: Gueltigkeitszeitraum ist verdreht
+    description: >
+      Liegt der Gueltigkeitsbeginn nach dem Gueltigkeitsende, ist der Satz zu
+      keinem Zeitpunkt gueltig. Solche Zeitraeume entstehen bei manueller
+      Datumspflege.
+    category: consistency
+    severity: high
+    version: "1.0.0"
+    object_area: business_partner
+    object_type: Geschaeftspartner
+    key_columns: [PARTNER]
+    client_column: CLIENT
+    requires:
+      tables: [BUT000]
+      fields:
+        BUT000: [CLIENT, PARTNER, NAME_ORG1, NAME_LAST, VALID_FROM, VALID_TO]
+    params: {}
+    remediation: Gueltigkeitszeitraum richtigstellen.
+    sql: |
+      SELECT CLIENT, PARTNER, COALESCE(NAME_ORG1, NAME_LAST) AS name,
+             VALID_FROM, VALID_TO
+      FROM BUT000
+      WHERE VALID_FROM IS NOT NULL AND VALID_TO IS NOT NULL AND VALID_FROM > VALID_TO
+
+  - id: BP-CONS-003
+    name: Geschaeftspartner geloescht, Rollen aber noch aktiv
+    description: >
+      Ein zur Loeschung gekennzeichneter Geschaeftspartner mit weiterhin
+      gueltigen Rollen bleibt in den zugehoerigen Prozessen verwendbar. Die
+      Loeschkennzeichnung wirkt dann nicht.
+    category: consistency
+    severity: high
+    version: "1.0.0"
+    object_area: business_partner
+    object_type: Geschaeftspartner
+    key_columns: [PARTNER]
+    client_column: CLIENT
+    requires:
+      tables: [BUT000, BUT100]
+      fields:
+        BUT000: [CLIENT, PARTNER, NAME_ORG1, NAME_LAST, XDELE]
+        BUT100: [PARTNER, RLTYP, VALID_TO]
+    params: {}
+    remediation: Rollen begrenzen oder die Loeschkennzeichnung zuruecknehmen.
+    sql: |
+      SELECT
+          b.CLIENT, b.PARTNER, COALESCE(b.NAME_ORG1, b.NAME_LAST) AS name,
+          string_agg(DISTINCT r.RLTYP, ', ' ORDER BY r.RLTYP) AS aktive_rollen
+      FROM BUT000 b
+      JOIN BUT100 r ON b.PARTNER = r.PARTNER
+      WHERE COALESCE(b.XDELE, '') = 'X'
+        AND (r.VALID_TO IS NULL OR r.VALID_TO >= current_date)
+      GROUP BY b.CLIENT, b.PARTNER, b.NAME_ORG1, b.NAME_LAST
+
+  - id: BP-RISK-001
+    name: Bankverbindung des Geschaeftspartners stimmt mit einer Mitarbeiterbankverbindung ueberein
+    description: >
+      Wie beim Kreditor: die Uebereinstimmung kann berechtigt sein, verdient aber
+      eine dokumentierte Erklaerung. Die Regel laeuft nur, wenn der Personalstamm
+      ausdruecklich mitgeliefert wurde.
+    category: risk
+    severity: critical
+    version: "1.0.0"
+    object_area: business_partner
+    object_type: Bankverbindung des Geschaeftspartners
+    key_columns: [PARTNER, BKVID]
+    client_column: CLIENT
+    requires:
+      tables: [BUT0BK, PA0009]
+      fields:
+        BUT0BK: [CLIENT, PARTNER, BKVID, BANKS, BANKL, BANKN, IBAN]
+        PA0009: [PERNR, BANKS, BANKL, BANKN, IBAN, ENDDA]
+    params: {}
+    remediation: Konstellation mit der Innenrevision klaeren und dokumentieren.
+    sql: |
+      SELECT DISTINCT b.CLIENT, b.PARTNER, b.BKVID, b.BANKS, b.BANKL
+      FROM BUT0BK b
+      JOIN PA0009 p
+        ON (b.IBAN IS NOT NULL AND b.IBAN = p.IBAN)
+        OR (b.BANKS = p.BANKS AND b.BANKL = p.BANKL AND b.BANKN = p.BANKN
+            AND COALESCE(b.BANKN, '') <> '')
+      WHERE p.ENDDA IS NULL OR p.ENDDA >= current_date
+
+  - id: BP-LC-001
+    name: Geschaeftspartner gesperrt oder geloescht und weiterhin im Bestand
+    description: >
+      Gesperrte und zur Loeschung gekennzeichnete Geschaeftspartner, die nie
+      archiviert wurden, belasten Auswertungen und Dublettensuche.
+    category: lifecycle
+    severity: low
+    version: "1.0.0"
+    object_area: business_partner
+    object_type: Geschaeftspartner
+    key_columns: [PARTNER]
+    client_column: CLIENT
+    requires:
+      tables: [BUT000]
+      fields:
+        BUT000: [CLIENT, PARTNER, NAME_ORG1, NAME_LAST, XDELE, XBLCK, CREATED_ON]
+    params:
+      months_since_creation: 12
+    remediation: Archivierung anstossen.
+    sql: |
+      SELECT
+          CLIENT, PARTNER, COALESCE(NAME_ORG1, NAME_LAST) AS name,
+          XDELE, XBLCK, CREATED_ON,
+          date_diff('month', CREATED_ON, current_date) AS monate_seit_anlage
+      FROM BUT000
+      WHERE (COALESCE(XDELE, '') = 'X' OR COALESCE(XBLCK, '') = 'X')
+        AND CREATED_ON IS NOT NULL
+        AND date_diff('month', CREATED_ON, current_date) >= ${months_since_creation}

@@ -1,0 +1,144 @@
+# Aktualitaet und Lifecycle, Kreditor (FA-406).
+#
+# Hinweis zur Abgrenzung: Bewegungsdaten sind ausdruecklich nicht im Umfang
+# (Kapitel 2.3). "Ohne Bewegung seit X Monaten" laesst sich deshalb nicht
+# unmittelbar bestimmen. Ersatzweise dient die Aenderungshistorie (CDHDR) als
+# Aktivitaetsnachweis - ein Stammsatz, der seit Jahren weder angefasst noch
+# geaendert wurde, ist ein starker Kandidat fuer eine Karteileiche. Wo CDHDR
+# fehlt, entfaellt die Regel und erscheint im Coverage-Report.
+rules:
+
+  - id: VEN-LC-001
+    name: Loeschvormerkung gesetzt, Satz aber weiterhin im Bestand
+    description: >
+      Eine Loeschvormerkung ist der erste Schritt der Archivierung, nicht ihr
+      Abschluss. Bleibt sie ueber lange Zeit stehen, wurde der Archivierungslauf
+      nie ausgefuehrt. Die Saetze belasten Auswertungen und Dublettensuche.
+    category: lifecycle
+    severity: medium
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, ERDAT, LOEVM]
+    params:
+      months_since_creation: 12
+    remediation: Archivierungslauf fuer vorgemerkte Kreditoren anstossen.
+    sql: |
+      SELECT
+          MANDT, LIFNR, NAME1, ERDAT,
+          date_diff('month', ERDAT, current_date) AS monate_seit_anlage
+      FROM LFA1
+      WHERE COALESCE(LOEVM, '') = 'X'
+        AND ERDAT IS NOT NULL
+        AND date_diff('month', ERDAT, current_date) >= ${months_since_creation}
+
+  - id: VEN-LC-002
+    name: Kreditor dauerhaft gesperrt
+    description: >
+      Eine Sperre ist als voruebergehende Massnahme gedacht. Besteht sie seit
+      Jahren, ist die Geschaeftsbeziehung faktisch beendet und der Stammsatz
+      sollte zur Loeschung vorgemerkt werden.
+    category: lifecycle
+    severity: low
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, ERDAT, SPERR, SPERM, LOEVM]
+    params:
+      months_since_creation: 24
+    remediation: Sperre aufheben oder den Stammsatz zur Loeschung vormerken.
+    sql: |
+      SELECT
+          MANDT, LIFNR, NAME1, ERDAT, SPERR, SPERM,
+          date_diff('month', ERDAT, current_date) AS monate_seit_anlage
+      FROM LFA1
+      WHERE COALESCE(LOEVM, '') <> 'X'
+        AND (COALESCE(SPERR, '') = 'X' OR COALESCE(SPERM, '') = 'X')
+        AND ERDAT IS NOT NULL
+        AND date_diff('month', ERDAT, current_date) >= ${months_since_creation}
+
+  - id: VEN-LC-003
+    name: Kreditor seit langem unveraendert und nie geaendert worden
+    description: >
+      Der Stammsatz wurde vor langer Zeit angelegt und seither in der
+      Aenderungshistorie nie beruehrt. In Verbindung mit fehlender Sperre und
+      fehlender Loeschvormerkung ist das der typische Befund einer Karteileiche.
+      Die Aussage stuetzt sich auf die Aenderungshistorie, nicht auf
+      Bewegungsdaten - eine Buchung ohne Stammdatenaenderung bleibt unsichtbar.
+    category: lifecycle
+    severity: low
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1, CDHDR]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, ERDAT, LOEVM, SPERR]
+        CDHDR: [OBJECTCLAS, OBJECTID, UDATE]
+    params:
+      months_inactive: 36
+      change_object_class: KRED
+    remediation: >
+      Geschaeftsbeziehung pruefen und den Stammsatz stilllegen, falls sie beendet ist.
+    sql: |
+      SELECT
+          a.MANDT, a.LIFNR, a.NAME1, a.ERDAT,
+          max(c.UDATE) AS letzte_aenderung,
+          date_diff('month', COALESCE(max(c.UDATE), a.ERDAT), current_date) AS monate_inaktiv
+      FROM LFA1 a
+      LEFT JOIN CDHDR c
+             ON c.OBJECTCLAS = ${change_object_class}
+            AND c.OBJECTID = a.LIFNR
+      WHERE COALESCE(a.LOEVM, '') <> 'X'
+        AND COALESCE(a.SPERR, '') <> 'X'
+        AND a.ERDAT IS NOT NULL
+      GROUP BY a.MANDT, a.LIFNR, a.NAME1, a.ERDAT
+      HAVING date_diff('month', COALESCE(max(c.UDATE), a.ERDAT), current_date) >= ${months_inactive}
+
+  - id: VEN-LC-004
+    name: Kreditor kurz nach der Anlage zur Loeschung vorgemerkt
+    description: >
+      Ein Stammsatz, der wenige Tage nach seiner Anlage wieder vorgemerkt wurde,
+      war entweder eine Fehlanlage oder eine Dublette. Beides ist ein Hinweis auf
+      eine Luecke im Anlageprozess und lohnt die Ursachenbetrachtung.
+    category: lifecycle
+    severity: low
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1, CDHDR]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, ERDAT, ERNAM, LOEVM]
+        CDHDR: [OBJECTCLAS, OBJECTID, UDATE, USERNAME]
+    params:
+      days_threshold: 30
+      change_object_class: KRED
+    remediation: Anlageprozess pruefen; Dublettenpruefung vor der Anlage einfuehren.
+    sql: |
+      SELECT
+          a.MANDT, a.LIFNR, a.NAME1, a.ERDAT, a.ERNAM,
+          min(c.UDATE) AS erste_aenderung,
+          date_diff('day', a.ERDAT, min(c.UDATE)) AS tage_bis_vormerkung
+      FROM LFA1 a
+      JOIN CDHDR c
+        ON c.OBJECTCLAS = ${change_object_class}
+       AND c.OBJECTID = a.LIFNR
+      WHERE COALESCE(a.LOEVM, '') = 'X'
+        AND a.ERDAT IS NOT NULL
+      GROUP BY a.MANDT, a.LIFNR, a.NAME1, a.ERDAT, a.ERNAM
+      HAVING date_diff('day', a.ERDAT, min(c.UDATE)) BETWEEN 0 AND ${days_threshold}

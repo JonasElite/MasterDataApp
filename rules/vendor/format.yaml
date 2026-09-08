@@ -1,14 +1,18 @@
 # Formatregeln Kreditor (FA-402).
+#
+# Formatpruefungen sind offline und abschliessend: eine IBAN mit falscher
+# Pruefziffer ist falsch, unabhaengig von jeder Auskunft. Sie ersetzen aber
+# keine inhaltliche Bestaetigung - eine formal richtige USt-IdNr. kann
+# ungueltig sein. Das leistet erst der VIES-Abgleich (FA-408).
 rules:
 
   - id: VEN-FMT-001
     name: USt-IdNr. mit falschem Aufbau oder falscher Pruefziffer
     description: >
-      Die USt-IdNr. wird gegen den laenderspezifischen Aufbau nach ISO-Vorgabe
-      geprueft, fuer Deutschland, die Niederlande und Italien zusaetzlich gegen
-      die Pruefziffer. Eine formal falsche Nummer wird vom Bundeszentralamt
-      abgewiesen und gefaehrdet die Steuerfreiheit innergemeinschaftlicher
-      Lieferungen.
+      Geprueft wird der laenderspezifische Aufbau der USt-IdNr., fuer Deutschland,
+      die Niederlande und Italien zusaetzlich die Pruefziffer. Eine formal falsche
+      Nummer wird bei der Zusammenfassenden Meldung abgewiesen und gefaehrdet die
+      Steuerfreiheit innergemeinschaftlicher Lieferungen.
     category: format
     severity: high
     version: "1.0.0"
@@ -19,19 +23,13 @@ rules:
     requires:
       tables: [LFA1]
       fields:
-        LFA1: [LIFNR, LAND1, STCEG]
+        LFA1: [MANDT, LIFNR, NAME1, LAND1, STCEG]
     params: {}
     remediation: >
-      Nummer beim Kreditor erfragen und korrigieren. Der abschliessende Nachweis
-      erfolgt ueber den VIES-Abgleich, sobald dieser freigegeben ist.
+      Nummer beim Kreditor erfragen und korrigieren. Den abschliessenden Nachweis
+      liefert der VIES-Abgleich, sobald er freigegeben ist.
     sql: |
-      SELECT
-          MANDT,
-          LIFNR,
-          NAME1,
-          LAND1,
-          STCEG,
-          vat_id_reason(LAND1, STCEG) AS befund
+      SELECT MANDT, LIFNR, NAME1, LAND1, STCEG, vat_id_reason(LAND1, STCEG) AS befund
       FROM LFA1
       WHERE STCEG IS NOT NULL
         AND NOT is_placeholder_text(STCEG)
@@ -41,8 +39,9 @@ rules:
     name: Postleitzahl passt nicht zum Land
     description: >
       Die Postleitzahl wird gegen den Aufbau des im Stammsatz gepflegten Landes
-      geprueft. Abweichungen deuten auf eine falsche Landeszuordnung oder auf
-      eine in das falsche Feld uebernommene Angabe hin.
+      geprueft. Abweichungen deuten auf eine falsche Landeszuordnung oder auf eine
+      in das falsche Feld uebernommene Angabe hin. Laender ohne hinterlegten
+      Aufbau werden uebergangen, statt Scheinbefunde zu erzeugen.
     category: format
     severity: medium
     version: "1.0.0"
@@ -53,19 +52,124 @@ rules:
     requires:
       tables: [LFA1]
       fields:
-        LFA1: [LIFNR, LAND1, PSTLZ]
+        LFA1: [MANDT, LIFNR, NAME1, LAND1, PSTLZ]
     params: {}
     remediation: Postleitzahl und Land gegen die Originalanschrift abgleichen.
     sql: |
-      SELECT
-          MANDT,
-          LIFNR,
-          NAME1,
-          LAND1,
-          PSTLZ,
-          postal_code_reason(LAND1, PSTLZ) AS befund
+      SELECT MANDT, LIFNR, NAME1, LAND1, PSTLZ, postal_code_reason(LAND1, PSTLZ) AS befund
       FROM LFA1
       WHERE PSTLZ IS NOT NULL
         AND LAND1 IS NOT NULL
         AND postal_code_known(LAND1)
         AND NOT postal_code_valid(LAND1, PSTLZ)
+
+  - id: VEN-FMT-003
+    name: IBAN mit falschem Aufbau, falscher Laenge oder falscher Pruefziffer
+    description: >
+      Die IBAN wird nach ISO 13616 geprueft: Aufbau, laenderspezifische Laenge und
+      Pruefziffer nach dem Modulo-97-Verfahren. Eine falsche IBAN fuehrt zur
+      Rueckweisung im Zahllauf oder - schlimmer - zur Zahlung an einen falschen
+      Empfaenger.
+    category: format
+    severity: critical
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Bankverbindung des Kreditors
+    key_columns: [LIFNR, BANKS, BANKL, BANKN]
+    client_column: MANDT
+    requires:
+      tables: [LFBK]
+      fields:
+        LFBK: [MANDT, LIFNR, BANKS, BANKL, BANKN, IBAN]
+    params: {}
+    remediation: IBAN anhand eines Originalbelegs des Kreditors korrigieren.
+    sql: |
+      SELECT MANDT, LIFNR, BANKS, BANKL, BANKN, IBAN, iban_reason(IBAN) AS befund
+      FROM LFBK
+      WHERE IBAN IS NOT NULL
+        AND trim(IBAN) <> ''
+        AND NOT iban_valid(IBAN)
+
+  - id: VEN-FMT-004
+    name: IBAN-Land weicht vom Bankland ab
+    description: >
+      Die ersten beiden Stellen der IBAN nennen das Land des kontofuehrenden
+      Instituts. Weicht es vom gepflegten Bankland ab, ist eine der beiden Angaben
+      falsch - mit unmittelbarer Wirkung auf die Zahlwegfindung.
+    category: format
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Bankverbindung des Kreditors
+    key_columns: [LIFNR, BANKS, BANKL, BANKN]
+    client_column: MANDT
+    requires:
+      tables: [LFBK]
+      fields:
+        LFBK: [MANDT, LIFNR, BANKS, BANKL, BANKN, IBAN]
+    params: {}
+    remediation: Bankland und IBAN abgleichen und die falsche Angabe korrigieren.
+    sql: |
+      SELECT
+          MANDT, LIFNR, BANKS, BANKL, BANKN, IBAN,
+          iban_country(IBAN) AS iban_land
+      FROM LFBK
+      WHERE IBAN IS NOT NULL
+        AND iban_valid(IBAN)
+        AND BANKS IS NOT NULL
+        AND iban_country(IBAN) <> BANKS
+
+  - id: VEN-FMT-005
+    name: IBAN enthaelt eine andere Bankleitzahl als der Stammsatz
+    description: >
+      Fuer Laender mit bekanntem IBAN-Aufbau laesst sich die Bankleitzahl aus der
+      IBAN ableiten. Weicht sie vom Feld BANKL ab, wurde eine der beiden Angaben
+      nachtraeglich geaendert, ohne die andere nachzuziehen.
+    category: format
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Bankverbindung des Kreditors
+    key_columns: [LIFNR, BANKS, BANKL, BANKN]
+    client_column: MANDT
+    requires:
+      tables: [LFBK]
+      fields:
+        LFBK: [MANDT, LIFNR, BANKS, BANKL, BANKN, IBAN]
+    params: {}
+    remediation: Bankleitzahl und IBAN gegen einen Originalbeleg abgleichen.
+    sql: |
+      SELECT
+          MANDT, LIFNR, BANKS, BANKL, BANKN, IBAN,
+          iban_bank_identifier(IBAN) AS bankleitzahl_aus_iban
+      FROM LFBK
+      WHERE IBAN IS NOT NULL
+        AND iban_valid(IBAN)
+        AND BANKL IS NOT NULL
+        AND iban_bank_identifier(IBAN) IS NOT NULL
+        AND iban_bank_identifier(IBAN) <> BANKL
+
+  - id: VEN-FMT-006
+    name: Name besteht nur aus einem Platzhalter
+    description: >
+      Eintraege wie "unbekannt", "TEST" oder eine Folge gleicher Zeichen erfuellen
+      die Pflichtfeldpruefung des Systems, tragen aber keine Information. Sie
+      verhindern jede Dublettenerkennung und jede Zustellung.
+    category: format
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [MANDT, LIFNR, NAME1, LAND1, ERDAT, ERNAM, LOEVM]
+    params: {}
+    remediation: Vollstaendigen Firmennamen nachpflegen oder den Satz loeschen.
+    sql: |
+      SELECT MANDT, LIFNR, NAME1, LAND1, ERDAT, ERNAM
+      FROM LFA1
+      WHERE COALESCE(LOEVM, '') <> 'X'
+        AND (NAME1 IS NULL OR is_placeholder_text(NAME1))

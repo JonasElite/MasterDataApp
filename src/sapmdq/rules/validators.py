@@ -345,3 +345,35 @@ def is_placeholder_text(value: str | None) -> bool:
         return True
     # Wiederholungen desselben Zeichens wie XXXX, 0000, ----
     return len(set(text)) == 1 and len(text) >= 2
+
+
+# ---------------------------------------------------------------- EAN/GTIN
+
+
+def gtin_reason(value: str | None) -> str:
+    """Prueft eine EAN/GTIN und benennt den Grund einer Beanstandung.
+
+    Zulaessig sind GTIN-8, GTIN-12 (UPC), GTIN-13 (EAN) und GTIN-14. Die
+    Pruefziffer folgt dem Modulo-10-Verfahren nach GS1: die Stellen werden von
+    rechts abwechselnd mit 3 und 1 gewichtet.
+    """
+    cleaned = _clean(value)
+    if not cleaned:
+        return "EAN fehlt"
+    if not cleaned.isdigit():
+        return "EAN enthaelt Zeichen, die keine Ziffern sind"
+    if len(cleaned) not in (8, 12, 13, 14):
+        return f"EAN hat {len(cleaned)} Stellen, zulaessig sind 8, 12, 13 oder 14"
+
+    body, check = cleaned[:-1], int(cleaned[-1])
+    total = 0
+    for index, char in enumerate(reversed(body)):
+        total += int(char) * (3 if index % 2 == 0 else 1)
+    if (10 - total % 10) % 10 != check:
+        return "Pruefziffer der EAN ist falsch"
+    return ""
+
+
+def gtin_valid(value: str | None) -> bool:
+    """True, wenn die EAN/GTIN Laenge und Pruefziffer erfuellt."""
+    return gtin_reason(value) == ""

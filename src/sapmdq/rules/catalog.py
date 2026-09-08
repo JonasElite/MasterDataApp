@@ -12,6 +12,7 @@ tatsaechlich gelaufen ist (FA-415, NFA-06).
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
@@ -29,6 +30,7 @@ from sapmdq.rules.model import (
     RuleKind,
     Severity,
 )
+from sapmdq.sap.tables import TableRegistry, load_registry
 from sapmdq.util.hashing import sha256_text
 
 logger = get_logger("rules.catalog")
@@ -155,7 +157,66 @@ def _rules_from_file(path: Path) -> list[Rule]:
     raise ConfigError(f"{path}: unerwarteter Aufbau der Regeldatei")
 
 
-def _validate_rule(rule: Rule) -> None:
+
+#: Woerter, die in SQL eine eigene Bedeutung haben und deshalb nicht als
+#: Feldbezug gewertet werden, auch wenn eine Tabelle ein gleichnamiges Feld hat.
+_SQL_KEYWORDS = frozenset({
+    "SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "NULL", "CASE", "WHEN", "THEN",
+    "ELSE", "END", "AS", "ON", "JOIN", "LEFT", "RIGHT", "FULL", "INNER", "OUTER",
+    "GROUP", "BY", "ORDER", "HAVING", "UNION", "ALL", "DISTINCT", "IN", "IS",
+    "EXISTS", "WITH", "CAST", "COALESCE", "NULLIF", "TRUE", "FALSE", "LIKE",
+    "BETWEEN", "ANTI", "SEMI", "USING", "LIMIT", "OFFSET", "ASC", "DESC", "OVER",
+    "PARTITION", "TYPE", "SOURCE", "VALUE", "DATE", "INTERVAL", "MONTH", "DAY",
+    "YEAR", "CURRENT_DATE", "COUNT", "SUM", "MIN", "MAX", "AVG", "ANY", "SOME",
+    "TABLE", "VALUES", "ROW", "FILTER", "WITHIN", "QUALIFY", "EXCLUDE", "LATERAL",
+})
+
+#: Wortartige Bezeichner in Grossschreibung - Kandidaten fuer Feldbezuege.
+_IDENTIFIER_PATTERN = re.compile(r"\b[A-Z][A-Z0-9_]{1,}\b")
+
+
+def _lint_declared_fields(rule: Rule, registry: TableRegistry) -> None:
+    """Prueft, ob die Abfrage nur deklarierte Felder verwendet (FA-301).
+
+    Das ist keine Formalie. Die Capability-Matrix entscheidet allein anhand
+    der Deklaration, ob eine Regel laufen darf. Greift die Abfrage auf ein
+    Feld zu, das nicht deklariert ist, gilt sie bei einer Teillieferung ohne
+    dieses Feld faelschlich als ausfuehrbar und faellt zur Laufzeit aus -
+    genau der Fall, den FA-301 verhindern soll.
+
+    Geprueft wird nur gegen Felder der Tabellen, die die Regel ohnehin
+    benoetigt; unbekannte Bezeichner bleiben unbeanstandet.
+    """
+    tokens = set(_IDENTIFIER_PATTERN.findall(rule.sql)) - _SQL_KEYWORDS
+    declared = {
+        field_name
+        for fields in rule.requires.fields.values()
+        for field_name in fields
+    }
+    undeclared: dict[str, set[str]] = {}
+    for table in sorted(rule.requires.all_tables):
+        spec = registry.get(table)
+        if spec is None:
+            continue
+        for field_name in spec.fields:
+            if field_name in tokens and field_name not in declared:
+                undeclared.setdefault(table, set()).add(field_name)
+
+    if not undeclared:
+        return
+
+    detail = "; ".join(
+        f"{table}: {', '.join(sorted(fields))}" for table, fields in sorted(undeclared.items())
+    )
+    raise ConfigError(
+        f"Regel {rule.id}: Die Abfrage verwendet Felder, die unter 'requires.fields' "
+        f"nicht deklariert sind ({detail}). Ohne Deklaration haelt die Capability-Matrix "
+        "die Regel auch dann fuer ausfuehrbar, wenn das Feld gar nicht geliefert wurde. "
+        "Bitte die Felder ergaenzen."
+    )
+
+
+def _validate_rule(rule: Rule, registry: TableRegistry | None = None) -> None:
     """Prueft eine Regel auf innere Stimmigkeit.
 
     Die Pruefung greift beim Laden, nicht erst bei der Ausfuehrung. Ein
@@ -185,6 +246,9 @@ def _validate_rule(rule: Rule) -> None:
     # Felder, die den Schluessel bilden, sollten auch als Abhaengigkeit
     # genannt sein - sonst laeuft die Regel auf einer Lieferung an, in der
     # ihr Schluessel fehlt.
+    if registry is not None and rule.kind is RuleKind.SQL:
+        _lint_declared_fields(rule, registry)
+
     declared_fields = {f for fields in rule.requires.fields.values() for f in fields}
     if declared_fields:
         missing_key_fields = [
@@ -212,9 +276,15 @@ def _load_meta(directory: Path) -> tuple[str | None, str | None]:
     )
 
 
-def load_catalog(directories: Sequence[Path], rule_config: RuleConfig | None = None) -> RuleCatalog:
+def load_catalog(
+    directories: Sequence[Path],
+    rule_config: RuleConfig | None = None,
+    registry: TableRegistry | None = None,
+) -> RuleCatalog:
     """Laedt den Regelkatalog aus den angegebenen Verzeichnissen."""
     catalog = RuleCatalog(directories=list(directories))
+    if registry is None:
+        registry = load_registry()
     seen: dict[str, Path] = {}
     contents: list[str] = []
     rules: list[Rule] = []
@@ -242,7 +312,7 @@ def load_catalog(directories: Sequence[Path], rule_config: RuleConfig | None = N
                         f"Regel-ID '{rule.id}' ist doppelt vergeben: {previous} und {path}"
                     )
                 seen[rule.id] = path
-                _validate_rule(rule)
+                _validate_rule(rule, registry)
                 rules.append(rule)
 
     catalog.content_hash = sha256_text("\n".join(contents))
@@ -262,7 +332,23 @@ def _apply_config(
 ) -> list[Rule]:
     """Wendet die Projektkonfiguration auf den Katalog an (FA-413)."""
     if rule_config is None:
-        return [rule for rule in rules if rule.enabled]
+        # Ohne Projektkonfiguration gilt die sichere Vorgabe: Regeln mit
+        # externer Validierung bleiben abgeschaltet. Eine Uebertragung von
+        # Kundendaten an einen externen Dienst braucht eine ausdrueckliche
+        # Freigabe und darf nicht dadurch entstehen, dass eine Konfiguration
+        # vergessen wurde (DS-04, FA-408).
+        active: list[Rule] = []
+        for rule in rules:
+            if not rule.enabled:
+                catalog.disabled[rule.id] = "im Katalog als inaktiv gekennzeichnet"
+            elif rule.external:
+                catalog.disabled[rule.id] = (
+                    "externe Validierung ohne ausdrueckliche Freigabe "
+                    "(rules.allow_external_validation, siehe DS-04 und FA-408)"
+                )
+            else:
+                active.append(rule)
+        return active
 
     known_ids = {rule.id for rule in rules}
     for rule_id in list(rule_config.enabled) + list(rule_config.disabled) + list(

@@ -184,7 +184,9 @@ class DuplicateSpec:
 
 
 #: Zulaessige Regel-IDs: Bereich, Kategorie, laufende Nummer (etwa VEN-COMP-001).
-RULE_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9]{1,9}(-[A-Z0-9]{1,10}){1,3}$")
+#: Der Bereich darf einstellig sein, damit uebergreifende Regeln kurz mit "X-"
+#: beginnen koennen.
+RULE_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9]{0,9}(-[A-Z0-9]{1,10}){1,3}$")
 
 #: Platzhalter fuer Parameter in der SQL-Abfrage.
 _PARAM_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
