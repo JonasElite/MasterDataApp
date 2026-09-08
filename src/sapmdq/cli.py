@@ -298,6 +298,7 @@ def cmd_delta(args: argparse.Namespace) -> int:
     """Vergleicht zwei Laeufe (FA-605)."""
     import duckdb
 
+    from sapmdq.audit import read_audit
     from sapmdq.findings.delta import compare_runs
 
     setup_logging(level=_log_level(args))
@@ -311,6 +312,28 @@ def cmd_delta(args: argparse.Namespace) -> int:
 
     print(f"\nVergleichslauf: {report.baseline_path}")
     print(f"Aktueller Lauf: {report.current_path}\n")
+
+    # Ein Vergleich setzt voraus, dass beide Laeufe mit demselben Regelkatalog
+    # gearbeitet haben. Sonst misst die Differenz nicht den Fortschritt der
+    # Daten, sondern die Aenderung des Massstabs - und liest sich trotzdem wie
+    # ein Erfolg.
+    vorher = read_audit(report.baseline_path.parent)
+    jetzt = read_audit(report.current_path.parent)
+    if vorher and jetzt:
+        if vorher.catalog_version != jetzt.catalog_version:
+            print(
+                "Achtung: Die Laeufe haben unterschiedliche Regelkataloge benutzt "
+                f"({vorher.catalog_version} gegen {jetzt.catalog_version}). Die "
+                "Differenz zeigt dann auch die Aenderung des Massstabs und nicht "
+                "allein den Fortschritt der Daten.\n"
+            )
+        if vorher.coverage_ratio != jetzt.coverage_ratio:
+            print(
+                f"Hinweis: Der Coverage-Grad hat sich geaendert "
+                f"({vorher.coverage_ratio:.0%} gegen {jetzt.coverage_ratio:.0%}). "
+                "Es wurde nicht dasselbe geprueft.\n"
+            )
+
     print(report.summary_line())
     print("")
     _print_table(

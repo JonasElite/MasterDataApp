@@ -64,14 +64,3 @@ def register_udfs(con: duckdb.DuckDBPyConnection) -> tuple[str, ...]:
         registered.append(name)
     logger.debug("%d Prueffunktionen registriert", len(registered))
     return tuple(registered)
-
-
-def normalize_company_name_sql(column: str) -> str:
-    """SQL-Ausdruck zur Namensnormalisierung (FA-501).
-
-    Wird sowohl von der Dublettenerkennung als auch von Regeln genutzt, die
-    auf Namensgleichheit pruefen. Die Umsetzung bleibt in SQL, weil sie auf
-    Millionen Zeilen laeuft und dort deutlich guenstiger ist als eine
-    zeilenweise Funktion.
-    """
-    return f"upper(trim(regexp_replace({column}, '[^[:alnum:]]+', ' ', 'g')))"

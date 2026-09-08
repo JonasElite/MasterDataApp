@@ -202,6 +202,22 @@ class TestWeitereBefehle:
         assert main(["delta", str(laeufe[0]), str(laeufe[1]), "-q"]) == EXIT_OK
         assert "unveraendert" in capsys.readouterr().out
 
+    def test_delta_warnt_bei_abweichendem_regelkatalog(self, arbeitsplatz, tmp_path, capsys):
+        """Sonst liest sich eine Aenderung des Massstabs wie ein Fortschritt."""
+        main(["run", "-c", str(arbeitsplatz), "-q"])
+        main(["run", "-c", str(arbeitsplatz), "-q"])
+        laeufe = sorted((tmp_path / "out" / "runs").iterdir())
+
+        protokoll = laeufe[0] / "ausfuehrungsprotokoll.json"
+        inhalt = json.loads(protokoll.read_text(encoding="utf-8"))
+        inhalt["catalog_version"] = "0.9.0+abcdefabcdef"
+        protokoll.write_text(json.dumps(inhalt), encoding="utf-8")
+
+        capsys.readouterr()
+        main(["delta", str(laeufe[0]), str(laeufe[1]), "-q"])
+        ausgabe = capsys.readouterr().out
+        assert "unterschiedliche Regelkataloge" in ausgabe
+
 
 class TestFehlerbehandlung:
     def test_fehlende_konfiguration(self, capsys):

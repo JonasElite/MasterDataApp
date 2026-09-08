@@ -126,9 +126,6 @@ class TableSpec:
         """Feldbeschreibung; unbekannte Felder gelten als Zeichenfeld."""
         return self.fields.get(name.upper(), FieldSpec(name=name.upper()))
 
-    def pii_fields(self) -> tuple[str, ...]:
-        return tuple(sorted(name for name, spec in self.fields.items() if spec.pii))
-
 
 class TableRegistry:
     """Zugriff auf alle bekannten Tabellenmetadaten."""

@@ -126,6 +126,84 @@ class CoverageReport:
                 entry[0] += 1
         return {area: (values[0], values[1]) for area, values in sorted(result.items())}
 
+    def blocking_tables(self) -> frozenset[str]:
+        """Tabellen, an denen die Regel scheitert - fehlende Felder eingeschlossen."""
+        return frozenset(self.missing_tables) | frozenset(self.missing_fields)
+
+
+@dataclass
+class UnlockCandidate:
+    """Eine Tabelle, deren Nachlieferung weitere Pruefungen freischaltet (FA-304)."""
+
+    table: str
+    description: str
+    tier: str
+    #: False, wenn die Tabelle ganz fehlt; True, wenn sie geliefert wurde,
+    #: aber Felder fehlen. Der Unterschied ist fuer den Kunden wesentlich:
+    #: im einen Fall muss er eine Tabelle nachliefern, im anderen denselben
+    #: Export mit mehr Spalten wiederholen.
+    delivered: bool = False
+    #: Felder, die in der gelieferten Tabelle fehlen.
+    missing_fields: tuple[str, ...] = ()
+    #: Regeln, die allein durch diese Tabelle blockiert sind.
+    unlocked_rules: tuple[str, ...] = ()
+    #: Regeln, die zusaetzlich freigeschaltet werden, wenn die vorher
+    #: genannten Tabellen ebenfalls geliefert werden.
+    cumulative_rules: tuple[str, ...] = ()
+
+    @property
+    def direct_count(self) -> int:
+        return len(self.unlocked_rules)
+
+    @property
+    def request(self) -> str:
+        """Nachforderung im Klartext."""
+        if not self.delivered:
+            return f"Tabelle {self.table} nachliefern"
+        return f"{self.table} erneut liefern, ergaenzt um " + ", ".join(self.missing_fields)
+
+    @property
+    def cumulative_count(self) -> int:
+        return len(self.cumulative_rules)
+
+
+@dataclass
+class CoverageReport:
+    """Ergebnis der Abhaengigkeitspruefung (FA-303, FA-305)."""
+
+    capabilities: list[RuleCapability] = field(default_factory=list)
+    delivered_tables: tuple[str, ...] = ()
+    demand_list: list[UnlockCandidate] = field(default_factory=list)
+    #: Regeln, die die Projektkonfiguration abgeschaltet hat.
+    disabled_rules: dict[str, str] = field(default_factory=dict)
+
+    @property
+    def executable(self) -> list[RuleCapability]:
+        return [c for c in self.capabilities if c.executable]
+
+    @property
+    def blocked(self) -> list[RuleCapability]:
+        return [c for c in self.capabilities if not c.executable]
+
+    @property
+    def total(self) -> int:
+        return len(self.capabilities)
+
+    @property
+    def coverage_ratio(self) -> float:
+        """Anteil ausfuehrbarer Regeln - der Coverage-Grad (FA-305)."""
+        return len(self.executable) / self.total if self.total else 0.0
+
+    def coverage_by_area(self) -> dict[str, tuple[int, int]]:
+        """Ausfuehrbare und gesamte Regeln je Objektbereich."""
+        result: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+        for capability in self.capabilities:
+            entry = result[capability.rule.object_area]
+            entry[1] += 1
+            if capability.executable:
+                entry[0] += 1
+        return {area: (values[0], values[1]) for area, values in sorted(result.items())}
+
     def coverage_by_category(self) -> dict[str, tuple[int, int]]:
         """Ausfuehrbare und gesamte Regeln je Kategorie."""
         result: dict[str, list[int]] = defaultdict(lambda: [0, 0])

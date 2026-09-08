@@ -20,18 +20,3 @@ def sha256_file(path: Path) -> str:
 def sha256_text(text: str) -> str:
     """SHA-256 eines Textes (Konfiguration, Regelquelltext)."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-def sha256_of_parts(*parts: str) -> str:
-    """Stabiler Hash ueber mehrere Bestandteile.
-
-    Die Teile werden mit ``\\x1f`` getrennt, damit sich Grenzen nicht
-    verschieben koennen (``"ab"+"c"`` ergibt einen anderen Hash als
-    ``"a"+"bc"``).
-    """
-    return hashlib.sha256("\x1f".join(parts).encode("utf-8")).hexdigest()
-
-
-def short_hash(value: str, length: int = 16) -> str:
-    """Gekuerzter Hash fuer Anzeigezwecke."""
-    return sha256_text(value)[:length]

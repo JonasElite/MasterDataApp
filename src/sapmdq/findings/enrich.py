@@ -208,10 +208,14 @@ def enrich_findings(
             f"SELECT delta_state, count(*) FROM {enriched} WHERE NOT whitelisted GROUP BY 1 ORDER BY 1"
         ).fetchall()
     )
+    # Was "offen" heisst, steht am Statusmodell und nicht hier - sonst
+    # muesste eine neue Statusstufe an zwei Stellen nachgezogen werden.
+    offene_stufen = ", ".join(
+        quote_literal(status.value) for status in FindingStatus if not status.is_closed
+    )
     open_findings = con.execute(
-        f"SELECT count(*) FROM {enriched} WHERE NOT whitelisted AND status IN "
-        f"({quote_literal(FindingStatus.OPEN.value)}, "
-        f"{quote_literal(FindingStatus.IN_CLARIFICATION.value)})"
+        f"SELECT count(*) FROM {enriched} "
+        f"WHERE NOT whitelisted AND status IN ({offene_stufen})"
     ).fetchone()[0]
 
     # Ausnahmen, die auf keinen Befund mehr zutreffen: entweder ist der Mangel

@@ -167,12 +167,6 @@ def name_tokens(normalized_name: str) -> tuple[str, ...]:
     return tuple(token for token in normalized_name.split() if token)
 
 
-def block_key_name_prefix(normalized_name: str, length: int = 4) -> str:
-    """Blockschluessel aus dem Namensanfang (FA-504)."""
-    compact = normalized_name.replace(" ", "")
-    return compact[:length]
-
-
 def block_key_name_sorted(normalized_name: str, count: int = 2, length: int = 3) -> str:
     """Blockschluessel aus den alphabetisch ersten Wortanfaengen (FA-504).
 

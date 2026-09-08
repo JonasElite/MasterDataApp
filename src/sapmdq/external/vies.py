@@ -208,10 +208,6 @@ def set_active_client(client: ViesClient | None) -> None:
     _active_client = client
 
 
-def get_active_client() -> ViesClient | None:
-    return _active_client
-
-
 def vies_check_valid(country: str | None, value: str | None) -> bool:
     """SQL-Funktion: True, wenn die Nummer bestaetigt oder nicht pruefbar ist."""
     client = _active_client
