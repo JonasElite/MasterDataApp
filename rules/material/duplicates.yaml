@@ -40,7 +40,11 @@ rules:
           AND NOT is_placeholder_text(t.MAKTX)
       key_columns: [MATNR]
       name_column: MAKTX
-      address_columns: [MATKL, MTART]
+      # Bewusst ohne address_columns: Warengruppe und Materialart sind keine
+      # Adresse. Als solche gewertet erhielten zwei Materialien derselben
+      # Gruppe die volle Adresspunktzahl, und der zusammengesetzte Schwellwert
+      # setzte den strengeren Namensschwellwert ausser Kraft - jedes zweite
+      # Material derselben Gruppe waere eine vermeintliche Dublette.
       blocking_columns: [name_prefix, name_sorted]
       threshold: 92
 

@@ -178,7 +178,7 @@ tables:
       STCD2: {pii: true, aliases: ["Steuernummer 2"]}
       STCD3: {pii: true, aliases: ["Steuernummer 3"]}
       STCD4: {pii: true, aliases: ["Steuernummer 4"]}
-      STCEG: {aliases: ["Umsatzsteuer-Identifikationsnummer", "USt-IdNr.", "UST-ID"]}
+      STCEG: {pii: true, aliases: ["Umsatzsteuer-Identifikationsnummer", "USt-IdNr.", "UST-ID"]}
       STKZU: {type: flag, aliases: [Umsatzsteuerpflichtig]}
       STKZN: {type: flag, aliases: ["Natuerliche Person"]}
       XCPDK: {type: flag, aliases: [CpD-Konto, "Konto ist CpD"]}
@@ -191,7 +191,7 @@ tables:
       LNRZA: {alpha: 10, aliases: ["Abweichender Zahlungsempfaenger"]}
       REVDB: {type: dats, aliases: ["Letzte Auskunft"]}
       DTAMS: {aliases: ["Meldeschluessel"]}
-      DUNS: {aliases: ["DUNS-Nummer", D-U-N-S]}
+      DUNS: {pii: true, aliases: ["DUNS-Nummer", D-U-N-S]}
       EMAIL: {pii: true, aliases: [E-Mail, "E-Mail-Adresse", SMTP_ADDR]}
 
   LFB1:
@@ -309,7 +309,7 @@ tables:
       FAKSD: {aliases: ["Zentrale Fakturasperre"]}
       STCD1: {pii: true, aliases: ["Steuernummer 1"]}
       STCD2: {pii: true, aliases: ["Steuernummer 2"]}
-      STCEG: {aliases: ["Umsatzsteuer-Identifikationsnummer", "USt-IdNr."]}
+      STCEG: {pii: true, aliases: ["Umsatzsteuer-Identifikationsnummer", "USt-IdNr."]}
       STKZU: {type: flag, aliases: [Umsatzsteuerpflichtig]}
       STKZN: {type: flag, aliases: ["Natuerliche Person"]}
       XCPDK: {type: flag, aliases: [CpD-Konto]}
@@ -318,7 +318,7 @@ tables:
       KUKLA: {aliases: [Kundenklassifizierung]}
       BRSCH: {aliases: [Branche, Branchenschluessel]}
       BEGRU: {aliases: [Berechtigungsgruppe]}
-      DUNS: {aliases: ["DUNS-Nummer"]}
+      DUNS: {pii: true, aliases: ["DUNS-Nummer"]}
       EMAIL: {pii: true, aliases: [E-Mail, SMTP_ADDR]}
 
   KNB1:
@@ -544,7 +544,7 @@ tables:
       CREATED_ON: {type: dats, aliases: ["Angelegt am"]}
       CREATED_BY: {pii: true, aliases: ["Angelegt von"]}
       PARTNER_GUID: {aliases: [BP-GUID]}
-      STCEG: {aliases: ["USt-IdNr."]}
+      STCEG: {pii: true, aliases: ["USt-IdNr."]}
 
   BUT020:
     description: Business Partner - Adressen

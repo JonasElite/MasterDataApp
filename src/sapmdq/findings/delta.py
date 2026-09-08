@@ -54,6 +54,10 @@ class DeltaReport:
     new_findings: int = 0
     resolved_findings: int = 0
     unchanged_findings: int = 0
+    #: Befunde, die im Vergleichslauf offen waren und jetzt als begruendete
+    #: Ausnahme gelten. Sie sind nicht behoben, sondern anerkannt - dieser
+    #: Unterschied gehoert in den Bericht, sonst wird Fortschritt vorgetaeuscht.
+    newly_whitelisted: int = 0
     by_rule: list[RuleDelta] = field(default_factory=list)
     #: Regeln, die nur in einem der beiden Laeufe aktiv waren.
     rules_only_baseline: list[str] = field(default_factory=list)
@@ -70,12 +74,18 @@ class DeltaReport:
         if self.baseline_total == 0 and self.current_total == 0:
             return "Beide Laeufe sind ohne Befund."
         direction = "weniger" if self.net_change < 0 else "mehr"
-        return (
+        satz = (
             f"{self.resolved_findings} Befunde behoben, {self.new_findings} neu hinzugekommen, "
             f"{self.unchanged_findings} unveraendert. In Summe "
             f"{abs(self.net_change)} Befunde {direction} als im Vergleichslauf "
             f"({self.baseline_total} zu {self.current_total})."
         )
+        if self.newly_whitelisted:
+            satz += (
+                f" Davon sind {self.newly_whitelisted} nicht behoben, sondern seit dem "
+                "Vergleichslauf als begruendete Ausnahme anerkannt."
+            )
+        return satz
 
 
 def compare_runs(
@@ -117,6 +127,23 @@ def compare_runs(
         """
     ).fetchone()
     report.new_findings, report.resolved_findings, report.unchanged_findings = counts
+
+    # Wieviele der scheinbar behobenen Befunde sind in Wahrheit als Ausnahme
+    # anerkannt worden? Ohne diese Unterscheidung liest sich eine erteilte
+    # Ausnahme wie ein Sanierungserfolg.
+    current_all = f"read_parquet({quote_literal(str(current_path))})"
+    current_columns = {
+        row[0] for row in con.execute(f"DESCRIBE SELECT * FROM {current_all}").fetchall()
+    }
+    if ignore_whitelisted and "whitelisted" in current_columns:
+        report.newly_whitelisted = con.execute(
+            f"""
+            SELECT count(*) FROM (SELECT DISTINCT finding_id FROM {baseline}) b
+            WHERE b.finding_id IN (
+                SELECT finding_id FROM {current_all} WHERE whitelisted
+            )
+            """
+        ).fetchone()[0]
 
     rows = con.execute(
         f"""
