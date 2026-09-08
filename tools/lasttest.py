@@ -27,6 +27,10 @@ SEED = 20260908
 ORTE = [("Berlin", "DE"), ("Hamburg", "DE"), ("Wien", "AT"), ("Zuerich", "CH"),
         ("Amsterdam", "NL"), ("Paris", "FR"), ("Mailand", "IT")]
 FORMEN = ["GmbH", "AG", "KG", "OHG", "SE"]
+STAEMME = [
+    "Baumann", "Kessler", "Lindner", "Hoffmann", "Wagner", "Brandt", "Ziegler",
+    "Kaufmann", "Roth", "Sommer", "Winkler", "Faber", "Gerber", "Hartmann",
+]
 
 
 def mod97(text: str) -> int:
@@ -36,8 +40,16 @@ def mod97(text: str) -> int:
     return rest
 
 
-def schreibe_kreditoren(ziel: Path, anzahl: int, rng: random.Random) -> None:
-    """Schreibt LFA1, LFB1, LFM1 und LFBK zeilenweise."""
+def schreibe_kreditoren(
+    ziel: Path, anzahl: int, rng: random.Random, dublettenanteil: float = 0.0
+) -> None:
+    """Schreibt LFA1, LFB1, LFM1 und LFBK zeilenweise.
+
+    ``dublettenanteil`` bestimmt, welcher Anteil der Saetze einen Namen aus
+    einem bewusst kleinen Vorrat erhaelt. Der Aufwand der Dublettenerkennung
+    haengt an der Zahl der Treffer, nicht an der Satzanzahl - mit diesem
+    Schalter laesst sich beides getrennt messen.
+    """
     with (ziel / "LFA1.csv").open("w", encoding="utf-8", newline="") as lfa1, \
          (ziel / "LFB1.csv").open("w", encoding="utf-8", newline="") as lfb1, \
          (ziel / "LFM1.csv").open("w", encoding="utf-8", newline="") as lfm1, \
@@ -53,7 +65,15 @@ def schreibe_kreditoren(ziel: Path, anzahl: int, rng: random.Random) -> None:
             lifnr = f"{100000 + index}"
             ort, land = ORTE[index % len(ORTE)]
             plz = f"{10000 + (index * 7) % 89999}"
-            name = f"Firma{index % 9973} {ORTE[index % len(ORTE)][0]} {FORMEN[index % 5]}"[:35]
+            # Der Name ist nahezu eindeutig. Zieht man aus einem kleinen
+            # Vorrat, entsteht ein Bestand mit einem Dublettenanteil, den kein
+            # gewachsener Stamm hat - gemessen wuerde dann die Bewaeltigung
+            # eines Sonderfalls und nicht der Regelbetrieb. Wie sich das
+            # Werkzeug bei hoher Dublettendichte verhaelt, zeigt --dubletten.
+            if dublettenanteil and (index % 1000) < dublettenanteil * 1000:
+                name = f"{STAEMME[index % len(STAEMME)]} Handel {FORMEN[index % 5]}"[:35]
+            else:
+                name = f"{STAEMME[index % len(STAEMME)]}{index} {FORMEN[index % 5]}"[:35]
             erdat = f"20{18 + index % 8:02d}{1 + index % 12:02d}{1 + index % 28:02d}"
             ustid = f"DE{100000000 + (index * 37) % 899999999}" if land == "DE" else ""
             blz = f"{10000000 + (index * 13) % 89999999}"
@@ -128,6 +148,10 @@ def main() -> None:
     parser.add_argument("--materials", type=int, default=500_000)
     parser.add_argument("--workdir", default=None, help="Arbeitsverzeichnis des Lasttests")
     parser.add_argument("--keep", action="store_true", help="Daten nach dem Lauf behalten")
+    parser.add_argument(
+        "--dubletten", type=float, default=0.0,
+        help="Anteil der Kreditoren mit absichtlich aehnlichem Namen (0.0 bis 1.0)",
+    )
     args = parser.parse_args()
 
     import tempfile
@@ -139,7 +163,7 @@ def main() -> None:
     rng = random.Random(SEED)
     print(f"Erzeuge Lieferung in {basis} ...")
     begonnen = time.perf_counter()
-    schreibe_kreditoren(eingang, args.vendors, rng)
+    schreibe_kreditoren(eingang, args.vendors, rng, args.dubletten)
     schreibe_material(eingang, args.materials)
     schreibe_customizing(eingang)
     erzeugung = time.perf_counter() - begonnen

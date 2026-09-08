@@ -28,6 +28,11 @@ weitere Pruefungen frei".
 Quelldatei-Hash und Zeitstempel zurueckfuehrbar. Zwei Laeufe auf denselben
 Daten erzeugen bitgleiche Ergebnisdateien.
 
+Zum Durchsatz: 1,2 Millionen Saetze ueber 62 Regeln in gut zwei Minuten,
+hochgerechnet knapp neun Minuten fuer fuenf Millionen. Nachmessen laesst sich
+das mit `python tools/lasttest.py`; die Einordnung der Zahl steht in
+[docs/anforderungsabdeckung.md](docs/anforderungsabdeckung.md).
+
 ## Schnellstart
 
 ```bash

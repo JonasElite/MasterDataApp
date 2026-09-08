@@ -23,8 +23,8 @@ from sapmdq.dedup import normalize
 from sapmdq.dedup.matcher import (
     DuplicateCluster,
     build_clusters,
+    compare_blocks,
     find_exact_matches,
-    find_fuzzy_matches,
 )
 from sapmdq.logging_setup import get_logger
 from sapmdq.rules.engine import ExecutionStatus, RuleExecution
@@ -32,6 +32,15 @@ from sapmdq.rules.model import Rule, render_params
 from sapmdq.sap.sql_conversion import quote_identifier, quote_literal
 
 logger = get_logger("dedup.runner")
+
+#: Zeilen, die je Abfrage aus der Datenbank geholt werden.
+#:
+#: Bloecke werden gebuendelt abgeholt, nicht einzeln. Ein Kreditorenstamm
+#: zerfaellt nach Land und Postleitzahl leicht in zehntausende kleine Bloecke;
+#: bei einer Abfrage je Block ueberwiegt der Verwaltungsaufwand den Vergleich
+#: um ein Vielfaches. Die Buendelgroesse begrenzt zugleich den Speicherbedarf
+#: unabhaengig von der Gesamtmenge (NFA-02).
+FETCH_BATCH_ROWS = 50_000
 
 #: Blocking-Strategien und der SQL-Ausdruck, der ihren Schluessel bildet.
 #: ``{name}`` steht fuer die normalisierte Namensspalte, ``{country}`` und
@@ -320,15 +329,23 @@ def execute_duplicate_rule(
 
     pairs = []
     skipped: list[str] = []
+    abgebrochen = False
 
     # ---------------------------------------------- exakter Abgleich (FA-502)
-    if exact_columns:
+    for alias, label in zip(exact_columns, spec.exact_keys):
+        # Nur die Saetze abholen, deren Schluesselwert ueberhaupt mehrfach
+        # vorkommt. Der gesamte Bestand muesste sonst durch den Speicher
+        # wandern, um am Ende eine Handvoll Treffer zu ergeben - bei einem
+        # sauberen Stamm im Zweifel gar keine.
         exact_frame = con.execute(
-            f"SELECT _key, {', '.join(exact_columns)} FROM {quoted} ORDER BY _key"
+            f"SELECT _key, {alias} AS {quote_identifier(label)} FROM {quoted} "
+            f"WHERE {alias} IS NOT NULL AND {alias} IN ("
+            f"  SELECT {alias} FROM {quoted} WHERE {alias} IS NOT NULL "
+            f"  GROUP BY 1 HAVING count(DISTINCT _key) > 1"
+            f") ORDER BY _key"
         ).df()
-        rename = {alias: column for alias, column in zip(exact_columns, spec.exact_keys)}
-        exact_frame = exact_frame.rename(columns=rename)
-        pairs.extend(find_exact_matches(exact_frame, "_key", list(spec.exact_keys)))
+        if not exact_frame.empty:
+            pairs.extend(find_exact_matches(exact_frame, "_key", [label]))
 
     # -------------------------------- unscharfer Abgleich je Block (FA-503/504)
     if block_columns and spec.name_column:
@@ -338,23 +355,58 @@ def execute_duplicate_rule(
                 f"WHERE {block_column} IS NOT NULL AND trim({block_column}) NOT IN ('', '|') "
                 f"GROUP BY 1 HAVING count(*) > 1 ORDER BY 1"
             ).fetchall()
+
+            buendel: list[str] = []
+            buendel_zeilen = 0
+
+            def verarbeiten(werte: list[str]) -> None:
+                """Holt ein Buendel Bloecke und vergleicht innerhalb jedes Blocks.
+
+                Die Spalten werden als Listen uebernommen. Ein DataFrame je
+                Block waere bei zehntausenden kleinen Bloecken der groesste
+                Einzelposten der Laufzeit - teurer als der Vergleich selbst.
+                """
+                if not werte:
+                    return
+                platzhalter = ", ".join("?" for _ in werte)
+                spalten = con.execute(
+                    f"SELECT _key, _name_norm, _addr_norm, {block_column} AS _blk "
+                    f"FROM {quoted} WHERE {block_column} IN ({platzhalter}) "
+                    "ORDER BY _blk, _key",
+                    werte,
+                ).fetchall()
+                if not spalten:
+                    return
+                schluessel = [str(zeile[0]) for zeile in spalten]
+                namen = [zeile[1] or "" for zeile in spalten]
+                adressen = (
+                    [zeile[2] or "" for zeile in spalten] if address_columns else None
+                )
+                blockschluessel = [str(zeile[3]) for zeile in spalten]
+
+                gefunden, _ = compare_blocks(
+                    schluessel, namen, adressen, blockschluessel,
+                    threshold, config.combined_threshold,
+                    max_block_size=config.max_block_size,
+                )
+                pairs.extend(gefunden)
+
             for block_value, size in blocks:
+                if len(pairs) >= config.max_pairs_per_rule:
+                    abgebrochen = True
+                    break
                 if size > config.max_block_size:
                     skipped.append(f"{block_column}={block_value} ({size} Saetze)")
                     continue
-                block_frame = con.execute(
-                    f"SELECT _key, _name_norm, _addr_norm FROM {quoted} "
-                    f"WHERE {block_column} = ? ORDER BY _key",
-                    [block_value],
-                ).df()
-                block_frame["_blk"] = block_value
-                block_pairs, _ = find_fuzzy_matches(
-                    block_frame, "_key", "_name_norm",
-                    "_addr_norm" if address_columns else None,
-                    ["_blk"], threshold, config.combined_threshold,
-                    max_block_size=config.max_block_size,
-                )
-                pairs.extend(block_pairs)
+                buendel.append(block_value)
+                buendel_zeilen += size
+                if buendel_zeilen >= FETCH_BATCH_ROWS:
+                    verarbeiten(buendel)
+                    buendel, buendel_zeilen = [], 0
+            if not abgebrochen:
+                verarbeiten(buendel)
+            else:
+                break
 
     clusters = build_clusters(pairs)
     members = [member for cluster in clusters for member in cluster.members]
@@ -385,16 +437,26 @@ def execute_duplicate_rule(
             rule.id, len(skipped), config.max_block_size,
         )
 
+    hinweise = []
+    if skipped:
+        hinweise.append(f"{len(skipped)} Block/Bloecke wegen Groesse uebergangen")
+    if abgebrochen:
+        hinweis = (
+            f"Der Vergleich wurde nach {len(pairs)} Treffern abgebrochen "
+            f"(Grenze dedup.max_pairs_per_rule = {config.max_pairs_per_rule}). "
+            "Das Ergebnis dieser Regel ist unvollstaendig; bei derart vielen "
+            "Treffern ist zuerst die Datenlage zu klaeren."
+        )
+        hinweise.append(hinweis)
+        logger.warning("%s: %s", rule.id, hinweis)
+
     return (
         RuleExecution(
             rule=rule, status=ExecutionStatus.OK, finding_count=len(clusters),
             duration_seconds=duration, result_path=result_path,
-            message=(
-                f"{len(skipped)} Block/Bloecke wegen Groesse uebergangen"
-                if skipped else ""
-            ),
+            message="; ".join(hinweise),
         ),
-        skipped,
+        skipped + ([hinweise[-1]] if abgebrochen else []),
     )
 
 

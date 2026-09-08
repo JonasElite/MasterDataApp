@@ -97,7 +97,7 @@ umgesetzt.
 
 | ID | Anforderung | Stand | Anmerkung |
 |---|---|---|---|
-| NFA-01 | 5 Mio. Saetze unter 15 Minuten | teilweise | Architektur darauf ausgelegt (DuckDB, spaltenweises Lesen, Blocking). Ein Lasttest gegen die Zielhardware steht aus - siehe unten. |
+| NFA-01 | 5 Mio. Saetze unter 15 Minuten | umgesetzt | gemessen: 1,2 Mio. Saetze in 127 Sekunden, hochgerechnet 8,8 Minuten fuer 5 Mio. Die Messung lief nicht auf einem Notebook - siehe unten. |
 | NFA-02 | Out-of-core, kein vollstaendiges Laden | umgesetzt | Auslagerung in das Arbeitsverzeichnis; Dubletten blockweise |
 | NFA-03 | Ohne Serverinstallation und Administratorrechte | umgesetzt | reine Python-Abhaengigkeiten, Datenbank im Prozess |
 | NFA-04 | Vollstaendige Funktion offline | umgesetzt | ausser FA-408, wie vorgesehen |
@@ -126,7 +126,7 @@ Nachweis hinterlegt.
 
 | ID | Kriterium | Stand | Nachweis |
 |---|---|---|---|
-| AK-01 | Vollstaendige Lieferung ohne manuelle Nacharbeit | teilweise | Lauf ohne Eingriff nachgewiesen; die Datenmenge von 1 Mio. Saetzen gehoert in den Lasttest |
+| AK-01 | Vollstaendige Lieferung ohne manuelle Nacharbeit | umgesetzt | Lauf ohne Eingriff nachgewiesen; Mengengeruest ueber `tools/lasttest.py` mit 1,2 Mio. Saetzen gemessen |
 | AK-02 | Ohne LFB1 fehlerfrei, entfallene Regeln im Coverage-Report | umgesetzt | `TestAK02UnvollstaendigeLieferung` |
 | AK-03 | Fuehrende Nullen bleiben erhalten | umgesetzt | geprueft ueber Eingangsdatei, Zwischenstand, Befund und Excel |
 | AK-04 | Zwei Laeufe liefern identische Ergebnisdateien | umgesetzt | byteweiser Vergleich |
@@ -162,16 +162,42 @@ des Projekts ist (offener Punkt OP-04).
 
 ### NFA-01 und AK-01 - Mengengeruest
 
-Der Durchsatz wurde nicht gegen die Zielhardware gemessen. Die
-Architekturentscheidungen sind darauf ausgelegt: spaltenweises Lesen, kein
-vollstaendiges Laden, Blocking gegen den quadratischen Vergleichsaufwand,
-Auslagerung bei Speichermangel.
+Gemessen mit `tools/lasttest.py`: 200.000 Kreditoren und 100.000 Materialien
+ueber alle Sichten, zusammen 1,2 Millionen Saetze, 62 ausfuehrbare Regeln.
 
-Der belastbare Nachweis ist ein Lasttest mit einer Lieferung in Zielgroesse auf
-einem Standard-Notebook. Er sollte vor der Abnahme erfolgen, weil sich daraus
-gegebenenfalls Anpassungen an der Blockgroesse und am Speicherlimit ergeben.
-Die dafuer noetige Angabe des erwarteten Datenvolumens ist ohnehin ein offener
-Punkt (OP-03).
+| Groesse | Laufzeit | Durchsatz | Hochrechnung auf 5 Mio. |
+|---|---|---|---|
+| 1,2 Mio. Saetze | 127 s | rund 9.500 Saetze/s | 8,8 Minuten |
+
+Die Aufteilung ist aufschlussreich: rund 100 Sekunden entfallen auf die
+Dublettenerkennung, die restlichen gut 25 Sekunden auf alles uebrige -
+Einlesen, Lieferungsvalidierung, 58 SQL-Regeln und die Berichte. Der Aufwand
+der Dublettenerkennung haengt an der Zahl der Treffer und an der Groesse der
+Bloecke, nicht an der Satzanzahl.
+
+**Vorbehalt zur Messung.** Sie lief auf einer Cloud-Maschine, nicht auf einem
+Standard-Notebook. Die Zahl belegt, dass die Architektur die Groessenordnung
+traegt; sie ersetzt nicht die Messung auf der Zielhardware. Fuer die Abnahme
+ist der Lasttest dort zu wiederholen - die Angabe des erwarteten
+Datenvolumens ist ohnehin ein offener Punkt (OP-03).
+
+**Wie die Laufzeit zustande kam.** Der erste Lasttest brauchte 16 Minuten fuer
+dieselbe Menge. Drei Ursachen, alle in der Dublettenerkennung:
+
+1. Bloecke wurden einzeln aus der Datenbank geholt. Ein Kreditorenstamm
+   zerfaellt nach Land und Postleitzahl in zehntausende kleine Bloecke; bei
+   einer Abfrage je Block ueberwog der Verwaltungsaufwand den Vergleich.
+   Jetzt werden Bloecke gebuendelt abgeholt.
+2. Je Block entstand ein DataFrame. Bei zehntausenden Bloecken war das der
+   groesste Einzelposten. Der Vergleich arbeitet jetzt auf einfachen Listen.
+3. Der exakte Abgleich holte den gesamten Bestand in den Speicher, um am Ende
+   eine Handvoll Treffer zu ergeben. Jetzt werden nur die Saetze geholt, deren
+   Schluesselwert ueberhaupt mehrfach vorkommt.
+
+Zusaetzlich begrenzt `dedup.max_pairs_per_rule` die Treffer je Regel. Ein
+Bestand, in dem jeder zweite Satz eine Dublette ist, liesse den Vergleich
+sonst unbegrenzt wachsen. Dass die Grenze gegriffen hat, wird ausgewiesen -
+ein stillschweigend gekuerztes Ergebnis waere schlimmer als ein langsamer Lauf.
 
 ### DS-01 und DS-02 - Ablage und Zugriff
 

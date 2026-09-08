@@ -122,6 +122,34 @@ Ein voller Punktwert waere hier die gefaehrlichste aller Aussagen: er sieht aus
 wie ein Ergebnis, ist aber die Abwesenheit einer Pruefung. Stattdessen steht
 dort "nicht bewertbar".
 
+## Wo die Laufzeit steckt
+
+Bei einer Lieferung von 1,2 Millionen Saetzen entfallen rund vier Fuenftel der
+Laufzeit auf die Dublettenerkennung und ein Fuenftel auf alles uebrige. Das
+ist kein Missverhaeltnis, sondern die Natur der Sache: die SQL-Regeln sind
+Tabellenscans mit Verknuepfungen, der unscharfe Abgleich ist quadratisch in
+der Blockgroesse.
+
+Drei Entscheidungen halten ihn dennoch berechenbar:
+
+**Bloecke werden gebuendelt geholt.** Ein Kreditorenstamm zerfaellt nach Land
+und Postleitzahl in zehntausende kleine Bloecke. Bei einer Datenbankabfrage je
+Block ueberwiegt der Verwaltungsaufwand den Vergleich um ein Vielfaches. Die
+Buendelgroesse begrenzt zugleich den Speicherbedarf.
+
+**Der Vergleich arbeitet auf Listen, nicht auf DataFrames.** Ein DataFrame je
+Block war in der Messung der groesste Einzelposten - teurer als der Vergleich
+selbst.
+
+**Der exakte Abgleich bleibt in der Datenbank.** Geholt werden nur die Saetze,
+deren Schluesselwert ueberhaupt mehrfach vorkommt. Bei einem sauberen Stamm
+sind das keine.
+
+Zwei Grenzen schuetzen vor pathologischen Bestaenden: `max_block_size` gegen
+einzelne riesige Bloecke und `max_pairs_per_rule` gegen eine Trefferzahl, die
+ins Uferlose waechst. Beide melden, wenn sie greifen - ein stillschweigend
+gekuerztes Ergebnis waere schlimmer als ein langsamer Lauf.
+
 ## Reproduzierbarkeit
 
 Bitgleiche Ergebnisse (NFA-05, AK-04) entstehen nicht von selbst. Sie beruhen

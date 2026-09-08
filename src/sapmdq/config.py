@@ -254,6 +254,15 @@ class DedupConfig:
     blocking: list[str] = field(default_factory=lambda: ["country_postcode", "name_prefix"])
     #: Obergrenze der Satzanzahl je Block - schuetzt vor quadratischer Last.
     max_block_size: int = 5_000
+    #: Obergrenze der Treffer je Dublettenregel.
+    #:
+    #: Der Aufwand der Dublettenerkennung haengt nicht an der Satzanzahl,
+    #: sondern an der Zahl der Treffer. Ein Bestand, in dem jeder zweite Satz
+    #: eine Dublette ist, laesst den Vergleich unbegrenzt wachsen. Die Grenze
+    #: haelt die Laufzeit berechenbar (NFA-01); dass sie gegriffen hat, wird
+    #: ausgewiesen - ein stillschweigend gekuerztes Ergebnis waere schlimmer
+    #: als ein langsamer Lauf.
+    max_pairs_per_rule: int = 1_000_000
     #: Rechtsformzusaetze, die vor dem Vergleich entfernt werden (FA-501).
     legal_forms: list[str] = field(default_factory=list)
     #: Strassenabkuerzungen fuer die Adressnormalisierung (FA-501).
@@ -268,6 +277,7 @@ class DedupConfig:
             blocking=[str(b) for b in _as_list(raw.get("blocking"), "dedup.blocking")]
             or ["country_postcode", "name_prefix"],
             max_block_size=int(raw.get("max_block_size", 5_000)),
+            max_pairs_per_rule=int(raw.get("max_pairs_per_rule", 1_000_000)),
             legal_forms=[str(f) for f in _as_list(raw.get("legal_forms"), "dedup.legal_forms")],
             street_abbreviations={
                 str(k): str(v)
