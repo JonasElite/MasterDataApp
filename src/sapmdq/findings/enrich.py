@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Mapping
+from typing import Any, Mapping, Sequence
 
 import duckdb
 import pandas as pd
@@ -48,54 +48,76 @@ class EnrichmentResult:
         return self.total - self.whitelisted
 
 
+def _register_frame(
+    con: duckdb.DuckDBPyConnection,
+    table: str,
+    columns: Sequence[str],
+    records: Sequence[Mapping[str, Any]],
+) -> None:
+    """Legt eine Hilfstabelle mit ausdruecklich typisierten Spalten an.
+
+    Die Typen werden gesetzt statt abgeleitet: bei einer leeren Liste - kein
+    Eintrag in der Ausnahmeliste ist der Normalfall - kaeme die Ableitung zu
+    einem beliebigen Typ, und der anschliessende Mustervergleich scheiterte an
+    einem Typfehler statt einfach nichts zu treffen.
+    """
+    definition = ", ".join(f"{column} VARCHAR" for column in columns)
+    con.execute(f"CREATE OR REPLACE TEMP TABLE {table} ({definition})")
+    if not records:
+        return
+    frame = pd.DataFrame.from_records(list(records), columns=list(columns)).astype("object")
+    con.register("_frame_source", frame)
+    casts = ", ".join(f"CAST({column} AS VARCHAR)" for column in columns)
+    con.execute(f"INSERT INTO {table} SELECT {casts} FROM _frame_source")
+    con.unregister("_frame_source")
+
+
 def _register_whitelist(con: duckdb.DuckDBPyConnection, whitelist: Whitelist) -> None:
     """Legt die wirksamen Ausnahmen als Tabelle an."""
-    records = [
-        {
-            "wl_finding_id": entry.finding_id,
-            "wl_rule_id": entry.rule_id,
-            "wl_object_key": entry.object_key,
-            "wl_pattern": entry.object_key_pattern,
-            "wl_reason": entry.reason
-            + (f" (freigegeben von {entry.approved_by})" if entry.approved_by else ""),
-            "wl_scope": entry.scope_description,
-        }
-        for entry in whitelist.active_entries()
-    ]
-    frame = pd.DataFrame.from_records(
-        records,
-        columns=["wl_finding_id", "wl_rule_id", "wl_object_key", "wl_pattern", "wl_reason", "wl_scope"],
-    ).astype("object")
-    con.register("_whitelist_source", frame)
-    con.execute("CREATE OR REPLACE TEMP TABLE _whitelist AS SELECT * FROM _whitelist_source")
-    con.unregister("_whitelist_source")
+    _register_frame(
+        con,
+        "_whitelist",
+        ("wl_finding_id", "wl_rule_id", "wl_object_key", "wl_pattern", "wl_reason", "wl_scope"),
+        [
+            {
+                "wl_finding_id": entry.finding_id,
+                "wl_rule_id": entry.rule_id,
+                "wl_object_key": entry.object_key,
+                "wl_pattern": entry.object_key_pattern,
+                "wl_reason": entry.reason
+                + (f" (freigegeben von {entry.approved_by})" if entry.approved_by else ""),
+                "wl_scope": entry.scope_description,
+            }
+            for entry in whitelist.active_entries()
+        ],
+    )
 
 
 def _register_status(con: duckdb.DuckDBPyConnection, store: StatusStore) -> None:
     """Legt die Bearbeitungsstaende als Tabelle an."""
-    records = [
-        {
-            "st_finding_id": entry.finding_id,
-            "st_status": entry.status.value,
-            "st_note": entry.note,
-        }
-        for entry in store.entries.values()
-    ]
-    frame = pd.DataFrame.from_records(
-        records, columns=["st_finding_id", "st_status", "st_note"]
-    ).astype("object")
-    con.register("_status_source", frame)
-    con.execute("CREATE OR REPLACE TEMP TABLE _status AS SELECT * FROM _status_source")
-    con.unregister("_status_source")
+    _register_frame(
+        con,
+        "_status",
+        ("st_finding_id", "st_status", "st_note"),
+        [
+            {
+                "st_finding_id": entry.finding_id,
+                "st_status": entry.status.value,
+                "st_note": entry.note,
+            }
+            for entry in store.entries.values()
+        ],
+    )
 
 
 def _register_owners(con: duckdb.DuckDBPyConnection, owners: Mapping[str, str]) -> None:
     """Legt die Zuordnung der Data Owner als Tabelle an."""
-    records = [{"ow_key": key.lower(), "ow_owner": owner} for key, owner in owners.items()]
-    frame = pd.DataFrame.from_records(records, columns=["ow_key", "ow_owner"]).astype("object")
-    con.register("_owners_source", frame)
-    con.execute("CREATE OR REPLACE TEMP TABLE _owners AS SELECT * FROM _owners_source")
-    con.unregister("_owners_source")
+    _register_frame(
+        con,
+        "_owners",
+        ("ow_key", "ow_owner"),
+        [{"ow_key": key.lower(), "ow_owner": owner} for key, owner in owners.items()],
+    )
 
 
 def enrich_findings(

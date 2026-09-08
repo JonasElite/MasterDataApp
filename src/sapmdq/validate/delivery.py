@@ -389,6 +389,67 @@ def _check_partial_columns(report: DeliveryReport, ingestion: IngestionResult) -
         )
 
 
+def _check_duplicate_keys(
+    report: DeliveryReport,
+    con: duckdb.DuckDBPyConnection,
+    ingestion: IngestionResult,
+    registry: TableRegistry,
+) -> None:
+    """Sucht mehrfach vorkommende Schluesselwerte (FA-206).
+
+    Der Tabellenschluessel ist im Quellsystem eindeutig. Kommt er in der
+    Lieferung mehrfach vor, ueberschneiden sich in aller Regel Teillieferungen
+    oder es wurde derselbe Export zweimal beigelegt. Die Folge waere, dass
+    jeder Befund auf diesen Saetzen doppelt erscheint und jede Zaehlung zu
+    hoch ausfaellt - deshalb ist das ein blockierender Befund.
+    """
+    for table in sorted(ingestion.tables):
+        entry = ingestion.tables[table]
+        spec = registry.get(table)
+        if spec is None or entry.row_count == 0:
+            continue
+        key_columns = [column for column in spec.key if column in entry.columns]
+        if not key_columns or len(key_columns) < len(spec.key):
+            continue  # ohne vollstaendigen Schluessel ist die Aussage wertlos
+
+        quoted = ", ".join(quote_identifier(column) for column in key_columns)
+        relation = f"read_parquet({quote_literal(str(entry.parquet_path))})"
+        affected, extra = con.execute(
+            f"SELECT count(*), COALESCE(sum(anzahl - 1), 0) FROM ("
+            f"  SELECT {quoted}, count(*) AS anzahl FROM {relation} "
+            f"  GROUP BY {quoted} HAVING count(*) > 1"
+            f")"
+        ).fetchone()
+        if not affected:
+            continue
+
+        examples = con.execute(
+            f"SELECT concat_ws('/', {quoted}), count(*) FROM {relation} "
+            f"GROUP BY {quoted} HAVING count(*) > 1 ORDER BY 2 DESC, 1 LIMIT 3"
+        ).fetchall()
+        sample = ", ".join(f"{key} ({count}x)" for key, count in examples)
+
+        report.add(
+            DeliveryCheck(
+                check_id="FA-206",
+                requirement="Verwertbarkeit",
+                severity=Severity.ERROR,
+                table=table,
+                message=(
+                    f"{table}: {affected} Schluesselwert(e) kommen mehrfach vor "
+                    f"({extra} ueberzaehlige Saetze). Der Schluessel "
+                    f"{'+'.join(key_columns)} ist im Quellsystem eindeutig - die Lieferung "
+                    f"enthaelt Ueberschneidungen. Beispiele: {sample}."
+                ),
+                details={
+                    "betroffene_schluessel": affected,
+                    "ueberzaehlige_saetze": extra,
+                    "schluesselfelder": key_columns,
+                },
+            )
+        )
+
+
 def _check_clients(
     report: DeliveryReport, ingestion: IngestionResult, config: ProjectConfig, registry: TableRegistry
 ) -> None:
@@ -665,6 +726,7 @@ def validate_delivery(
     _check_parse_errors(report, ingestion, config)
     _check_field_truncation(report, con, ingestion, registry)
     _check_partial_columns(report, ingestion)
+    _check_duplicate_keys(report, con, ingestion, registry)
     _check_clients(report, ingestion, config, registry)
     _check_extraction_dates(report, ingestion)
     _check_table_usability(report, ingestion, config, registry)

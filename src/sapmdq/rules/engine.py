@@ -285,11 +285,16 @@ def run_rules(
     coverage: CoverageReport,
     work_dir: Path,
     capabilities: Sequence[RuleCapability] | None = None,
+    combine: bool = True,
 ) -> EngineResult:
     """Fuehrt alle ausfuehrbaren Regeln aus (FA-302).
 
     Dublettenregeln werden hier uebersprungen; sie haben ein eigenes
     Verfahren mit Blocking und unscharfem Vergleich (``dedup``-Paket).
+
+    Mit ``combine=False`` unterbleibt das Zusammenfuehren zur Ergebnisdatei.
+    Der Gesamtlauf nutzt das, um erst die Dublettenbefunde zu ergaenzen und
+    dann alles in einem Zug zusammenzufuehren.
     """
     findings_dir = work_dir / "findings"
     findings_dir.mkdir(parents=True, exist_ok=True)
@@ -312,7 +317,10 @@ def run_rules(
         result.executions.append(execute_rule(con, rule, findings_dir))
 
     result.findings_path = work_dir / "findings.parquet"
-    result.total_findings = combine_findings(con, result.executions, result.findings_path)
+    if combine:
+        result.total_findings = combine_findings(con, result.executions, result.findings_path)
+    else:
+        result.total_findings = sum(e.finding_count for e in result.executions)
 
     failures = len(result.failures)
     logger.info(
