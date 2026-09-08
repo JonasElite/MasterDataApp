@@ -1,0 +1,62 @@
+# Dublettenerkennung Debitor (FA-405, FA-501 bis FA-505).
+rules:
+
+  - id: CUS-DUP-001
+    name: Debitoren mit gleicher USt-IdNr.
+    kind: duplicate
+    description: >
+      Zwei Debitoren mit derselben USt-IdNr. sind derselbe Kunde. Neben der
+      Dublette hat das unmittelbare Folgen fuer Kreditlimit und
+      Zusammenfassende Meldung: das Limit verteilt sich auf zwei Konten und
+      wirkt dadurch nicht.
+    category: duplicate
+    severity: high
+    version: "1.0.0"
+    object_area: customer
+    object_type: Debitorencluster
+    key_columns: [KUNNR]
+    requires:
+      tables: [KNA1]
+      fields:
+        KNA1: [KUNNR, NAME1, STCEG, STCD1, LOEVM]
+    params: {}
+    remediation: >
+      Fuehrenden Stammsatz bestimmen, Kreditlimit zusammenfuehren, uebrige
+      Konten stilllegen.
+    duplicate:
+      source: |
+        SELECT KUNNR, NAME1, STCEG, STCD1
+        FROM KNA1
+        WHERE COALESCE(LOEVM, '') <> 'X'
+      key_columns: [KUNNR]
+      exact_keys: [STCEG, STCD1]
+      name_column: NAME1
+
+  - id: CUS-DUP-002
+    name: Debitoren mit aehnlichem Namen an derselben Anschrift
+    kind: duplicate
+    description: >
+      Dubletten im Debitorenstamm verteilen die Zahlungshistorie auf mehrere
+      Konten. Mahnwesen und Kreditlimit stuetzen sich dadurch auf ein
+      unvollstaendiges Bild.
+    category: duplicate
+    severity: high
+    version: "1.0.0"
+    object_area: customer
+    object_type: Debitorencluster
+    key_columns: [KUNNR]
+    requires:
+      tables: [KNA1]
+      fields:
+        KNA1: [KUNNR, NAME1, STRAS, PSTLZ, ORT01, LAND1, LOEVM]
+    params: {}
+    remediation: Cluster sichten, fuehrenden Stammsatz bestimmen, uebrige stilllegen.
+    duplicate:
+      source: |
+        SELECT KUNNR, NAME1, STRAS, PSTLZ, ORT01, LAND1
+        FROM KNA1
+        WHERE COALESCE(LOEVM, '') <> 'X' AND NAME1 IS NOT NULL
+      key_columns: [KUNNR]
+      name_column: NAME1
+      address_columns: [STRAS, PSTLZ, ORT01, LAND1]
+      blocking_columns: [country_postcode, name_prefix, name_sorted]

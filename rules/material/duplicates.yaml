@@ -1,0 +1,76 @@
+# Dublettenerkennung Materialstamm (FA-405).
+rules:
+
+  - id: MAT-DUP-001
+    name: Materialien mit gleicher oder sehr aehnlicher Kurzbezeichnung
+    kind: duplicate
+    description: >
+      Doppelt angelegte Materialien zersplittern Bestand und Bedarf: beide
+      Nummern werden getrennt disponiert, beide bilden Sicherheitsbestand, und
+      der Einkauf verliert die Buendelung seiner Mengen. Verglichen wird die
+      Kurzbezeichnung nach Normalisierung; geblockt wird nach Warengruppe und
+      Namensanfang.
+
+      Bei technischen Materialien mit systematischen Bezeichnungen liegen
+      Kurztexte naturgemaess nah beieinander ("Schraube M6x20" gegen
+      "Schraube M6x25"). Der Schwellwert ist deshalb je Projekt anzupassen.
+    category: duplicate
+    severity: medium
+    version: "1.0.0"
+    object_area: material
+    object_type: Materialcluster
+    key_columns: [MATNR]
+    requires:
+      tables: [MARA, MAKT]
+      fields:
+        MARA: [MATNR, MTART, MATKL, LVORM]
+        MAKT: [MATNR, SPRAS, MAKTX]
+    params:
+      language: "D"
+    remediation: >
+      Cluster fachlich sichten. Bei echten Dubletten fuehrendes Material
+      bestimmen, Bestaende umbuchen und das doppelte Material stilllegen.
+    duplicate:
+      source: |
+        SELECT a.MATNR, t.MAKTX, a.MATKL, a.MTART
+        FROM MARA a
+        JOIN MAKT t ON a.MATNR = t.MATNR AND t.SPRAS = ${language}
+        WHERE COALESCE(a.LVORM, '') <> 'X'
+          AND t.MAKTX IS NOT NULL
+          AND NOT is_placeholder_text(t.MAKTX)
+      key_columns: [MATNR]
+      name_column: MAKTX
+      address_columns: [MATKL, MTART]
+      blocking_columns: [name_prefix, name_sorted]
+      threshold: 92
+
+  - id: MAT-DUP-002
+    name: Materialien mit gleicher EAN
+    kind: duplicate
+    description: >
+      Die EAN identifiziert einen Artikel weltweit eindeutig. Zwei Materialien
+      mit derselben EAN sind derselbe Artikel - oder eine der beiden EANs ist
+      falsch. Beim Scannen im Wareneingang entscheidet sonst der Zufall,
+      welches Material getroffen wird.
+    category: duplicate
+    severity: high
+    version: "1.0.0"
+    object_area: material
+    object_type: Materialcluster
+    key_columns: [MATNR]
+    requires:
+      tables: [MARA]
+      fields:
+        MARA: [MATNR, MTART, EAN11, LVORM]
+    params: {}
+    remediation: EAN-Zuordnung pruefen und die doppelte Anlage bereinigen.
+    duplicate:
+      source: |
+        SELECT MATNR, EAN11, MTART
+        FROM MARA
+        WHERE COALESCE(LVORM, '') <> 'X'
+          AND EAN11 IS NOT NULL
+          AND trim(EAN11) <> ''
+      key_columns: [MATNR]
+      exact_keys: [EAN11]
+      name_column: EAN11

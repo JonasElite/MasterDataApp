@@ -1,0 +1,113 @@
+# Dublettenerkennung Kreditor (FA-405, FA-501 bis FA-505).
+#
+# Die Regeln unterscheiden bewusst zwischen hartem und weichem Nachweis:
+# gleiche IBAN oder gleiche USt-IdNr. bei verschiedenen Stammsaetzen ist ein
+# Nachweis, aehnliche Namen sind ein begruendeter Verdacht. Beides gehoert in
+# den Bericht, aber mit unterschiedlichem Gewicht.
+rules:
+
+  - id: VEN-DUP-001
+    name: Kreditoren mit gleicher USt-IdNr. oder gleicher Steuernummer
+    kind: duplicate
+    description: >
+      Eine USt-IdNr. ist einem Unternehmen eindeutig zugeordnet. Tragen zwei
+      Kreditoren dieselbe, handelt es sich um denselben Partner - oder um einen
+      Pflegefehler mit steuerlichen Folgen. Beides muss geklaert werden.
+    category: duplicate
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditorencluster
+    key_columns: [LIFNR]
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [LIFNR, NAME1, STCEG, STCD1, LOEVM]
+    params: {}
+    remediation: >
+      Fuehrenden Stammsatz bestimmen, die uebrigen sperren und zur Loeschung
+      vormerken. Offene Posten vorher umbuchen.
+    duplicate:
+      source: |
+        SELECT LIFNR, NAME1, STCEG, STCD1
+        FROM LFA1
+        WHERE COALESCE(LOEVM, '') <> 'X'
+      key_columns: [LIFNR]
+      exact_keys: [STCEG, STCD1]
+      name_column: NAME1
+
+  - id: VEN-DUP-002
+    name: Kreditoren mit gleicher Bankverbindung
+    kind: duplicate
+    description: >
+      Dieselbe Kontoverbindung bei mehreren Kreditoren ist entweder eine
+      Dublette oder ein Zahlungsumleitungsrisiko. Bei Konzernstrukturen mit
+      zentraler Kasse kann es berechtigt sein - dann gehoert es dokumentiert
+      und als Ausnahme gekennzeichnet.
+    category: duplicate
+    severity: critical
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditorencluster
+    key_columns: [LIFNR]
+    requires:
+      tables: [LFA1, LFBK]
+      fields:
+        LFA1: [LIFNR, NAME1, LOEVM]
+        LFBK: [LIFNR, IBAN, BANKS, BANKL, BANKN]
+    params: {}
+    remediation: >
+      Herkunft der Bankverbindung klaeren. Bei Konzernkasse dokumentieren und
+      whitelisten, sonst die Dublette bereinigen.
+    duplicate:
+      source: |
+        SELECT
+            a.LIFNR,
+            a.NAME1,
+            COALESCE(k.IBAN, concat_ws('/', k.BANKS, k.BANKL, k.BANKN)) AS kontoverbindung
+        FROM LFA1 a
+        JOIN LFBK k ON a.LIFNR = k.LIFNR
+        WHERE COALESCE(a.LOEVM, '') <> 'X'
+          AND (COALESCE(k.IBAN, '') <> '' OR COALESCE(k.BANKN, '') <> '')
+      key_columns: [LIFNR]
+      exact_keys: [kontoverbindung]
+      name_column: NAME1
+
+  - id: VEN-DUP-003
+    name: Kreditoren mit aehnlichem Namen an derselben Anschrift
+    kind: duplicate
+    description: >
+      Der unscharfe Abgleich findet Dubletten, die kein harter Schluessel
+      verbindet: Schreibvarianten, Tippfehler, unterschiedliche
+      Rechtsformzusaetze. Verglichen wird nach Normalisierung von Umlauten,
+      Rechtsformen und Strassenabkuerzungen; geblockt wird nach Land und
+      Postleitzahl sowie nach Namensanfang, damit der Aufwand nicht
+      quadratisch waechst.
+
+      Ein Treffer ist ein begruendeter Verdacht, kein Nachweis. Der Score
+      benennt, wie stark er ist.
+    category: duplicate
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditorencluster
+    key_columns: [LIFNR]
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [LIFNR, NAME1, STRAS, PSTLZ, ORT01, LAND1, LOEVM]
+    params: {}
+    remediation: >
+      Cluster sichten, fuehrenden Stammsatz bestimmen und die uebrigen
+      stilllegen. Bei berechtigten Mehrfachanlagen (etwa je Werk) als Ausnahme
+      whitelisten.
+    duplicate:
+      source: |
+        SELECT LIFNR, NAME1, STRAS, PSTLZ, ORT01, LAND1
+        FROM LFA1
+        WHERE COALESCE(LOEVM, '') <> 'X'
+          AND NAME1 IS NOT NULL
+      key_columns: [LIFNR]
+      name_column: NAME1
+      address_columns: [STRAS, PSTLZ, ORT01, LAND1]
+      blocking_columns: [country_postcode, name_prefix, name_sorted]
