@@ -1,0 +1,1 @@
+"""Querschnittliche Hilfsfunktionen ohne Fachlichkeit."""

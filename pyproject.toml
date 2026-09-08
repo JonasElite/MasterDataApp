@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sapmdq"
+version = "0.1.0"
+description = "Tool zur automatisierten Pruefung von SAP-Stammdaten (Vollstaendigkeit, Format, Konsistenz, Dubletten)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+dependencies = [
+    "duckdb>=1.0",
+    "pandas>=2.0",
+    "pyarrow>=14.0",
+    "PyYAML>=6.0",
+    "rapidfuzz>=3.0",
+    "XlsxWriter>=3.1",
+    "openpyxl>=3.1",
+    "charset-normalizer>=3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+pptx = ["python-pptx>=0.6.23"]
+
+[project.scripts]
+sapmdq = "sapmdq.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+sapmdq = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"

@@ -1,0 +1,880 @@
+# Metadaten der unterstuetzten SAP-Tabellen (DDIC-Auszug).
+#
+# Diese Datei ist Daten, kein Code: neue Tabellen und Felder werden hier
+# gepflegt, ohne den Anwendungskern zu aendern (NFA-08). Ein Projekt kann die
+# Angaben ueber `sap_tables_overlay` in der Projektkonfiguration ergaenzen
+# oder uebersteuern.
+#
+# Feldangaben (alle optional, Standard ist ein Zeichenfeld ohne Konvertierung):
+#   type    : char | numc | dats | tims | curr | quan | dec | int | flag | lang
+#   alpha   : Feldlaenge -> ALPHA-Konvertierung, fuehrende Nullen werden
+#             wiederhergestellt (FA-103)
+#   aliases : beschreibende Spaltenueberschriften aus SE16N/Excel (FA-105)
+#   pii     : Feld mit Personenbezug -> Pseudonymisierung (DS-05), Redaction
+#
+# tier: must | should | could  -> Datenanforderung an den Kunden (Kapitel 8)
+
+MANDT_ALIASES: &mandt_aliases [Mandant, Client, "Mandantennummer"]
+
+tables:
+
+  # ---------------------------------------------------------------- Kreditor
+  LFA1:
+    description: Kreditorenstamm - allgemeiner Teil
+    object_area: vendor
+    tier: must
+    key: [MANDT, LIFNR]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      LIFNR: {alpha: 10, aliases: [Kreditor, Lieferant, "Konto-Nr. des Lieferanten", "Kreditorennummer"]}
+      LAND1: {aliases: [Land, "Laenderschluessel", "Land des Unternehmens"]}
+      NAME1: {pii: true, aliases: [Name, "Name 1"]}
+      NAME2: {pii: true, aliases: ["Name 2"]}
+      NAME3: {pii: true, aliases: ["Name 3"]}
+      NAME4: {pii: true, aliases: ["Name 4"]}
+      ORT01: {pii: true, aliases: [Ort, "Ort 1"]}
+      ORT02: {pii: true, aliases: [Ortsteil, "Ort 2"]}
+      PSTLZ: {pii: true, aliases: [Postleitzahl, PLZ]}
+      PSTL2: {aliases: ["PLZ des Postfachs"]}
+      PFACH: {pii: true, aliases: [Postfach]}
+      STRAS: {pii: true, aliases: [Strasse, "Strasse und Hausnummer"]}
+      REGIO: {aliases: [Region, Bundesland]}
+      SORTL: {aliases: [Suchbegriff, Sortierfeld]}
+      MCOD1: {pii: true, aliases: ["Suchbegriff Name"]}
+      ADRNR: {alpha: 10, aliases: [Adresse, Adressnummer]}
+      ANRED: {aliases: [Anrede]}
+      SPRAS: {type: lang, aliases: [Sprache, Sprachenschluessel]}
+      TELF1: {pii: true, aliases: [Telefon, "Telefon 1"]}
+      TELF2: {pii: true, aliases: ["Telefon 2"]}
+      TELFX: {pii: true, aliases: [Telefax, Fax]}
+      ERDAT: {type: dats, aliases: ["Angelegt am", "Erstellt am", Anlagedatum]}
+      ERNAM: {pii: true, aliases: ["Angelegt von", Ersteller]}
+      KTOKK: {aliases: [Kontengruppe, "Kontengruppe Kreditor"]}
+      LOEVM: {type: flag, aliases: ["Loeschvormerkung", "Zentrale Loeschvormerkung"]}
+      NODEL: {type: flag, aliases: ["Zentrale Loeschsperre"]}
+      SPERR: {type: flag, aliases: ["Zentrale Sperre", Buchungssperre]}
+      SPERM: {type: flag, aliases: ["Zentrale Einkaufssperre"]}
+      SPERZ: {type: flag, aliases: ["Zahlungssperre"]}
+      STCD1: {pii: true, aliases: ["Steuernummer 1"]}
+      STCD2: {pii: true, aliases: ["Steuernummer 2"]}
+      STCD3: {pii: true, aliases: ["Steuernummer 3"]}
+      STCD4: {pii: true, aliases: ["Steuernummer 4"]}
+      STCEG: {aliases: ["Umsatzsteuer-Identifikationsnummer", "USt-IdNr.", "UST-ID"]}
+      STKZU: {type: flag, aliases: [Umsatzsteuerpflichtig]}
+      STKZN: {type: flag, aliases: ["Natuerliche Person"]}
+      XCPDK: {type: flag, aliases: [CpD-Konto, "Konto ist CpD"]}
+      KUNNR: {alpha: 10, aliases: ["Debitor zum Kreditor", Kundennummer]}
+      VBUND: {alpha: 6, aliases: ["Konzern-Zugehoerigkeit", Handelspartner]}
+      KONZS: {aliases: [Konzern, Konzernschluessel]}
+      BEGRU: {aliases: [Berechtigungsgruppe]}
+      TXJCD: {aliases: [Steuerstandort, Jurisdiction Code]}
+      BAHNS: {aliases: [Bahnhof]}
+      LNRZA: {alpha: 10, aliases: ["Abweichender Zahlungsempfaenger"]}
+      REVDB: {type: dats, aliases: ["Letzte Auskunft"]}
+      DTAMS: {aliases: ["Meldeschluessel"]}
+      DUNS: {aliases: ["DUNS-Nummer", D-U-N-S]}
+      EMAIL: {pii: true, aliases: [E-Mail, "E-Mail-Adresse", SMTP_ADDR]}
+
+  LFB1:
+    description: Kreditorenstamm - Buchungskreisdaten
+    object_area: vendor
+    tier: must
+    key: [MANDT, LIFNR, BUKRS]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      LIFNR: {alpha: 10, aliases: [Kreditor, Lieferant]}
+      BUKRS: {aliases: [Buchungskreis]}
+      ERDAT: {type: dats, aliases: ["Angelegt am"]}
+      ERNAM: {pii: true, aliases: ["Angelegt von"]}
+      AKONT: {alpha: 10, aliases: [Abstimmkonto, "Abstimmkonto im Hauptbuch"]}
+      ZTERM: {aliases: [Zahlungsbedingung, "Zahlungsbedingungsschluessel"]}
+      ZWELS: {aliases: [Zahlwege, "Liste der Zahlwege"]}
+      ZAHLS: {aliases: [Zahlsperre, Zahlungssperre]}
+      SPERR: {type: flag, aliases: ["Buchungssperre Buchungskreis"]}
+      LOEVM: {type: flag, aliases: ["Loeschvormerkung Buchungskreis"]}
+      NODEL: {type: flag, aliases: ["Loeschsperre Buchungskreis"]}
+      BUSAB: {aliases: [Sachbearbeiter, "Buchhaltungssachbearbeiter"]}
+      ZUAWA: {aliases: [Sortierschluessel, Zuordnungsschluessel]}
+      ALTKN: {aliases: ["Frueheres Kontonummer", Altkontonummer]}
+      HBKID: {aliases: [Hausbank, "Kurzschluessel Hausbank"]}
+      XVERR: {type: flag, aliases: ["Verrechnung Debitor/Kreditor"]}
+      XPORE: {type: flag, aliases: ["Einzelpostenanzeige"]}
+      MINDK: {aliases: [Mahnverfahren, Mindestbetrag]}
+      TOGRU: {aliases: [Toleranzgruppe]}
+      QLAND: {aliases: ["Abzugsland Quellensteuer"]}
+      ZINDT: {type: dats, aliases: ["Zinsberechnung Datum"]}
+      REPRF: {type: flag, aliases: ["Pruefung doppelte Rechnung"]}
+      FDGRV: {aliases: [Planungsgruppe]}
+      WEBTR: {type: curr, aliases: ["Wechselobligo"]}
+
+  LFM1:
+    description: Kreditorenstamm - Einkaufsorganisationsdaten
+    object_area: vendor
+    tier: must
+    key: [MANDT, LIFNR, EKORG]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      LIFNR: {alpha: 10, aliases: [Kreditor, Lieferant]}
+      EKORG: {aliases: [Einkaufsorganisation, EKorg]}
+      ERDAT: {type: dats, aliases: ["Angelegt am"]}
+      ERNAM: {pii: true, aliases: ["Angelegt von"]}
+      WAERS: {aliases: ["Waehrung", "Bestellwaehrung"]}
+      ZTERM: {aliases: [Zahlungsbedingung]}
+      INCO1: {aliases: [Incoterms, "Incoterms Teil 1"]}
+      INCO2: {aliases: ["Incoterms Teil 2"]}
+      MEPRF: {aliases: ["Preisstellung", Preisdatumssteuerung]}
+      EKGRP: {aliases: [Einkaeufergruppe]}
+      KALSK: {aliases: [Schema-Gruppe, "Kalkulationsschemagruppe"]}
+      LOEVM: {type: flag, aliases: ["Loeschvormerkung Einkauf"]}
+      SPERM: {type: flag, aliases: ["Einkaufssperre"]}
+      WEBRE: {type: flag, aliases: ["WE-bezogene Rechnungspruefung"]}
+      LEBRE: {type: flag, aliases: ["Erfassung Leistungserfassungsblatt"]}
+      XERSY: {type: flag, aliases: ["Gutschriftsverfahren"]}
+      VERKF: {pii: true, aliases: [Verkaeufer, Ansprechpartner]}
+      TELF1: {pii: true, aliases: [Telefon]}
+      LFABC: {aliases: [ABC-Kennzeichen]}
+      MINBW: {type: curr, aliases: [Mindestbestellwert]}
+
+  LFBK:
+    description: Kreditorenstamm - Bankverbindungen
+    object_area: vendor
+    tier: could
+    key: [MANDT, LIFNR, BANKS, BANKL, BANKN]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      LIFNR: {alpha: 10, aliases: [Kreditor, Lieferant]}
+      BANKS: {aliases: [Bankland, "Land der Bank"]}
+      BANKL: {pii: true, aliases: [Bankleitzahl, "Bankschluessel", BLZ]}
+      BANKN: {pii: true, aliases: [Bankkonto, Bankkontonummer, Kontonummer]}
+      BKONT: {aliases: [Kontrollschluessel]}
+      BVTYP: {aliases: [Partnerbanktyp, "Bankverbindungstyp"]}
+      BKREF: {aliases: [Referenzangaben, "Referenz zur Bankverbindung"]}
+      KOINH: {pii: true, aliases: [Kontoinhaber, "Name des Kontoinhabers"]}
+      IBAN: {pii: true, aliases: [IBAN, "IBAN-Nummer"]}
+      XEZER: {type: flag, aliases: [Einzugsermaechtigung]}
+
+  # ---------------------------------------------------------------- Debitor
+  KNA1:
+    description: Debitorenstamm - allgemeiner Teil
+    object_area: customer
+    tier: must
+    key: [MANDT, KUNNR]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      KUNNR: {alpha: 10, aliases: [Debitor, Kunde, Debitorennummer, Kundennummer]}
+      LAND1: {aliases: [Land, "Laenderschluessel"]}
+      NAME1: {pii: true, aliases: [Name, "Name 1"]}
+      NAME2: {pii: true, aliases: ["Name 2"]}
+      NAME3: {pii: true, aliases: ["Name 3"]}
+      NAME4: {pii: true, aliases: ["Name 4"]}
+      ORT01: {pii: true, aliases: [Ort, "Ort 1"]}
+      PSTLZ: {pii: true, aliases: [Postleitzahl, PLZ]}
+      PFACH: {pii: true, aliases: [Postfach]}
+      STRAS: {pii: true, aliases: [Strasse, "Strasse und Hausnummer"]}
+      REGIO: {aliases: [Region, Bundesland]}
+      SORTL: {aliases: [Suchbegriff, Sortierfeld]}
+      MCOD1: {pii: true, aliases: ["Suchbegriff Name"]}
+      ADRNR: {alpha: 10, aliases: [Adresse, Adressnummer]}
+      ANRED: {aliases: [Anrede]}
+      SPRAS: {type: lang, aliases: [Sprache]}
+      TELF1: {pii: true, aliases: [Telefon, "Telefon 1"]}
+      TELFX: {pii: true, aliases: [Telefax, Fax]}
+      ERDAT: {type: dats, aliases: ["Angelegt am", Anlagedatum]}
+      ERNAM: {pii: true, aliases: ["Angelegt von"]}
+      KTOKD: {aliases: [Kontengruppe, "Kontengruppe Debitor"]}
+      LOEVM: {type: flag, aliases: ["Loeschvormerkung"]}
+      NODEL: {type: flag, aliases: ["Zentrale Loeschsperre"]}
+      SPERR: {type: flag, aliases: ["Zentrale Sperre", Buchungssperre]}
+      AUFSD: {aliases: ["Zentrale Auftragssperre"]}
+      LIFSD: {aliases: ["Zentrale Liefersperre"]}
+      FAKSD: {aliases: ["Zentrale Fakturasperre"]}
+      STCD1: {pii: true, aliases: ["Steuernummer 1"]}
+      STCD2: {pii: true, aliases: ["Steuernummer 2"]}
+      STCEG: {aliases: ["Umsatzsteuer-Identifikationsnummer", "USt-IdNr."]}
+      STKZU: {type: flag, aliases: [Umsatzsteuerpflichtig]}
+      STKZN: {type: flag, aliases: ["Natuerliche Person"]}
+      XCPDK: {type: flag, aliases: [CpD-Konto]}
+      LIFNR: {alpha: 10, aliases: ["Kreditor zum Debitor"]}
+      VBUND: {alpha: 6, aliases: ["Konzern-Zugehoerigkeit"]}
+      KUKLA: {aliases: [Kundenklassifizierung]}
+      BRSCH: {aliases: [Branche, Branchenschluessel]}
+      BEGRU: {aliases: [Berechtigungsgruppe]}
+      DUNS: {aliases: ["DUNS-Nummer"]}
+      EMAIL: {pii: true, aliases: [E-Mail, SMTP_ADDR]}
+
+  KNB1:
+    description: Debitorenstamm - Buchungskreisdaten
+    object_area: customer
+    tier: must
+    key: [MANDT, KUNNR, BUKRS]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      KUNNR: {alpha: 10, aliases: [Debitor, Kunde]}
+      BUKRS: {aliases: [Buchungskreis]}
+      ERDAT: {type: dats, aliases: ["Angelegt am"]}
+      ERNAM: {pii: true, aliases: ["Angelegt von"]}
+      AKONT: {alpha: 10, aliases: [Abstimmkonto]}
+      ZTERM: {aliases: [Zahlungsbedingung]}
+      ZWELS: {aliases: [Zahlwege]}
+      ZAHLS: {aliases: [Zahlsperre]}
+      SPERR: {type: flag, aliases: ["Buchungssperre Buchungskreis"]}
+      LOEVM: {type: flag, aliases: ["Loeschvormerkung Buchungskreis"]}
+      BUSAB: {aliases: [Sachbearbeiter]}
+      ZUAWA: {aliases: [Sortierschluessel]}
+      ALTKN: {aliases: [Altkontonummer]}
+      KNRZB: {alpha: 10, aliases: ["Abweichender Regulierer"]}
+      MAHNA: {aliases: [Mahnverfahren]}
+      VZSKZ: {aliases: [Verzugszinsschluessel]}
+      TOGRU: {aliases: [Toleranzgruppe]}
+      XVERR: {type: flag, aliases: ["Verrechnung Debitor/Kreditor"]}
+      HBKID: {aliases: [Hausbank]}
+      FDGRV: {aliases: [Planungsgruppe]}
+
+  KNVV:
+    description: Debitorenstamm - Vertriebsbereichsdaten
+    object_area: customer
+    tier: must
+    key: [MANDT, KUNNR, VKORG, VTWEG, SPART]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      KUNNR: {alpha: 10, aliases: [Debitor, Kunde]}
+      VKORG: {aliases: [Verkaufsorganisation, VkOrg]}
+      VTWEG: {aliases: [Vertriebsweg]}
+      SPART: {aliases: [Sparte]}
+      ERDAT: {type: dats, aliases: ["Angelegt am"]}
+      ERNAM: {pii: true, aliases: ["Angelegt von"]}
+      WAERS: {aliases: ["Waehrung", "Kundenwaehrung"]}
+      ZTERM: {aliases: [Zahlungsbedingung]}
+      INCO1: {aliases: [Incoterms]}
+      INCO2: {aliases: ["Incoterms Teil 2"]}
+      VSBED: {aliases: [Versandbedingung]}
+      KALKS: {aliases: [Preisfindung, Kalkulationsschema]}
+      KDGRP: {aliases: [Kundengruppe]}
+      BZIRK: {aliases: [Kundenbezirk, Verkaufsbezirk]}
+      KTGRD: {aliases: [Kontierungsgruppe]}
+      VWERK: {aliases: [Auslieferungswerk]}
+      LOEVM: {type: flag, aliases: ["Loeschvormerkung Vertrieb"]}
+      AUFSD: {aliases: [Auftragssperre]}
+      LIFSD: {aliases: [Liefersperre]}
+      FAKSD: {aliases: [Fakturasperre]}
+      VERSG: {aliases: [Kundenstatistikgruppe]}
+      AWAHR: {type: int, aliases: [Auftragswahrscheinlichkeit]}
+      KONDA: {aliases: [Preisgruppe]}
+      PLTYP: {aliases: [Preisliste]}
+
+  KNBK:
+    description: Debitorenstamm - Bankverbindungen
+    object_area: customer
+    tier: could
+    key: [MANDT, KUNNR, BANKS, BANKL, BANKN]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      KUNNR: {alpha: 10, aliases: [Debitor, Kunde]}
+      BANKS: {aliases: [Bankland]}
+      BANKL: {pii: true, aliases: [Bankleitzahl, "Bankschluessel"]}
+      BANKN: {pii: true, aliases: [Bankkonto, Kontonummer]}
+      BKONT: {aliases: [Kontrollschluessel]}
+      BVTYP: {aliases: [Partnerbanktyp]}
+      BKREF: {aliases: [Referenzangaben]}
+      KOINH: {pii: true, aliases: [Kontoinhaber]}
+      IBAN: {pii: true, aliases: [IBAN]}
+
+  # ---------------------------------------------------------------- Material
+  MARA:
+    description: Materialstamm - allgemeine Daten
+    object_area: material
+    tier: must
+    key: [MANDT, MATNR]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      MATNR: {alpha: 18, aliases: [Material, Materialnummer, "Material-Nr."]}
+      ERSDA: {type: dats, aliases: ["Angelegt am", Erstellungsdatum]}
+      ERNAM: {pii: true, aliases: ["Angelegt von", Ersteller]}
+      LAEDA: {type: dats, aliases: ["Letzte Aenderung", "Geaendert am"]}
+      AENAM: {pii: true, aliases: ["Geaendert von"]}
+      MTART: {aliases: [Materialart, "Art des Materials"]}
+      MBRSH: {aliases: [Branche, Branchenschluessel]}
+      MATKL: {aliases: [Warengruppe, Materialgruppe]}
+      MEINS: {aliases: ["Basismengeneinheit", Mengeneinheit, ME]}
+      BSTME: {aliases: ["Bestellmengeneinheit"]}
+      GEWEI: {aliases: ["Gewichtseinheit"]}
+      BRGEW: {type: quan, aliases: [Bruttogewicht]}
+      NTGEW: {type: quan, aliases: [Nettogewicht]}
+      VOLUM: {type: quan, aliases: [Volumen]}
+      VOLEH: {aliases: [Volumeneinheit]}
+      SPART: {aliases: [Sparte]}
+      LVORM: {type: flag, aliases: ["Loeschvormerkung", "Loeschvormerkung mandantenweit"]}
+      PSTAT: {aliases: [Pflegestatus, "Pflegestatus Sichten"]}
+      MSTAE: {aliases: ["Materialstatus mandantenweit", "Uebergreifender Materialstatus"]}
+      MSTDE: {type: dats, aliases: ["Gueltig ab Materialstatus"]}
+      XCHPF: {type: flag, aliases: [Chargenpflicht]}
+      EAN11: {aliases: [EAN, "EAN/UPC", GTIN]}
+      NUMTP: {aliases: ["Nummernkreis EAN"]}
+      GROES: {aliases: ["Groesse/Abmessung"]}
+      NORMT: {aliases: [Normbezeichnung]}
+      LABOR: {aliases: ["Labor/Konstruktionsbuero"]}
+      PRDHA: {aliases: [Produkthierarchie]}
+      TRAGR: {aliases: [Transportgruppe]}
+      MAGRV: {aliases: [Materialgruppe Packmittel]}
+      BISMT: {aliases: [Altmaterialnummer]}
+      ZEINR: {aliases: [Zeichnungsnummer]}
+      MAKTX: {aliases: [Materialkurztext, Kurztext, Bezeichnung]}
+
+  MARC:
+    description: Materialstamm - Werksdaten
+    object_area: material
+    tier: must
+    key: [MANDT, MATNR, WERKS]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      MATNR: {alpha: 18, aliases: [Material, Materialnummer]}
+      WERKS: {aliases: [Werk]}
+      PSTAT: {aliases: [Pflegestatus]}
+      LVORM: {type: flag, aliases: ["Loeschvormerkung Werk"]}
+      MMSTA: {aliases: [Werksspezifischer Materialstatus]}
+      MMSTD: {type: dats, aliases: ["Gueltig ab werksspez. Status"]}
+      DISMM: {aliases: [Dispomerkmal, "Dispositionsmerkmal"]}
+      DISPO: {aliases: [Disponent]}
+      DISLS: {aliases: ["Dispolosgroesse", Losgroessenverfahren]}
+      BESKZ: {aliases: [Beschaffungsart]}
+      SOBSL: {aliases: [Sonderbeschaffungsart]}
+      MINBE: {type: dec, aliases: [Meldebestand]}
+      EISBE: {type: quan, aliases: [Sicherheitsbestand]}
+      PLIFZ: {type: dec, aliases: [Planlieferzeit]}
+      WEBAZ: {type: dec, aliases: [Wareneingangsbearbeitungszeit]}
+      PERKZ: {aliases: [Periodenkennzeichen]}
+      LOSGR: {type: quan, aliases: ["Losgroesse"]}
+      MTVFP: {aliases: ["Pruefgruppe Verfuegbarkeit"]}
+      FEVOR: {aliases: [Fertigungssteuerer]}
+      PRCTR: {alpha: 10, aliases: [Profitcenter]}
+      XCHPF: {type: flag, aliases: [Chargenpflicht Werk]}
+      SERNP: {aliases: [Serialnummernprofil]}
+      STRGR: {aliases: [Planungsstrategiegruppe]}
+      LGPRO: {aliases: [Produktionslagerort]}
+      LGFSB: {aliases: [Lagerort Nachschub]}
+      MAABC: {aliases: [ABC-Kennzeichen]}
+
+  MBEW:
+    description: Materialstamm - Bewertungsdaten
+    object_area: material
+    tier: must
+    key: [MANDT, MATNR, BWKEY, BWTAR]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      MATNR: {alpha: 18, aliases: [Material, Materialnummer]}
+      BWKEY: {aliases: [Bewertungskreis]}
+      BWTAR: {aliases: [Bewertungsart]}
+      LVORM: {type: flag, aliases: ["Loeschvormerkung Bewertung"]}
+      LBKUM: {type: quan, aliases: [Gesamtbestand, "Bestand bewertet"]}
+      SALK3: {type: curr, aliases: [Bestandswert, "Wert des Bestands"]}
+      VPRSV: {aliases: [Preissteuerung, Preissteuerungskennzeichen]}
+      VERPR: {type: curr, aliases: [Gleitender Durchschnittspreis, GLD-Preis]}
+      STPRS: {type: curr, aliases: [Standardpreis]}
+      PEINH: {type: dec, aliases: [Preiseinheit]}
+      BKLAS: {aliases: [Bewertungsklasse]}
+      SALKV: {type: curr, aliases: [Wert Verrechnungspreis]}
+      ZKPRS: {type: curr, aliases: [Zukuenftiger Preis]}
+      ZKDAT: {type: dats, aliases: ["Gueltig ab zukuenftiger Preis"]}
+      EKALR: {type: flag, aliases: ["Material kalkulieren"]}
+      HRKFT: {aliases: [Herkunftsgruppe]}
+      MLAST: {aliases: [Preisermittlung]}
+      XLIFO: {type: flag, aliases: [LIFO-relevant]}
+
+  MAKT:
+    description: Materialkurztexte
+    object_area: material
+    tier: should
+    key: [MANDT, MATNR, SPRAS]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      MATNR: {alpha: 18, aliases: [Material, Materialnummer]}
+      SPRAS: {type: lang, aliases: [Sprache, Sprachenschluessel]}
+      MAKTX: {aliases: [Materialkurztext, Kurztext, Bezeichnung, Materialbezeichnung]}
+
+  # ------------------------------------------------------- Business Partner
+  BUT000:
+    description: Business Partner - allgemeine Daten (S/4HANA)
+    object_area: business_partner
+    tier: must
+    key: [CLIENT, PARTNER]
+    fields:
+      CLIENT: {type: numc, alpha: 3, aliases: [Mandant, MANDT, Client]}
+      PARTNER: {alpha: 10, aliases: ["Geschaeftspartner", "Geschaeftspartnernummer", BP]}
+      TYPE: {aliases: ["Geschaeftspartnertyp", BP-Typ, "Art des Geschaeftspartners"]}
+      BPKIND: {aliases: ["Geschaeftspartnerart"]}
+      BU_GROUP: {aliases: ["Geschaeftspartnergruppierung", Gruppierung]}
+      BPEXT: {aliases: ["Externe BP-Nummer"]}
+      BU_SORT1: {aliases: ["Suchbegriff 1"]}
+      BU_SORT2: {aliases: ["Suchbegriff 2"]}
+      SOURCE: {aliases: [Quelle]}
+      TITLE: {aliases: [Anrede, Titel]}
+      XDELE: {type: flag, aliases: ["Loeschkennzeichen", "Zentrales Loeschkennzeichen"]}
+      XBLCK: {type: flag, aliases: ["Zentrale Sperre"]}
+      NAME_ORG1: {pii: true, aliases: ["Name 1 Organisation", "Name 1"]}
+      NAME_ORG2: {pii: true, aliases: ["Name 2 Organisation", "Name 2"]}
+      NAME_ORG3: {pii: true, aliases: ["Name 3 Organisation"]}
+      NAME_ORG4: {pii: true, aliases: ["Name 4 Organisation"]}
+      NAME_LAST: {pii: true, aliases: [Nachname, Familienname]}
+      NAME_FIRST: {pii: true, aliases: [Vorname]}
+      BIRTHDT: {type: dats, pii: true, aliases: [Geburtsdatum]}
+      NATIO: {aliases: ["Staatsangehoerigkeit"]}
+      PERSNUMBER: {alpha: 10, aliases: [Personennummer]}
+      ADDRCOMM: {alpha: 10, aliases: [Adresskennung, "Kommunikationsadresse"]}
+      VALID_FROM: {type: dats, aliases: ["Gueltig ab"]}
+      VALID_TO: {type: dats, aliases: ["Gueltig bis"]}
+      CREATED_ON: {type: dats, aliases: ["Angelegt am"]}
+      CREATED_BY: {pii: true, aliases: ["Angelegt von"]}
+      PARTNER_GUID: {aliases: [BP-GUID]}
+      STCEG: {aliases: ["USt-IdNr."]}
+
+  BUT020:
+    description: Business Partner - Adressen
+    object_area: business_partner
+    tier: must
+    key: [CLIENT, PARTNER, ADDRNUMBER]
+    fields:
+      CLIENT: {type: numc, alpha: 3, aliases: [Mandant, MANDT]}
+      PARTNER: {alpha: 10, aliases: ["Geschaeftspartner"]}
+      ADDRNUMBER: {alpha: 10, aliases: [Adressnummer, Adresse]}
+      ADDRCOMM: {alpha: 10, aliases: [Adresskennung]}
+      VALID_FROM: {type: dats, aliases: ["Gueltig ab"]}
+      VALID_TO: {type: dats, aliases: ["Gueltig bis"]}
+      XDFADR: {type: flag, aliases: [Standardadresse]}
+
+  BUT0BK:
+    description: Business Partner - Bankverbindungen
+    object_area: business_partner
+    tier: must
+    key: [CLIENT, PARTNER, BKVID]
+    fields:
+      CLIENT: {type: numc, alpha: 3, aliases: [Mandant, MANDT]}
+      PARTNER: {alpha: 10, aliases: ["Geschaeftspartner"]}
+      BKVID: {aliases: ["Bankverbindungs-ID", "ID der Bankverbindung"]}
+      BANKS: {aliases: [Bankland]}
+      BANKL: {pii: true, aliases: [Bankleitzahl, "Bankschluessel"]}
+      BANKN: {pii: true, aliases: [Bankkonto, Kontonummer]}
+      BKONT: {aliases: [Kontrollschluessel]}
+      BKREF: {aliases: [Referenz]}
+      ACCNAME: {pii: true, aliases: [Kontoinhaber, "Name des Kontoinhabers"]}
+      IBAN: {pii: true, aliases: [IBAN]}
+      BANK_REF: {aliases: [Bankreferenz]}
+      ACCOUNT_ID: {aliases: [Konto-ID]}
+
+  BUT100:
+    description: Business Partner - Rollen
+    object_area: business_partner
+    tier: should
+    key: [CLIENT, PARTNER, RLTYP]
+    fields:
+      CLIENT: {type: numc, alpha: 3, aliases: [Mandant, MANDT]}
+      PARTNER: {alpha: 10, aliases: ["Geschaeftspartner"]}
+      RLTYP: {aliases: [BP-Rolle, Rolle, "Geschaeftspartnerrolle"]}
+      DFVAL: {type: flag, aliases: [Standardrolle]}
+      VALID_FROM: {type: dats, aliases: ["Gueltig ab"]}
+      VALID_TO: {type: dats, aliases: ["Gueltig bis"]}
+
+  # ------------------------------------------------------------- Adressen
+  ADRC:
+    description: Zentrale Adressverwaltung
+    object_area: cross
+    tier: could
+    key: [CLIENT, ADDRNUMBER, DATE_FROM, NATION]
+    fields:
+      CLIENT: {type: numc, alpha: 3, aliases: [Mandant, MANDT]}
+      ADDRNUMBER: {alpha: 10, aliases: [Adressnummer, Adresse]}
+      DATE_FROM: {type: dats, aliases: ["Gueltig ab"]}
+      DATE_TO: {type: dats, aliases: ["Gueltig bis"]}
+      NATION: {aliases: [Version, "Nationale Version"]}
+      TITLE: {aliases: [Anrede]}
+      NAME1: {pii: true, aliases: [Name, "Name 1"]}
+      NAME2: {pii: true, aliases: ["Name 2"]}
+      NAME3: {pii: true, aliases: ["Name 3"]}
+      NAME4: {pii: true, aliases: ["Name 4"]}
+      CITY1: {pii: true, aliases: [Ort]}
+      CITY2: {pii: true, aliases: [Ortsteil]}
+      POST_CODE1: {pii: true, aliases: [Postleitzahl, PLZ]}
+      POST_CODE2: {aliases: ["PLZ Postfach"]}
+      PO_BOX: {pii: true, aliases: [Postfach]}
+      STREET: {pii: true, aliases: [Strasse]}
+      HOUSE_NUM1: {pii: true, aliases: [Hausnummer]}
+      HOUSE_NUM2: {pii: true, aliases: [Hausnummernzusatz]}
+      COUNTRY: {aliases: [Land, "Laenderschluessel"]}
+      REGION: {aliases: [Region]}
+      LANGU: {type: lang, aliases: [Sprache]}
+      TEL_NUMBER: {pii: true, aliases: [Telefon]}
+      FAX_NUMBER: {pii: true, aliases: [Telefax]}
+
+  ADR6:
+    description: E-Mail-Adressen zur zentralen Adressverwaltung
+    object_area: cross
+    tier: could
+    key: [CLIENT, ADDRNUMBER, PERSNUMBER, CONSNUMBER]
+    fields:
+      CLIENT: {type: numc, alpha: 3, aliases: [Mandant, MANDT]}
+      ADDRNUMBER: {alpha: 10, aliases: [Adressnummer]}
+      PERSNUMBER: {alpha: 10, aliases: [Personennummer]}
+      CONSNUMBER: {type: numc, alpha: 3, aliases: ["Laufende Nummer"]}
+      SMTP_ADDR: {pii: true, aliases: [E-Mail, "E-Mail-Adresse"]}
+      FLGDEFAULT: {type: flag, aliases: [Standardadresse]}
+
+  # ------------------------------------------------------------- Banken
+  BNKA:
+    description: Bankenstamm
+    object_area: cross
+    tier: could
+    key: [MANDT, BANKS, BANKL]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      BANKS: {aliases: [Bankland]}
+      # In BNKA ist BANKL der Bankschluessel; die Bankleitzahl steht in BNKLZ.
+      BANKL: {aliases: ["Bankschluessel"]}
+      BANKA: {aliases: [Bankname, "Name der Bank"]}
+      PROVZ: {aliases: [Region]}
+      STRAS: {aliases: [Strasse]}
+      ORT01: {aliases: [Ort]}
+      SWIFT: {aliases: [SWIFT, BIC, "SWIFT/BIC-Code"]}
+      BNKLZ: {aliases: [Bankleitzahl]}
+      PSTLZ: {aliases: [Postleitzahl]}
+      LOEVM: {type: flag, aliases: ["Loeschvormerkung"]}
+      XPGRO: {type: flag, aliases: [Postgirokonto]}
+      ERDAT: {type: dats, aliases: ["Angelegt am"]}
+
+  TIBAN:
+    description: IBAN-Verwaltung
+    object_area: cross
+    tier: could
+    key: [MANDT, BANKS, BANKL, BANKN, BKONT]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      BANKS: {aliases: [Bankland]}
+      BANKL: {pii: true, aliases: ["Bankschluessel"]}
+      BANKN: {pii: true, aliases: [Bankkonto]}
+      BKONT: {aliases: [Kontrollschluessel]}
+      IBAN: {pii: true, aliases: [IBAN]}
+
+  # -------------------------------------------------------- Aenderungsbelege
+  CDHDR:
+    description: Aenderungsbelege - Kopf
+    object_area: cross
+    tier: could
+    key: [MANDANT, OBJECTCLAS, OBJECTID, CHANGENR]
+    fields:
+      MANDANT: {type: numc, alpha: 3, aliases: [Mandant, MANDT]}
+      OBJECTCLAS: {aliases: [Objektklasse]}
+      OBJECTID: {aliases: [Objektwert, "Objekt-ID"]}
+      CHANGENR: {aliases: ["Belegnummer Aenderungsbeleg"]}
+      USERNAME: {pii: true, aliases: [Benutzer, "Geaendert von"]}
+      UDATE: {type: dats, aliases: ["Aenderungsdatum", "Geaendert am"]}
+      UTIME: {type: tims, aliases: ["Aenderungszeit"]}
+      TCODE: {aliases: [Transaktionscode]}
+      CHANGE_IND: {aliases: ["Art der Aenderung"]}
+
+  CDPOS:
+    description: Aenderungsbelege - Positionen
+    object_area: cross
+    tier: could
+    key: [MANDANT, OBJECTCLAS, OBJECTID, CHANGENR, TABNAME, TABKEY, FNAME, CHNGIND]
+    fields:
+      MANDANT: {type: numc, alpha: 3, aliases: [Mandant, MANDT]}
+      OBJECTCLAS: {aliases: [Objektklasse]}
+      OBJECTID: {aliases: [Objektwert]}
+      CHANGENR: {aliases: ["Belegnummer Aenderungsbeleg"]}
+      TABNAME: {aliases: [Tabellenname]}
+      TABKEY: {aliases: ["Tabellenschluessel"]}
+      FNAME: {aliases: [Feldname]}
+      CHNGIND: {aliases: ["Aenderungskennzeichen"]}
+      VALUE_NEW: {pii: true, aliases: ["Neuer Wert"]}
+      VALUE_OLD: {pii: true, aliases: ["Alter Wert"]}
+
+  # --------------------------------------------------------- Personalstamm
+  PA0009:
+    description: Personalstamm - Bankverbindung (nur falls geliefert, FA-407)
+    object_area: cross
+    tier: could
+    key: [MANDT, PERNR, SUBTY, ENDDA]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      PERNR: {type: numc, alpha: 8, pii: true, aliases: [Personalnummer]}
+      SUBTY: {aliases: [Subtyp, Bankverbindungsart]}
+      BEGDA: {type: dats, aliases: ["Gueltig ab", Beginndatum]}
+      ENDDA: {type: dats, aliases: ["Gueltig bis", Endedatum]}
+      BANKS: {aliases: [Bankland]}
+      BANKL: {pii: true, aliases: ["Bankschluessel"]}
+      BANKN: {pii: true, aliases: [Bankkonto]}
+      BKONT: {aliases: [Kontrollschluessel]}
+      IBAN: {pii: true, aliases: [IBAN]}
+      EMFTX: {pii: true, aliases: ["Name des Zahlungsempfaengers"]}
+
+  # ------------------------------------------------------------ Customizing
+  # Klein im Volumen, unkritisch in der Freigabe - schalten ueberproportional
+  # viele Referenzintegritaetspruefungen frei (Kapitel 8.2).
+  T001:
+    description: Buchungskreise
+    object_area: customizing
+    tier: should
+    key: [MANDT, BUKRS]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      BUKRS: {aliases: [Buchungskreis]}
+      BUTXT: {aliases: ["Name des Buchungskreises", Bezeichnung]}
+      ORT01: {aliases: [Ort]}
+      LAND1: {aliases: [Land, "Laenderschluessel"]}
+      WAERS: {aliases: ["Hauswaehrung", "Waehrung"]}
+      SPRAS: {type: lang, aliases: [Sprache]}
+      KTOPL: {aliases: [Kontenplan]}
+      PERIV: {aliases: ["Geschaeftsjahresvariante"]}
+      KKBER: {aliases: [Kreditkontrollbereich]}
+
+  T005:
+    description: Laender
+    object_area: customizing
+    tier: should
+    key: [MANDT, LAND1]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      LAND1: {aliases: [Land, "Laenderschluessel"]}
+      LANDK: {aliases: ["Laenderschluessel alternativ"]}
+      INTCA: {aliases: ["ISO-Code 2-stellig", ISO-Code]}
+      INTCA3: {aliases: ["ISO-Code 3-stellig"]}
+      XEGLD: {type: flag, aliases: [EU-Land, "Kennzeichen EU-Land"]}
+      LANDA: {aliases: [Nationalitaetskennzeichen]}
+      XPLZS: {type: flag, aliases: [PLZ-Pflicht]}
+      PRUPS: {aliases: ["Pruefregel Postleitzahl"]}
+      LNAME: {aliases: [Landesname]}
+      WAERS: {aliases: ["Landeswaehrung"]}
+
+  T042Z:
+    description: Zahlwege
+    object_area: customizing
+    tier: should
+    key: [MANDT, LAND1, ZLSCH]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      LAND1: {aliases: [Land, "Laenderschluessel"]}
+      ZLSCH: {aliases: [Zahlweg, Zahlungsweg]}
+      XBKKT: {type: flag, aliases: [Bankkonto erforderlich]}
+      XSCHK: {type: flag, aliases: [Scheck]}
+      TEXT1: {aliases: [Bezeichnung, "Name des Zahlwegs"]}
+
+  T052:
+    description: Zahlungsbedingungen
+    object_area: customizing
+    tier: should
+    key: [MANDT, ZTERM, ZTAGG]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      ZTERM: {aliases: [Zahlungsbedingung, "Zahlungsbedingungsschluessel"]}
+      ZTAGG: {type: numc, alpha: 2, aliases: [Tagesgrenze]}
+      ZSCHF: {aliases: ["Skontofaehigkeit"]}
+      ZTAG1: {type: int, aliases: ["Tage 1"]}
+      ZPRZ1: {type: dec, aliases: ["Prozent 1"]}
+      ZTAG2: {type: int, aliases: ["Tage 2"]}
+      ZPRZ2: {type: dec, aliases: ["Prozent 2"]}
+      ZTAG3: {type: int, aliases: ["Tage 3"]}
+      ZFAEL: {type: int, aliases: [Faelligkeit]}
+      ZMONA: {type: int, aliases: [Zusatzmonate]}
+      ZLSCH: {aliases: [Zahlweg]}
+      XZBRV: {type: flag, aliases: [Zahlungsbedingung Rechnungsverweis]}
+
+  T007A:
+    description: Steuerkennzeichen
+    object_area: customizing
+    tier: should
+    key: [MANDT, KALSM, MWSKZ]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      KALSM: {aliases: [Kalkulationsschema, Schema]}
+      MWSKZ: {aliases: [Steuerkennzeichen, "Umsatzsteuerkennzeichen"]}
+      MWART: {aliases: [Steuerart]}
+      XVORS: {type: flag, aliases: [Vorsteuer]}
+      TXTNR: {aliases: [Textnummer]}
+
+  TBSL:
+    description: Buchungsschluessel
+    object_area: customizing
+    tier: should
+    key: [BSCHL]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      BSCHL: {type: numc, alpha: 2, aliases: ["Buchungsschluessel"]}
+      SHKZG: {aliases: [Soll-Haben-Kennzeichen]}
+      KOART: {aliases: [Kontoart]}
+      XSONU: {type: flag, aliases: [Sonderhauptbuch]}
+      XUMSW: {type: flag, aliases: [Umsatzwirksam]}
+
+  T059P:
+    description: Quellensteuerarten
+    object_area: customizing
+    tier: should
+    key: [MANDT, LAND1, WITHT]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      LAND1: {aliases: [Land]}
+      WITHT: {aliases: [Quellensteuerart]}
+      WT_POSTM: {aliases: [Buchungszeitpunkt]}
+
+  T059Z:
+    description: Quellensteuerkennzeichen
+    object_area: customizing
+    tier: should
+    key: [MANDT, LAND1, WITHT, WT_WITHCD]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      LAND1: {aliases: [Land]}
+      WITHT: {aliases: [Quellensteuerart]}
+      WT_WITHCD: {aliases: [Quellensteuerkennzeichen]}
+      QSATZ: {type: dec, aliases: [Quellensteuersatz]}
+
+  T077K:
+    description: Kontengruppen Kreditor
+    object_area: customizing
+    tier: should
+    key: [MANDT, KTOKK]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      KTOKK: {aliases: [Kontengruppe, "Kontengruppe Kreditor"]}
+      NUMKR: {aliases: [Nummernkreis]}
+      XAEND: {type: flag, aliases: ["Nummer aenderbar"]}
+      XCPDK: {type: flag, aliases: [CpD-Kontengruppe]}
+
+  T077D:
+    description: Kontengruppen Debitor
+    object_area: customizing
+    tier: should
+    key: [MANDT, KTOKD]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      KTOKD: {aliases: [Kontengruppe, "Kontengruppe Debitor"]}
+      NUMKR: {aliases: [Nummernkreis]}
+      XAEND: {type: flag, aliases: ["Nummer aenderbar"]}
+      XCPDK: {type: flag, aliases: [CpD-Kontengruppe]}
+
+  # Erweitertes Customizing - nicht in Kapitel 8.2 gefordert, schaltet aber
+  # weitere Referenzintegritaetspruefungen frei, sobald geliefert.
+  T001W:
+    description: Werke
+    object_area: customizing
+    tier: could
+    key: [MANDT, WERKS]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      WERKS: {aliases: [Werk]}
+      NAME1: {aliases: [Name des Werks, Bezeichnung]}
+      LAND1: {aliases: [Land]}
+      BWKEY: {aliases: [Bewertungskreis]}
+      VKORG: {aliases: [Verkaufsorganisation]}
+
+  T001K:
+    description: Bewertungskreise
+    object_area: customizing
+    tier: could
+    key: [MANDT, BWKEY]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      BWKEY: {aliases: [Bewertungskreis]}
+      BUKRS: {aliases: [Buchungskreis]}
+
+  T134:
+    description: Materialarten
+    object_area: customizing
+    tier: could
+    key: [MANDT, MTART]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      MTART: {aliases: [Materialart]}
+      MTREF: {aliases: [Referenzmaterialart]}
+      KKREF: {aliases: [Bewertungsklassen-Referenz, "Kontenkategorie-Referenz"]}
+      NUMKI: {aliases: [Nummernkreis intern]}
+      NUMKE: {aliases: [Nummernkreis extern]}
+
+  T023:
+    description: Warengruppen
+    object_area: customizing
+    tier: could
+    key: [MANDT, MATKL]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      MATKL: {aliases: [Warengruppe, Materialgruppe]}
+      WWGPA: {aliases: [Warengruppenhierarchie]}
+
+  T025:
+    description: Bewertungsklassen
+    object_area: customizing
+    tier: could
+    key: [MANDT, BKLAS]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      BKLAS: {aliases: [Bewertungsklasse]}
+      KKREF: {aliases: [Bewertungsklassen-Referenz, "Kontenkategorie-Referenz"]}
+
+  T006:
+    description: Mengeneinheiten
+    object_area: customizing
+    tier: could
+    key: [MANDT, MSEHI]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      MSEHI: {aliases: ["Mengeneinheit", ME, Basismengeneinheit]}
+      DIMID: {aliases: ["Dimensionsschluessel"]}
+      ISOCODE: {aliases: [ISO-Code]}
+
+  TCURC:
+    description: Waehrungen
+    object_area: customizing
+    tier: could
+    key: [MANDT, WAERS]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      WAERS: {aliases: ["Waehrung", "Waehrungsschluessel"]}
+      ISOCD: {aliases: [ISO-Code]}
+      ALTWR: {aliases: ["Alternativer Schluessel"]}
+
+  T024E:
+    description: Einkaufsorganisationen
+    object_area: customizing
+    tier: could
+    key: [MANDT, EKORG]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      EKORG: {aliases: [Einkaufsorganisation]}
+      EKOTX: {aliases: [Bezeichnung]}
+      BUKRS: {aliases: [Buchungskreis]}
+
+  TVKO:
+    description: Verkaufsorganisationen
+    object_area: customizing
+    tier: could
+    key: [MANDT, VKORG]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      VKORG: {aliases: [Verkaufsorganisation]}
+      BUKRS: {aliases: [Buchungskreis]}
+      WAERS: {aliases: ["Waehrung"]}
+
+  SKA1:
+    description: Sachkontenstamm - Kontenplan
+    object_area: customizing
+    tier: could
+    key: [MANDT, KTOPL, SAKNR]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      KTOPL: {aliases: [Kontenplan]}
+      SAKNR: {alpha: 10, aliases: [Sachkonto, Sachkontonummer]}
+      XBILK: {type: flag, aliases: [Bilanzkonto]}
+      GVTYP: {aliases: [GuV-Rechnungskontenart]}
+      SAKAN: {aliases: [Sachkonto alternativ]}
+
+  SKB1:
+    description: Sachkontenstamm - Buchungskreis
+    object_area: customizing
+    tier: could
+    key: [MANDT, BUKRS, SAKNR]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      BUKRS: {aliases: [Buchungskreis]}
+      SAKNR: {alpha: 10, aliases: [Sachkonto]}
+      MITKZ: {aliases: [Mitbuchungskennzeichen, "Abstimmkonto fuer Kontoart"]}
+      XLOEV: {type: flag, aliases: ["Loeschvormerkung"]}
+      XSPEB: {type: flag, aliases: [Buchungssperre]}
+      WAERS: {aliases: ["Waehrung", "Hauswaehrung"]}
+      ZUAWA: {aliases: [Sortierschluessel]}
