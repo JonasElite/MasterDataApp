@@ -16,6 +16,125 @@
 
 MANDT_ALIASES: &mandt_aliases [Mandant, Client, "Mandantennummer"]
 
+# Feldlaengen laut DDIC. Sie werden gebraucht, um abgeschnittene Feldinhalte
+# zu erkennen (FA-202) und um Werte zu melden, die nicht ins Zielfeld passen.
+# Die Angabe gilt global fuer den Feldnamen; abweichende Laengen stehen als
+# "length" direkt am Feld der jeweiligen Tabelle (etwa ADRC-NAME1 mit 40).
+field_lengths:
+  NAME1: 35
+  NAME2: 35
+  NAME3: 35
+  NAME4: 35
+  ORT01: 35
+  ORT02: 35
+  STRAS: 35
+  PFACH: 10
+  PSTLZ: 10
+  PSTL2: 10
+  MCOD1: 25
+  SORTL: 10
+  LAND1: 3
+  REGIO: 3
+  WAERS: 5
+  SPRAS: 1
+  ANRED: 15
+  TELF1: 16
+  TELF2: 16
+  TELFX: 31
+  EMAIL: 241
+  SMTP_ADDR: 241
+  STCEG: 20
+  STCD1: 16
+  STCD2: 11
+  STCD3: 18
+  STCD4: 18
+  IBAN: 34
+  BANKN: 18
+  BANKL: 15
+  BANKS: 3
+  BKONT: 2
+  BVTYP: 4
+  BKREF: 20
+  KOINH: 60
+  ACCNAME: 60
+  SWIFT: 11
+  BANKA: 60
+  BNKLZ: 15
+  KTOKK: 4
+  KTOKD: 4
+  BUKRS: 4
+  WERKS: 4
+  EKORG: 4
+  EKGRP: 3
+  VKORG: 4
+  VTWEG: 2
+  SPART: 2
+  BWKEY: 4
+  BWTAR: 10
+  BKLAS: 4
+  VPRSV: 1
+  MTART: 4
+  MBRSH: 1
+  MATKL: 9
+  MEINS: 3
+  BSTME: 3
+  GEWEI: 3
+  VOLEH: 3
+  MAKTX: 40
+  GROES: 32
+  NORMT: 18
+  BISMT: 18
+  EAN11: 18
+  ZEINR: 22
+  PRDHA: 18
+  ZTERM: 4
+  ZWELS: 10
+  ZAHLS: 1
+  ZLSCH: 1
+  MWSKZ: 2
+  BSCHL: 2
+  KALSM: 6
+  BUSAB: 2
+  TOGRU: 4
+  HBKID: 5
+  ALTKN: 10
+  BEGRU: 4
+  KONZS: 10
+  BRSCH: 4
+  KUKLA: 2
+  INCO1: 3
+  INCO2: 28
+  VSBED: 2
+  KDGRP: 2
+  BZIRK: 6
+  KONDA: 2
+  PLTYP: 2
+  KTGRD: 2
+  LOEVM: 1
+  SPERR: 1
+  SPERM: 1
+  LVORM: 1
+  XCPDK: 1
+  MSTAE: 2
+  MMSTA: 2
+  DISMM: 2
+  DISPO: 3
+  DISLS: 2
+  BESKZ: 1
+  SOBSL: 2
+  PRCTR: 10
+  BU_GROUP: 4
+  RLTYP: 6
+  BPKIND: 4
+  TITLE: 4
+  BKVID: 4
+  DUNS: 9
+  TXJCD: 15
+  BUTXT: 25
+  KTOPL: 4
+  PERIV: 2
+  KKBER: 4
+
 tables:
 
   # ---------------------------------------------------------------- Kreditor
@@ -410,12 +529,12 @@ tables:
       TITLE: {aliases: [Anrede, Titel]}
       XDELE: {type: flag, aliases: ["Loeschkennzeichen", "Zentrales Loeschkennzeichen"]}
       XBLCK: {type: flag, aliases: ["Zentrale Sperre"]}
-      NAME_ORG1: {pii: true, aliases: ["Name 1 Organisation", "Name 1"]}
-      NAME_ORG2: {pii: true, aliases: ["Name 2 Organisation", "Name 2"]}
-      NAME_ORG3: {pii: true, aliases: ["Name 3 Organisation"]}
-      NAME_ORG4: {pii: true, aliases: ["Name 4 Organisation"]}
-      NAME_LAST: {pii: true, aliases: [Nachname, Familienname]}
-      NAME_FIRST: {pii: true, aliases: [Vorname]}
+      NAME_ORG1: {pii: true, length: 40, aliases: ["Name 1 Organisation", "Name 1"]}
+      NAME_ORG2: {pii: true, length: 40, aliases: ["Name 2 Organisation", "Name 2"]}
+      NAME_ORG3: {pii: true, length: 40, aliases: ["Name 3 Organisation"]}
+      NAME_ORG4: {pii: true, length: 40, aliases: ["Name 4 Organisation"]}
+      NAME_LAST: {pii: true, length: 40, aliases: [Nachname, Familienname]}
+      NAME_FIRST: {pii: true, length: 40, aliases: [Vorname]}
       BIRTHDT: {type: dats, pii: true, aliases: [Geburtsdatum]}
       NATIO: {aliases: ["Staatsangehoerigkeit"]}
       PERSNUMBER: {alpha: 10, aliases: [Personennummer]}
@@ -486,17 +605,17 @@ tables:
       DATE_TO: {type: dats, aliases: ["Gueltig bis"]}
       NATION: {aliases: [Version, "Nationale Version"]}
       TITLE: {aliases: [Anrede]}
-      NAME1: {pii: true, aliases: [Name, "Name 1"]}
-      NAME2: {pii: true, aliases: ["Name 2"]}
-      NAME3: {pii: true, aliases: ["Name 3"]}
-      NAME4: {pii: true, aliases: ["Name 4"]}
-      CITY1: {pii: true, aliases: [Ort]}
-      CITY2: {pii: true, aliases: [Ortsteil]}
-      POST_CODE1: {pii: true, aliases: [Postleitzahl, PLZ]}
+      NAME1: {pii: true, length: 40, aliases: [Name, "Name 1"]}
+      NAME2: {pii: true, length: 40, aliases: ["Name 2"]}
+      NAME3: {pii: true, length: 40, aliases: ["Name 3"]}
+      NAME4: {pii: true, length: 40, aliases: ["Name 4"]}
+      CITY1: {pii: true, length: 40, aliases: [Ort]}
+      CITY2: {pii: true, length: 40, aliases: [Ortsteil]}
+      POST_CODE1: {pii: true, length: 10, aliases: [Postleitzahl, PLZ]}
       POST_CODE2: {aliases: ["PLZ Postfach"]}
-      PO_BOX: {pii: true, aliases: [Postfach]}
-      STREET: {pii: true, aliases: [Strasse]}
-      HOUSE_NUM1: {pii: true, aliases: [Hausnummer]}
+      PO_BOX: {pii: true, length: 10, aliases: [Postfach]}
+      STREET: {pii: true, length: 60, aliases: [Strasse]}
+      HOUSE_NUM1: {pii: true, length: 10, aliases: [Hausnummer]}
       HOUSE_NUM2: {pii: true, aliases: [Hausnummernzusatz]}
       COUNTRY: {aliases: [Land, "Laenderschluessel"]}
       REGION: {aliases: [Region]}

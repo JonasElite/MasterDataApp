@@ -69,6 +69,8 @@ class FieldSpec:
     name: str
     type: str = "char"
     alpha_length: int | None = None
+    #: Feldlaenge laut DDIC - Grundlage der Truncation-Pruefung (FA-202).
+    length: int | None = None
     aliases: tuple[str, ...] = ()
     pii: bool = False
 
@@ -76,6 +78,11 @@ class FieldSpec:
     def is_alpha(self) -> bool:
         """Feld unterliegt der ALPHA-Konvertierung (fuehrende Nullen)."""
         return self.alpha_length is not None
+
+    @property
+    def max_length(self) -> int | None:
+        """Zulaessige Feldlaenge; bei ALPHA-Feldern ist es die ALPHA-Laenge."""
+        return self.length if self.length is not None else self.alpha_length
 
     @property
     def is_date(self) -> bool:
@@ -241,9 +248,9 @@ class TableRegistry:
         return candidates[0]
 
 
-def _parse_field(name: str, raw: Any) -> FieldSpec:
+def _parse_field(name: str, raw: Any, default_lengths: Mapping[str, int]) -> FieldSpec:
     if raw is None:
-        return FieldSpec(name=name)
+        return FieldSpec(name=name, length=default_lengths.get(name))
     if not isinstance(raw, Mapping):
         raise ConfigError(f"Feldbeschreibung fuer '{name}' muss eine Zuordnung sein, ist {type(raw)}")
     alpha = raw.get("alpha")
@@ -252,19 +259,21 @@ def _parse_field(name: str, raw: Any) -> FieldSpec:
     aliases = raw.get("aliases") or []
     if isinstance(aliases, str):
         aliases = [aliases]
+    explicit_length = raw.get("length")
     return FieldSpec(
         name=name,
         type=str(raw.get("type", "char")).lower(),
         alpha_length=alpha,
+        length=int(explicit_length) if explicit_length is not None else default_lengths.get(name),
         aliases=tuple(str(a) for a in aliases),
         pii=bool(raw.get("pii", False)),
     )
 
 
-def _parse_table(name: str, raw: Mapping[str, Any]) -> TableSpec:
+def _parse_table(name: str, raw: Mapping[str, Any], default_lengths: Mapping[str, int]) -> TableSpec:
     fields_raw = raw.get("fields") or {}
     fields = {
-        field_name.upper(): _parse_field(field_name.upper(), field_raw)
+        field_name.upper(): _parse_field(field_name.upper(), field_raw, default_lengths)
         for field_name, field_raw in fields_raw.items()
     }
     return TableSpec(
@@ -290,13 +299,17 @@ def _deep_merge(base: dict[str, Any], overlay: Mapping[str, Any]) -> dict[str, A
 
 
 @lru_cache(maxsize=1)
-def _load_raw() -> dict[str, Any]:
+def _load_raw() -> tuple[dict[str, Any], dict[str, int]]:
     with _TABLES_YAML.open("r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle) or {}
     tables = data.get("tables")
     if not isinstance(tables, dict):
         raise ConfigError("tables.yaml enthaelt keinen 'tables'-Abschnitt")
-    return tables
+    lengths = {
+        str(name).upper(): int(value)
+        for name, value in (data.get("field_lengths") or {}).items()
+    }
+    return tables, lengths
 
 
 def load_registry(
@@ -309,7 +322,8 @@ def load_registry(
     ``alpha_length_overrides`` passt Feldlaengen global an - noetig, weil MATNR
     in S/4HANA 40 statt 18 Stellen hat (A-03).
     """
-    raw = {name: dict(spec) for name, spec in _load_raw().items()}
+    raw_tables, default_lengths = _load_raw()
+    raw = {name: dict(spec) for name, spec in raw_tables.items()}
     if overlay:
         raw = _deep_merge(raw, {k.upper(): v for k, v in overlay.items()})
 
@@ -317,7 +331,7 @@ def load_registry(
     for name, spec_raw in raw.items():
         if not isinstance(spec_raw, Mapping):
             raise ConfigError(f"Tabellendefinition '{name}' ist keine Zuordnung")
-        spec = _parse_table(name, spec_raw)
+        spec = _parse_table(name, spec_raw, default_lengths)
         if alpha_length_overrides:
             adjusted = {}
             for field_name, field_spec in spec.fields.items():
@@ -327,6 +341,7 @@ def load_registry(
                         name=field_spec.name,
                         type=field_spec.type,
                         alpha_length=int(new_length),
+                        length=int(new_length),
                         aliases=field_spec.aliases,
                         pii=field_spec.pii,
                     )
