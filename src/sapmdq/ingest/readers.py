@@ -179,13 +179,19 @@ def _load_csv(
     rejected = 0
     samples: list[str] = []
     try:
-        rejected = con.execute(f"SELECT count(*) FROM {quote_identifier(rejects_error)}").fetchone()[0]
+        # Gezaehlt werden Zeilen, nicht Fehlereintraege: DuckDB vermerkt bei
+        # einer Zeile mit zwei ueberzaehligen Feldern auch zwei Eintraege, und
+        # "zwei defekte Zeilen" waere im Bericht schlicht falsch.
+        rejected = con.execute(
+            f"SELECT count(DISTINCT line) FROM {quote_identifier(rejects_error)}"
+        ).fetchone()[0]
         if rejected:
             samples = [
                 f"Zeile {row[0]}: {row[1]}"
                 for row in con.execute(
-                    f"SELECT line, error_message FROM {quote_identifier(rejects_error)} "
-                    "ORDER BY line LIMIT 5"
+                    f"SELECT line, any_value(error_message) "
+                    f"FROM {quote_identifier(rejects_error)} "
+                    "GROUP BY line ORDER BY line LIMIT 5"
                 ).fetchall()
             ]
     except duckdb.Error:
