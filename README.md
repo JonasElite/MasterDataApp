@@ -57,6 +57,20 @@ sapmdq run -c kundenprojekt/projekt.yaml
 Die Beispiellieferung enthaelt 24 gezielt eingebaute Maengel; welche das sind,
 steht in der miterzeugten Datei `EINGEBAUTE_MAENGEL.md`.
 
+Wer die Ergebnisse lieber ansieht als liest:
+
+```bash
+sapmdq ui -c kundenprojekt/projekt.yaml
+```
+
+Das oeffnet eine oertliche Oberflaeche im Browser - Kennzahlen, Lieferung,
+Pruefumfang, filterbare Befunde und der Vergleich zweier Laeufe. Ausnahmen und
+Bearbeitungsstaende lassen sich dort per Klick pflegen, Laeufe von dort
+starten. Kein Server, keine zusaetzliche Abhaengigkeit, nichts aus dem Netz;
+gebunden wird nur an 127.0.0.1. Einzelheiten in
+[docs/oberflaeche.md](docs/oberflaeche.md), die Einrichtung Schritt fuer
+Schritt in [docs/installation.md](docs/installation.md).
+
 ## Ablauf eines Laufs
 
 ```
@@ -98,6 +112,7 @@ Jeder Lauf legt ein eigenes Verzeichnis unter `out/runs/<Zeitstempel>/` an:
 | `befunde.csv` | maschinenlesbarer Export ohne Zeilengrenze |
 | `befunde.parquet` | typisierter Export, Grundlage des naechsten Vergleichs |
 | `coverage.csv` | ausgefuehrte und entfallene Regeln mit Begruendung |
+| `lauf.json` | strukturierte Zusammenfassung des Laufs, Grundlage der Oberflaeche |
 | `ausfuehrungsprotokoll.json` | wer, wann, welche Konfiguration, welche Dateien |
 | `lauf.log` | Ablaufprotokoll ohne Feldinhalte mit Personenbezug |
 
@@ -115,6 +130,7 @@ Jeder Lauf legt ein eigenes Verzeichnis unter `out/runs/<Zeitstempel>/` an:
 | `status` | Bearbeitungsstand je Befund pflegen |
 | `pseudonymize` | Fassung fuer Demo, Test und Schulung erzeugen |
 | `purge` | abgelaufene Daten loeschen und Loeschbestaetigung schreiben |
+| `ui` | oertliche Oberflaeche im Browser oeffnen |
 
 Rueckgabewerte: `0` erfolgreich, `1` abgebrochen, `2` Aufruffehler,
 `3` erfolgreich mit kritischen Befunden - fuer die Einbindung in eine
@@ -213,7 +229,7 @@ ausserhalb des Werkzeugs und sind organisatorisch zu regeln; siehe
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest              # 297 Tests
+python -m pytest              # 341 Tests
 python -m pytest tests/test_akzeptanzkriterien.py -v   # Abnahmenachweis
 ```
 

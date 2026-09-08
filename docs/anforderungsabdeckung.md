@@ -78,10 +78,10 @@ umgesetzt.
 | ID | Anforderung | Prio | Stand | Umsetzung |
 |---|---|---|---|---|
 | FA-601 | Schweregrad je Befund, je Regel konfigurierbar | M | umgesetzt | vier Stufen, uebersteuerbar |
-| FA-602 | Whitelisting mit Begruendung, projektuebergreifend | M | umgesetzt | Begruendung ist Pflicht; Ablaufdatum moeglich; Nachweis AK-06 |
-| FA-603 | Statusverfolgung je Befund | S | umgesetzt | offen, in Klaerung, akzeptiert, korrigiert |
+| FA-602 | Whitelisting mit Begruendung, projektuebergreifend | M | umgesetzt | Begruendung ist Pflicht; Ablaufdatum moeglich; auch in der Oberflaeche pflegbar; Nachweis AK-06 |
+| FA-603 | Statusverfolgung je Befund | S | umgesetzt | offen, in Klaerung, akzeptiert, korrigiert; per Kommandozeile oder Oberflaeche |
 | FA-604 | Data Owner je Befundkategorie | C | umgesetzt | Aufloesung ueber Regel, Kategorie, Bereich, Vorgabe |
-| FA-605 | Delta-Ansicht zweier Laeufe | S | umgesetzt | anerkannte Ausnahmen werden nicht als behoben ausgewiesen |
+| FA-605 | Delta-Ansicht zweier Laeufe | S | umgesetzt | anerkannte Ausnahmen werden nicht als behoben ausgewiesen; in der Oberflaeche mit Warnung bei abweichendem Katalog oder Pruefumfang |
 
 ## 4.7 Reporting und Export
 
@@ -89,7 +89,7 @@ umgesetzt.
 |---|---|---|---|---|
 | FA-701 | Management-Summary mit KPI, Kategorien, Coverage | M | umgesetzt | `management_summary.md` |
 | FA-702 | Excel: je Regel eine Registerkarte | M | umgesetzt | mit Regelbeschreibung, Empfehlung und ausloesenden Feldwerten |
-| FA-703 | Maschinenlesbarer Export | S | umgesetzt | CSV und Parquet ohne Zeilengrenze |
+| FA-703 | Maschinenlesbarer Export | S | umgesetzt | CSV und Parquet ohne Zeilengrenze, dazu `lauf.json` je Lauf |
 | FA-704 | Data-Quality-Score je Objektbereich | S | umgesetzt | mit Vorbehalt; ohne ausfuehrbare Regel "nicht bewertbar" |
 | FA-705 | PowerPoint-Vorlage | C | umgesetzt | optionale Abhaengigkeit `python-pptx`, ohne Befunddetails |
 
@@ -99,12 +99,12 @@ umgesetzt.
 |---|---|---|---|
 | NFA-01 | 5 Mio. Saetze unter 15 Minuten | umgesetzt | gemessen: 1,2 Mio. Saetze in 127 Sekunden, hochgerechnet 8,8 Minuten fuer 5 Mio. Die Messung lief nicht auf einem Notebook - siehe unten. |
 | NFA-02 | Out-of-core, kein vollstaendiges Laden | umgesetzt | Auslagerung in das Arbeitsverzeichnis; Dubletten blockweise |
-| NFA-03 | Ohne Serverinstallation und Administratorrechte | umgesetzt | reine Python-Abhaengigkeiten, Datenbank im Prozess |
-| NFA-04 | Vollstaendige Funktion offline | umgesetzt | ausser FA-408, wie vorgesehen |
+| NFA-03 | Ohne Serverinstallation und Administratorrechte | umgesetzt | reine Python-Abhaengigkeiten, Datenbank im Prozess, Oberflaeche aus der Standardbibliothek |
+| NFA-04 | Vollstaendige Funktion offline | umgesetzt | ausser FA-408, wie vorgesehen; die Oberflaeche laedt nichts nach, geprueft je Datei |
 | NFA-05 | Identische Eingabe ergibt bitgleiches Ergebnis | umgesetzt | Nachweis AK-04, byteweiser Vergleich |
 | NFA-06 | Befund auf Regelversion, Dateihash, Zeitstempel zurueckfuehrbar | umgesetzt | Nachweis AK-05 |
-| NFA-07 | Start ueber einen Befehl, kein Programmierwissen | umgesetzt | `sapmdq run -c projekt.yaml` |
-| NFA-08 | Neue Regel ohne Kernaenderung, Testabdeckung der Engine | umgesetzt | 297 Tests |
+| NFA-07 | Start ueber einen Befehl, kein Programmierwissen | umgesetzt | `sapmdq run -c projekt.yaml`, wahlweise `sapmdq ui` |
+| NFA-08 | Neue Regel ohne Kernaenderung, Testabdeckung der Engine | umgesetzt | 341 Tests |
 | NFA-09 | Regelfehler bricht den Lauf nicht ab | umgesetzt | Ausfall wird als Regelfehler ausgewiesen |
 
 ## 6 Datenschutz und Informationssicherheit
@@ -217,5 +217,5 @@ Bestaetigung, Ausschluss der Datenverzeichnisse aus der Versionsverwaltung.
 | OP-04 | Freigabe externer Dienste | VIES ist vorbereitet und abgeschaltet; Adressvalidierung und Sanktionslisten sind offen |
 | OP-05 | Build gegenueber Standardloesungen | Entscheidungsvorlage, nicht Teil der Umsetzung |
 | OP-06 | Ablageort und Verschluesselungsstandard | siehe DS-01, `docs/betrieb.md` |
-| OP-07 | Integration in Process Mining | der maschinenlesbare Export (FA-703) ist die vorgesehene Schnittstelle |
+| OP-07 | Integration in Process Mining | der maschinenlesbare Export (FA-703) ist die vorgesehene Schnittstelle; `lauf.json` je Lauf ist der Anknuepfungspunkt |
 | OP-08 | Aufbewahrungsfrist und Loeschprozess | `privacy.retention_days` ist vorbereitet; die Frist ist zu vereinbaren |

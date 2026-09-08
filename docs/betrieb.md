@@ -39,6 +39,23 @@ privacy:
     - "A. Beispiel (Analyse)"
 ```
 
+### Die Oberflaeche
+
+`sapmdq ui` zeigt Befunde mit Objektschluesseln und Feldinhalten an, also
+personenbezogene Daten. Drei Grenzen sind deshalb fest eingebaut:
+
+* Gebunden wird an `127.0.0.1`. Aus dem lokalen Netz ist die Oberflaeche nicht
+  erreichbar.
+* Jeder Datenaufruf braucht das Sitzungsmerkmal aus der Startmeldung. Es gilt
+  nur fuer diese Sitzung.
+* Ausgeliefert werden ausschliesslich Dateien aus dem Paketverzeichnis.
+
+`--host` hebt die erste Grenze auf. Der Fall wird als Warnung protokolliert und
+ist nur in einer abgesicherten Umgebung vertretbar - eine im Netz erreichbare
+Oberflaeche ohne Anmeldung widerspricht DS-02. Fuer den Zugriff von einem
+anderen Rechner ist ein SSH-Tunnel auf den lokalen Port der richtige Weg, nicht
+eine offene Bindung.
+
 ## Aufbewahrung und Loeschung (DS-03)
 
 Die Aufbewahrungsfrist wird in der Konfiguration hinterlegt:
@@ -173,3 +190,8 @@ vorhandenen Arbeitsspeicher.
 Ausser den Regeln der Kategorie "Externe Validierung" braucht kein Bestandteil
 eine Netzwerkverbindung. Pruefziffernverfahren, Laenderlisten und
 Postleitzahlenmuster sind im Werkzeug hinterlegt.
+
+Das gilt auch fuer die Oberflaeche: keine Schrift, kein Symbol und keine
+Bibliothek wird nachgeladen. Ein Test prueft jede ausgelieferte Datei auf
+Ladeanweisungen nach draussen, und die ausgelieferte
+Content-Security-Policy (`default-src 'self'`) setzt es im Browser durch.

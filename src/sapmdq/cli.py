@@ -92,6 +92,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     print(f"  2. {config_path.name} anpassen (Mandant, Buchungskreise, Satzanzahlen)")
     print(f"  3. sapmdq validate -c {config_path}")
     print(f"  4. sapmdq run -c {config_path}")
+    print(f"  5. sapmdq ui -c {config_path}   (Ergebnisse im Browser ansehen)")
     return EXIT_OK
 
 
@@ -694,6 +695,51 @@ entries: []
 
 
 # ------------------------------------------------------------- Aufbau der CLI
+def cmd_ui(args: argparse.Namespace) -> int:
+    """Startet die oertliche Oberflaeche (NFA-03, NFA-04).
+
+    Der Aufruf blockiert, bis er abgebrochen wird - die Oberflaeche ist ein
+    Arbeitsplatz und kein Dienst. Endet der Befehl, ist auch der Port wieder
+    frei; es bleibt nichts im Hintergrund zurueck.
+    """
+    import threading
+
+    from sapmdq.ui.server import start_ui
+
+    config = _load(args)
+    setup_logging(level=_log_level(args))
+
+    server, adresse = start_ui(
+        config,
+        host=args.host,
+        port=args.port,
+        browser_oeffnen=not args.no_browser,
+    )
+    print("")
+    print(f"Oberflaeche fuer Projekt '{config.project.name}' laeuft.")
+    print("")
+    print(f"  {adresse}")
+    print("")
+    print(
+        "Die Adresse enthaelt das Merkmal dieser Sitzung. Ohne es antwortet der\n"
+        "Server nicht - auf einem gemeinsam genutzten Rechner genuegt der offene\n"
+        "Port allein nicht. Bei jedem Start gilt ein neues Merkmal; die Adresse\n"
+        "eignet sich deshalb nicht als Lesezeichen."
+    )
+    print("")
+    print("Zum Beenden: Strg+C")
+    print("")
+
+    try:
+        threading.Event().wait()
+    except KeyboardInterrupt:
+        print("Oberflaeche beendet.")
+    finally:
+        server.shutdown()
+        server.server_close()
+    return EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="sapmdq",
@@ -823,6 +869,31 @@ def build_parser() -> argparse.ArgumentParser:
     purge_parser.add_argument("--reason", help="Begruendung fuer die Loeschbestaetigung")
     purge_parser.add_argument("--by", help="ausfuehrende Person")
     purge_parser.set_defaults(func=cmd_purge)
+
+    # ui
+    ui = subparsers.add_parser(
+        "ui", help="oertliche Oberflaeche im Browser oeffnen"
+    )
+    add_common(ui)
+    ui.add_argument(
+        "--port",
+        type=int,
+        default=0,
+        help="fester Port; ohne Angabe waehlt das Betriebssystem einen freien",
+    )
+    ui.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help=(
+            "Bindeadresse. Vorbelegt ist die Rueckschleife. Eine andere Adresse "
+            "macht die Oberflaeche im Netz erreichbar, obwohl sie "
+            "personenbezogene Daten anzeigt (DS-02)."
+        ),
+    )
+    ui.add_argument(
+        "--no-browser", action="store_true", help="Browser nicht selbst oeffnen"
+    )
+    ui.set_defaults(func=cmd_ui)
 
     return parser
 

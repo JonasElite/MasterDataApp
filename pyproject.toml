@@ -32,6 +32,11 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 sapmdq = ["py.typed"]
+# Die DDIC-Metadaten und die Dateien der Oberflaeche gehoeren in das Paket.
+# Ohne diese Angaben fehlen sie im Rad, und das Werkzeug startet nur aus dem
+# Quellbaum heraus.
+"sapmdq.sap" = ["*.yaml"]
+"sapmdq.ui" = ["static/*.html", "static/*.css", "static/*.js", "static/*.svg"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

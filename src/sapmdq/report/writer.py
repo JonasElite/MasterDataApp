@@ -35,6 +35,13 @@ def write_reports(con: duckdb.DuckDBPyConnection, result: RunResult) -> dict[str
                 "in %s zur Verfuegung.", name, exc, result.findings_path,
             )
 
+    # Die Zusammenfassung entsteht immer. Sie ist die Grundlage der
+    # Oberflaeche und kostet nichts, was der Lauf nicht ohnehin schon
+    # berechnet hat.
+    from sapmdq.report.laufbericht import SUMMARY_FILENAME, write_summary_json
+
+    guard("lauf_json", lambda: write_summary_json(con, result, run_dir / SUMMARY_FILENAME))
+
     if "md" in formats or "markdown" in formats:
         from sapmdq.report.summary import write_summary
 

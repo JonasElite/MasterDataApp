@@ -14,9 +14,11 @@ run.py            Orchestrierung eines Laufs
    +-- rules/     Regelmodell, Katalog, Capability-Matrix, Engine
    +-- dedup/     Dublettenerkennung
    +-- findings/  Ausnahmen, Status, Verantwortung, Delta
-   +-- report/    Management-Summary, Excel, CSV, Praesentation
+   +-- report/    Management-Summary, Excel, CSV, Praesentation, lauf.json
    +-- privacy/   Pseudonymisierung, Loeschkonzept
    +-- external/  VIES (nur nach ausdruecklicher Freigabe)
+   |
+   +-- ui/        oertliche Oberflaeche (Zustand, Schnittstelle, Server)
    |
    +-- sap/       SAP-Wissen: Tabellen, Felder, Wertkonvertierung
    +-- util/      Hashing, Zeit
@@ -26,6 +28,14 @@ run.py            Orchestrierung eines Laufs
 `rules/` enthaelt kein Fachwissen, sondern fuehrt aus, was der Katalog sagt.
 Die Fachlichkeit liegt vollstaendig in `rules/*.yaml` und in der
 Projektkonfiguration.
+
+`ui/` liegt neben `cli.py`, nicht darunter: beide sind Zugaenge zu denselben
+Funktionen und schreiben in dieselben Dateien. Die Oberflaeche rechnet nichts
+selbst - sie liest `lauf.json` und `befunde.parquet` und ruft fuer alles
+andere dieselben Funktionen auf wie die Kommandozeile. Innerhalb von `ui/`
+sind die drei Ebenen getrennt: `state.py` haelt den Zustand, `api.py` kennt
+kein HTTP und ist ohne laufenden Server pruefbar, `server.py` macht nichts
+weiter, als Anfragen zu verteilen und die Zugriffsgrenzen zu ziehen.
 
 ## Warum DuckDB
 
@@ -175,3 +185,4 @@ sonst waere die Reproduzierbarkeit von der Tagesform des Dienstes abhaengig.
 | Schweregrade | `rules.severity_overrides` | ja |
 | Neues Pruefverfahren (Pruefziffer) | `rules/validators.py` und `rules/udf.py` | nein |
 | Neues Eingangsformat | `ingest/readers.py` | nein |
+| Neue Ansicht der Oberflaeche | `ui/api.py`, `ui/server.py`, `ui/static/` | nein |
