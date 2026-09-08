@@ -1,0 +1,100 @@
+# Projektkonfiguration der SAP-Stammdatenpruefung
+# Angelegt am 2026-09-08
+#
+# Diese Datei beschreibt einen Lauf vollstaendig. Sie gehoert in die
+# Versionsverwaltung - nicht die Daten, auf die sie sich bezieht.
+
+project:
+  name: Beispielprojekt
+  customer: ""
+  # ECC oder S4 - bestimmt das Datenmodell (Annahme A-03, offener Punkt OP-01)
+  source_system: ECC
+  analyst: ""
+
+paths:
+  input_dir: data/input
+  work_dir: work
+  output_dir: out
+
+delivery:
+  # Vom Kunden gemeldete Satzanzahl je Tabelle (FA-201). Ohne diese Angaben
+  # laesst sich nicht pruefen, ob die Lieferung vollstaendig ist.
+  expected_row_counts: {}
+  #   LFA1: 12345
+  #   LFB1: 23456
+
+  # Stichtag der Extraktion, falls nicht im Begleitzettel dokumentiert (FA-204)
+  extraction_date: null
+
+  # Erwartete Mandanten (FA-203). Bei mehreren Mandanten in der Lieferung ist
+  # diese Angabe verpflichtend, sonst bricht der Lauf ab.
+  expected_clients: []
+
+  # Filter auf Buchungskreise; leer bedeutet alle (FA-108)
+  company_codes: []
+
+  # Zulaessige Abweichung der Satzanzahl in Prozent
+  row_count_tolerance_pct: 0.0
+
+ingestion:
+  encoding: auto        # auto | utf-8 | latin-1 | utf-16 | cp1252
+  delimiter: auto       # auto | ";" | "\t" | "|" | ","
+  decimal_notation: auto  # auto | comma | point
+
+  # Manuelle Zuordnung Datei zu Tabelle, falls die Erkennung nicht greift
+  file_table_map: {}
+  #   "kreditoren_alt.csv": LFA1
+
+  # Zusaetzliche Spaltenueberschriften je Tabelle
+  header_overrides: {}
+  #   LFA1:
+  #     "Lieferantennr.": LIFNR
+
+rules:
+  catalog_dirs:
+    - ../rules
+    # - regeln_kundenspezifisch     # eigene Regeln ohne Eingriff in den Kern
+
+  enabled: []           # leer bedeutet: alle aktiven Regeln
+  disabled: []
+  disabled_categories: []
+
+  severity_overrides: {}
+  #   VEN-COMP-002: low
+
+  params: {}
+  #   VEN-LC-003:
+  #     months_inactive: 24
+
+  # Externe Validierung (VIES) - nur nach dokumentierter Freigabe (DS-04, FA-408)
+  allow_external_validation: false
+
+dedup:
+  enabled: true
+  name_threshold: 88.0
+  combined_threshold: 85.0
+  max_block_size: 5000
+
+findings:
+  whitelist_file: whitelist.yaml
+  status_file: status.csv
+  data_owners:
+    default: ""
+  #   vendor: "Einkauf"
+  #   customer: "Vertrieb"
+
+  # Vergleichslauf; ohne Angabe wird der letzte Lauf herangezogen (FA-605)
+  baseline_run: null
+
+report:
+  formats: [md, xlsx, csv]
+  max_rows_per_sheet: 100000
+  include_pptx: false
+
+privacy:
+  pseudonymize: false
+  pseudonymize_salt_file: .salt
+  # Aufbewahrungsfrist nach Projektende in Tagen (DS-03, offener Punkt OP-08)
+  retention_days: null
+  # Benanntes Projektteam mit Zugriff auf dieses Verzeichnis (DS-02)
+  authorized_team: []

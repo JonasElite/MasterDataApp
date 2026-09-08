@@ -1,0 +1,21 @@
+# Begleitzettel der Datenlieferung
+#
+# Diese Datei legt der Kunde seiner Lieferung bei (Kapitel 8.4). Sie gehoert
+# in das Eingangsverzeichnis und heisst dort "manifest.yaml".
+#
+# Ohne sie laesst sich nicht pruefen, ob die Lieferung vollstaendig ist -
+# der Satzanzahlabgleich nach FA-201 braucht eine Gegenzahl.
+
+delivery:
+  extraction_date: 2026-01-31
+  client: "100"
+  source_system: ECC
+  contact: ""
+
+tables:
+  LFA1:
+    file: LFA1.csv
+    rows: 0
+    extraction_date: 2026-01-31
+  # LFB1: {rows: 0}
+  # MARA: {rows: 0}

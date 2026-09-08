@@ -1,0 +1,16 @@
+# Dauerhafte Ausnahmen (FA-602)
+#
+# Jede Ausnahme braucht eine Begruendung und sollte benennen, wer sie erteilt
+# hat. Ein Ablaufdatum ist empfehlenswert: eine Ausnahme, die niemand mehr
+# ueberprueft, wird mit der Zeit zur Luecke.
+#
+# Diese Datei ueberdauert Folgelieferungen und gehoert in die Versionsverwaltung.
+
+entries: []
+#  - rule_id: VEN-DUP-002
+#    object_key: "0000004711"
+#    reason: "Konzernkasse - alle Gesellschaften nutzen dasselbe Konto, siehe Protokoll 2026-03-04"
+#    approved_by: "M. Muster"
+#    approved_on: 2026-03-04
+#    expires_on: 2027-03-04
+#    reference: "TICKET-1234"
