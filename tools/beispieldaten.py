@@ -185,6 +185,23 @@ def eindeutige_kurztexte(rng: random.Random, anzahl: int) -> list[str]:
     ]
 
 
+#: Feldlaenge von NAME1 laut DDIC.
+NAME1_LAENGE = 35
+
+
+def kuerzbarer_name(basis: str, rechtsform: str) -> str:
+    """Setzt Namen und Rechtsform zusammen, ohne die Feldlaenge zu sprengen.
+
+    Passt beides nicht, entfaellt die Rechtsform. Ein hart abgeschnittener
+    Name wuerde die Truncation-Pruefung der Vorstufe ausloesen - voellig zu
+    Recht, aber es waere ein Mangel des Generators und keiner der Daten.
+    """
+    voll = f"{basis} {rechtsform}"
+    if len(voll) <= NAME1_LAENGE:
+        return voll
+    return basis[:NAME1_LAENGE].rstrip()
+
+
 def write_csv(path: Path, rows: list[dict], columns: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -244,8 +261,11 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     for index in range(1, vendor_count + 1):
         lifnr = f"{100000 + index}"
         strasse, plz, ort, land = anschrift()
-        # Der Name muss in NAME1 passen (35 Zeichen laut DDIC).
-        name = f"{namen[index - 1]} {rng.choice(FORMEN)}"[:35]
+        # Der Name muss in NAME1 passen (35 Zeichen laut DDIC). Statt zu
+        # kuerzen entfaellt die Rechtsform, wenn es sonst nicht reicht -
+        # abgeschnittene Namen wuerden die Truncation-Pruefung ausloesen, und
+        # zwar zu Recht.
+        name = kuerzbarer_name(namen[index - 1], rng.choice(FORMEN))
         angelegt = heute - timedelta(days=rng.randint(30, 2600))
 
         # Zahlungsbedingung gilt fuer beide Sichten gleich - abweichende Werte
@@ -320,7 +340,7 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         strasse, plz, ort, land = anschrift(felder.get("LAND1"))
         if eindeutig:
             felder = dict(felder)
-            felder["NAME1"] = f"{mangelnamen.pop()} {rng.choice(FORMEN)}"[:35]
+            felder["NAME1"] = kuerzbarer_name(mangelnamen.pop(), rng.choice(FORMEN))
         satz = {
             "MANDT": mandant, "LIFNR": lifnr, "NAME1": "Beispiel GmbH", "LAND1": land,
             "ORT01": ort, "PSTLZ": plz, "STRAS": strasse, "PFACH": "", "KTOKK": "KRED",

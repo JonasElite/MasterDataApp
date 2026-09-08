@@ -58,13 +58,40 @@ class TestTruncation:
     """FA-202."""
 
     def test_abgeschnittene_feldinhalte(self, con, projekt, csv_schreiber):
-        zeilen = ["MANDT;LIFNR;NAME1"] + [
-            f"100;{4700 + i};{'X' * 35}" for i in range(20)
-        ]
+        # Abgeschnitten heisst: alles, was laenger gewesen waere, staut sich
+        # auf der Grenze, waehrend die Laengen knapp darunter duenn bleiben.
+        zeilen = ["MANDT;LIFNR;NAME1"]
+        for i in range(150):
+            laenge = 35 if i % 3 else 20 + (i % 8)
+            zeilen.append(f"100;{100000 + i};{'X' * laenge}")
         csv_schreiber(projekt, "LFA1.csv", zeilen)
         _, report = pruefen(con, projekt)
         meldungen = [c.message for c in befunde(report, "FA-202")]
-        assert any("NAME1" in m and "abgeschnittene" in m for m in meldungen)
+        assert any("NAME1" in m and "Aufstau" in m for m in meldungen)
+
+    def test_natuerliche_laengenverteilung_erzeugt_keinen_scheinbefund(
+        self, con, projekt, csv_schreiber
+    ):
+        # Namensfelder schoepfen ihre Laenge natuerlicherweise aus. Dass
+        # einzelne Werte die Feldlaenge genau erreichen, ist kein Hinweis auf
+        # einen abgeschnittenen Export, solange die Laengen darunter aehnlich
+        # besetzt sind.
+        zeilen = ["MANDT;LIFNR;NAME1"]
+        for i in range(150):
+            laenge = 30 + (i % 6)  # gleichmaessig ueber 30 bis 35
+            zeilen.append(f"100;{100000 + i};{'X' * laenge}")
+        csv_schreiber(projekt, "LFA1.csv", zeilen)
+        _, report = pruefen(con, projekt)
+        assert not any("NAME1" in c.message for c in befunde(report, "FA-202"))
+
+    def test_kleine_tabelle_erzeugt_keinen_scheinbefund(self, con, projekt, csv_schreiber):
+        # Bei zwoelf Eintraegen sagt ein Anteil von 50 Prozent nichts aus.
+        zeilen = ["MANDT;LIFNR;NAME1"] + [
+            f"100;{4700 + i};{'Ueberweisung' if i % 2 else 'Kurz'}" for i in range(12)
+        ]
+        csv_schreiber(projekt, "LFA1.csv", zeilen)
+        _, report = pruefen(con, projekt)
+        assert not any("NAME1" in c.message for c in befunde(report, "FA-202"))
 
     def test_alpha_felder_erzeugen_keinen_scheinbefund(self, con, projekt, csv_schreiber):
         # Nach der ALPHA-Konvertierung sind alle LIFNR gleich lang. Das ist

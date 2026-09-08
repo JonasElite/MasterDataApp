@@ -35,6 +35,26 @@ TRUNCATION_SHARE = 0.02
 #: Unterhalb dieser Anzahl ist der Anteil nicht aussagekraeftig.
 TRUNCATION_MIN_HITS = 5
 
+#: Mindestgroesse der Grundgesamtheit fuer den Verteilungsvergleich. Bei einer
+#: Customizing-Tabelle mit zwoelf Eintraegen sagt ein Anteil von 50 Prozent
+#: nichts aus - dort ist es blosser Zufall, dass mehrere Bezeichnungen gleich
+#: lang sind. Die Pruefung gegen die bekannte DDIC-Feldlaenge bleibt davon
+#: unberuehrt; sie braucht keine Grundgesamtheit.
+TRUNCATION_MIN_POPULATION = 100
+
+#: Um wieviel die Haeufigkeit auf der Maximallaenge die der darunter liegenden
+#: Laengen uebersteigen muss.
+#:
+#: Der Anteil allein genuegt nicht. Namensfelder schoepfen ihre Laenge
+#: natuerlicherweise aus; dann liegen bei 33, 34 und 35 Zeichen aehnlich viele
+#: Werte. Beim Abschneiden entsteht dagegen ein Aufstau: alles, was laenger
+#: gewesen waere, sammelt sich auf der Grenze, waehrend die Laengen knapp
+#: darunter duenn besetzt bleiben. Genau diesen Aufstau sucht die Pruefung.
+TRUNCATION_SPIKE_FACTOR = 3.0
+
+#: Anzahl der Laengen unterhalb des Maximums, gegen die verglichen wird.
+TRUNCATION_COMPARISON_WIDTH = 3
+
 #: Kuerzere Felder sind Schluessel und Codes, keine Freitexte. Dass dort alle
 #: Werte gleich lang sind, ist der Normalfall und kein Hinweis auf einen
 #: abgeschnittenen Export.
@@ -313,15 +333,30 @@ def _check_field_truncation(
             if (declared or max_length) < TRUNCATION_MIN_FIELD_LENGTH:
                 continue
 
-            at_max = con.execute(
-                f"SELECT count(*) FROM {relation} WHERE length({quote_identifier(column)}) = ?",
-                [max_length],
-            ).fetchone()[0]
+            if non_null < TRUNCATION_MIN_POPULATION:
+                continue
+
+            at_max, below = con.execute(
+                f"SELECT "
+                f"  count(*) FILTER (WHERE laenge = ?), "
+                f"  count(*) FILTER (WHERE laenge BETWEEN ? AND ?) "
+                f"FROM (SELECT length({quote_identifier(column)}) AS laenge FROM {relation})",
+                [
+                    max_length,
+                    max_length - TRUNCATION_COMPARISON_WIDTH,
+                    max_length - 1,
+                ],
+            ).fetchone()
             share = at_max / non_null
+            vergleichsmittel = below / TRUNCATION_COMPARISON_WIDTH
+            aufstau = at_max >= max(
+                TRUNCATION_SPIKE_FACTOR * vergleichsmittel, TRUNCATION_MIN_HITS
+            )
             if (
                 max_length >= (declared or max_length)
                 and share >= TRUNCATION_SHARE
                 and at_max >= TRUNCATION_MIN_HITS
+                and aufstau
             ):
                 report.add(
                     DeliveryCheck(
@@ -331,11 +366,14 @@ def _check_field_truncation(
                         table=table,
                         message=(
                             f"{table}.{column}: {at_max} von {non_null} Werten ({share:.1%}) "
-                            f"sind genau {max_length} Zeichen lang. Das deutet auf beim "
-                            "Export abgeschnittene Feldinhalte hin."
+                            f"sind genau {max_length} Zeichen lang, waehrend auf den "
+                            f"{TRUNCATION_COMPARISON_WIDTH} Laengen darunter zusammen nur "
+                            f"{below} Werte liegen. Dieser Aufstau auf der Grenze deutet auf "
+                            "beim Export abgeschnittene Feldinhalte hin."
                         ),
                         details={
                             "werte_auf_maximallaenge": at_max,
+                            "werte_knapp_darunter": below,
                             "nicht_leere_werte": non_null,
                             "laenge": max_length,
                         },
