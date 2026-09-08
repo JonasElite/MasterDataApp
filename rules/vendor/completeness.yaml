@@ -1,0 +1,84 @@
+# Vollstaendigkeitsregeln Kreditor (FA-401).
+rules:
+
+  - id: VEN-COMP-001
+    name: Kreditor ohne Umsatzsteuer-Identifikationsnummer
+    description: >
+      Kreditoren mit Sitz in einem EU-Land benoetigen fuer den innergemeinschaftlichen
+      Waren- und Dienstleistungsverkehr eine USt-IdNr. Fehlt sie, ist der
+      Steuerausweis nicht belegbar und der Vorsteuerabzug gefaehrdet.
+      Natuerliche Personen und CpD-Konten sind ausgenommen.
+    category: completeness
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [LIFNR, LAND1, STCEG, KTOKK]
+    params:
+      eu_countries: [AT, BE, BG, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HR, HU, IE,
+                     IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK]
+      excluded_account_groups: [CPD, CPDL]
+    remediation: >
+      USt-IdNr. beim Kreditor erfragen und im Feld STCEG pflegen; anschliessend
+      ueber den VIES-Abgleich bestaetigen lassen.
+    sql: |
+      SELECT
+          MANDT,
+          LIFNR,
+          NAME1,
+          LAND1,
+          KTOKK,
+          STCEG
+      FROM LFA1
+      WHERE LAND1 IN ${eu_countries}
+        AND COALESCE(KTOKK, '') NOT IN ${excluded_account_groups}
+        AND COALESCE(XCPDK, '') <> 'X'
+        AND COALESCE(STKZN, '') <> 'X'
+        AND COALESCE(LOEVM, '') <> 'X'
+        AND (STCEG IS NULL OR is_placeholder_text(STCEG))
+
+  - id: VEN-COMP-002
+    name: Kreditor ohne Ort oder Postleitzahl
+    description: >
+      Ohne vollstaendige Anschrift lassen sich weder Rechnungen zustellen noch
+      Dubletten zuverlaessig erkennen. Die Adresse ist ausserdem Voraussetzung
+      fuer die umsatzsteuerliche Rechnungspflichtangabe.
+    category: completeness
+    severity: medium
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [LIFNR, ORT01, PSTLZ]
+    params: {}
+    remediation: Anschrift beim Kreditor erfragen und in LFA1 pflegen.
+    sql: |
+      SELECT
+          MANDT,
+          LIFNR,
+          NAME1,
+          LAND1,
+          ORT01,
+          PSTLZ,
+          CASE
+              WHEN ORT01 IS NULL OR is_placeholder_text(ORT01) THEN 'Ort fehlt'
+              ELSE ''
+          END AS befund_ort,
+          CASE
+              WHEN PSTLZ IS NULL OR is_placeholder_text(PSTLZ) THEN 'Postleitzahl fehlt'
+              ELSE ''
+          END AS befund_plz
+      FROM LFA1
+      WHERE COALESCE(LOEVM, '') <> 'X'
+        AND COALESCE(XCPDK, '') <> 'X'
+        AND (ORT01 IS NULL OR is_placeholder_text(ORT01)
+             OR PSTLZ IS NULL OR is_placeholder_text(PSTLZ))

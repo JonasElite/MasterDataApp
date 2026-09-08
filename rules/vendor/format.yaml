@@ -1,0 +1,71 @@
+# Formatregeln Kreditor (FA-402).
+rules:
+
+  - id: VEN-FMT-001
+    name: USt-IdNr. mit falschem Aufbau oder falscher Pruefziffer
+    description: >
+      Die USt-IdNr. wird gegen den laenderspezifischen Aufbau nach ISO-Vorgabe
+      geprueft, fuer Deutschland, die Niederlande und Italien zusaetzlich gegen
+      die Pruefziffer. Eine formal falsche Nummer wird vom Bundeszentralamt
+      abgewiesen und gefaehrdet die Steuerfreiheit innergemeinschaftlicher
+      Lieferungen.
+    category: format
+    severity: high
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [LIFNR, LAND1, STCEG]
+    params: {}
+    remediation: >
+      Nummer beim Kreditor erfragen und korrigieren. Der abschliessende Nachweis
+      erfolgt ueber den VIES-Abgleich, sobald dieser freigegeben ist.
+    sql: |
+      SELECT
+          MANDT,
+          LIFNR,
+          NAME1,
+          LAND1,
+          STCEG,
+          vat_id_reason(LAND1, STCEG) AS befund
+      FROM LFA1
+      WHERE STCEG IS NOT NULL
+        AND NOT is_placeholder_text(STCEG)
+        AND NOT vat_id_valid(LAND1, STCEG)
+
+  - id: VEN-FMT-002
+    name: Postleitzahl passt nicht zum Land
+    description: >
+      Die Postleitzahl wird gegen den Aufbau des im Stammsatz gepflegten Landes
+      geprueft. Abweichungen deuten auf eine falsche Landeszuordnung oder auf
+      eine in das falsche Feld uebernommene Angabe hin.
+    category: format
+    severity: medium
+    version: "1.0.0"
+    object_area: vendor
+    object_type: Kreditor
+    key_columns: [LIFNR]
+    client_column: MANDT
+    requires:
+      tables: [LFA1]
+      fields:
+        LFA1: [LIFNR, LAND1, PSTLZ]
+    params: {}
+    remediation: Postleitzahl und Land gegen die Originalanschrift abgleichen.
+    sql: |
+      SELECT
+          MANDT,
+          LIFNR,
+          NAME1,
+          LAND1,
+          PSTLZ,
+          postal_code_reason(LAND1, PSTLZ) AS befund
+      FROM LFA1
+      WHERE PSTLZ IS NOT NULL
+        AND LAND1 IS NOT NULL
+        AND postal_code_known(LAND1)
+        AND NOT postal_code_valid(LAND1, PSTLZ)

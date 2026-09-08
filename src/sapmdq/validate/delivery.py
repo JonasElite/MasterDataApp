@@ -343,6 +343,52 @@ def _check_field_truncation(
                 )
 
 
+def _check_partial_columns(report: DeliveryReport, ingestion: IngestionResult) -> None:
+    """Teillieferungen derselben Tabelle mit ungleichen Spalten (FA-202).
+
+    Wird eine Tabelle in mehreren Dateien geliefert und fehlt in einer davon
+    eine Spalte, wird sie beim Zusammenfuehren mit NULL aufgefuellt. Fuer
+    Vollstaendigkeitsregeln sieht das aus wie ein ungepflegtes Feld, obwohl
+    der Wert im Quellsystem gepflegt sein kann. Darauf muss hingewiesen
+    werden, sonst entstehen Scheinbefunde.
+    """
+    by_table: dict[str, list] = {}
+    for source in ingestion.files:
+        if source.table:
+            by_table.setdefault(source.table, []).append(source)
+
+    for table, sources in sorted(by_table.items()):
+        if len(sources) < 2:
+            continue
+        column_sets = {s.relative_name: set(s.header_mapping.values()) for s in sources}
+        union: set[str] = set().union(*column_sets.values())
+        gaps = {
+            name: sorted(union - columns)
+            for name, columns in column_sets.items()
+            if union - columns
+        }
+        if not gaps:
+            continue
+        detail = "; ".join(
+            f"{name} ohne {', '.join(missing[:6])}" for name, missing in sorted(gaps.items())
+        )
+        report.add(
+            DeliveryCheck(
+                check_id="FA-202",
+                requirement="Truncation-Erkennung",
+                severity=Severity.WARNING,
+                table=table,
+                message=(
+                    f"{table} wurde in {len(sources)} Dateien mit unterschiedlichen Spalten "
+                    f"geliefert ({detail}). Die fehlenden Spalten werden mit NULL aufgefuellt; "
+                    "Vollstaendigkeitsregeln melden fuer diese Saetze deshalb moeglicherweise "
+                    "Luecken, die im Quellsystem gepflegt sind."
+                ),
+                details={"luecken": gaps},
+            )
+        )
+
+
 def _check_clients(
     report: DeliveryReport, ingestion: IngestionResult, config: ProjectConfig, registry: TableRegistry
 ) -> None:
@@ -618,6 +664,7 @@ def validate_delivery(
     _check_row_counts(report, ingestion, config, manifest)
     _check_parse_errors(report, ingestion, config)
     _check_field_truncation(report, con, ingestion, registry)
+    _check_partial_columns(report, ingestion)
     _check_clients(report, ingestion, config, registry)
     _check_extraction_dates(report, ingestion)
     _check_table_usability(report, ingestion, config, registry)
