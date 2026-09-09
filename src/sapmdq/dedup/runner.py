@@ -212,34 +212,64 @@ def _prepare_candidates(
     return block_columns, exact_columns, address_columns
 
 
-def _fetch_original_names(
+def _fetch_member_attributes(
     con: duckdb.DuckDBPyConnection, rule: Rule, keys: Sequence[str]
-) -> dict[str, str]:
-    """Holt die Originalnamen der Clustermitglieder fuer den Befundtext.
+) -> dict[str, dict[str, str]]:
+    """Holt die verglichenen Felder der Clustermitglieder fuer den Befund.
 
-    Im Befund stehen die Werte, wie sie im System stehen - nicht die
+    Geholt wird genau das, was der Abgleich betrachtet hat: der Name, die
+    Adressbestandteile und die harten Schluessel. Damit laesst sich im Bericht
+    und in der Oberflaeche zeigen, worin sich zwei mutmasslich gleiche
+    Stammsaetze unterscheiden - ohne dass der Leser sie im Quellsystem
+    nebeneinanderlegen muss.
+
+    Im Befund stehen die Werte, wie sie im System stehen, nicht die
     normalisierten Vergleichsformen. Der Data Owner soll wiedererkennen, was
     er vor sich hat.
     """
     spec = rule.duplicate
-    if spec is None or not spec.name_column or not keys:
+    if spec is None or not keys:
         return {}
+
+    spalten: list[str] = []
+    for name in (
+        (spec.name_column,) + tuple(spec.address_columns) + tuple(spec.exact_keys)
+    ):
+        if name and name not in spalten:
+            spalten.append(name)
+    if not spalten:
+        return {}
+
     source = render_params(spec.source_sql, rule.params, rule.id).strip().rstrip(";")
     key_expression = "concat_ws('/', " + ", ".join(
         f"CAST({quote_identifier(column)} AS VARCHAR)" for column in spec.key_columns
     ) + ")"
+    # ``any_value`` je Spalte: die Quelle kann je Stammsatz mehrere Zeilen
+    # liefern - etwa eine je Bankverbindung. Fuer die Gegenueberstellung
+    # genuegt eine davon; der Abgleich selbst hat ohnehin alle betrachtet.
+    projektion = ", ".join(
+        f"any_value(CAST({quote_identifier(name)} AS VARCHAR)) AS {quote_identifier(name)}"
+        for name in spalten
+    )
     values = ", ".join(quote_literal(key) for key in sorted(set(keys)))
     rows = con.execute(
-        f"SELECT k, any_value(n) FROM ("
-        f"  SELECT {key_expression} AS k, {quote_identifier(spec.name_column)} AS n "
-        f"  FROM ({source})"
+        f"SELECT k, {projektion} FROM ("
+        f"  SELECT {key_expression} AS k, * FROM ({source})"
         f") WHERE k IN ({values}) GROUP BY k"
     ).fetchall()
-    return {str(key): (name or "") for key, name in rows}
+    return {
+        str(row[0]): {
+            name: ("" if wert is None else str(wert))
+            for name, wert in zip(spalten, row[1:])
+        }
+        for row in rows
+    }
 
 
 def _clusters_to_findings(
-    rule: Rule, clusters: Sequence[DuplicateCluster], names: dict[str, str]
+    rule: Rule,
+    clusters: Sequence[DuplicateCluster],
+    attribute: dict[str, dict[str, str]],
 ) -> pd.DataFrame:
     """Uebersetzt Cluster in Befunde im einheitlichen Aufbau.
 
@@ -250,17 +280,40 @@ def _clusters_to_findings(
     """
     import hashlib
 
+    spec = rule.duplicate
+    namensspalte = spec.name_column if spec else None
+    # Die Reihenfolge der Felder ist fuer alle Mitglieder gleich, damit die
+    # Gegenueberstellung in der Oberflaeche Zeile fuer Zeile aufgeht.
+    verglichene_felder = [
+        feld
+        for feld in (
+            (tuple(spec.address_columns) + tuple(spec.exact_keys)) if spec else ()
+        )
+        if feld != namensspalte
+    ]
+    # Doppelte entfernen, Reihenfolge erhalten.
+    verglichene_felder = list(dict.fromkeys(verglichene_felder))
+
     records = []
     for cluster in clusters:
+        mitglieder = []
+        for member in cluster.members:
+            werte = attribute.get(member, {})
+            mitglieder.append(
+                {
+                    "schluessel": member,
+                    "name": werte.get(namensspalte, "") if namensspalte else "",
+                    "felder": {feld: werte.get(feld, "") for feld in verglichene_felder},
+                }
+            )
         detail = {
             "cluster": cluster.cluster_id,
             "anzahl_saetze": cluster.size,
             "aehnlichkeitsscore": cluster.score,
             "art_des_treffers": cluster.match_type,
-            "mitglieder": [
-                {"schluessel": member, "name": names.get(member, "")}
-                for member in cluster.members
-            ],
+            "namensfeld": namensspalte or "",
+            "verglichene_felder": verglichene_felder,
+            "mitglieder": mitglieder,
             "begruendung": list(cluster.reasons),
         }
         finding_id = hashlib.md5(
@@ -410,8 +463,8 @@ def execute_duplicate_rule(
 
     clusters = build_clusters(pairs)
     members = [member for cluster in clusters for member in cluster.members]
-    names = _fetch_original_names(con, rule, members)
-    findings = _clusters_to_findings(rule, clusters, names)
+    attribute = _fetch_member_attributes(con, rule, members)
+    findings = _clusters_to_findings(rule, clusters, attribute)
 
     if findings.empty:
         target.unlink(missing_ok=True)

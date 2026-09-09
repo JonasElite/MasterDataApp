@@ -28,10 +28,11 @@
     </div>
 
     <nav aria-label="Bereiche">
-      <button class="nav" data-ansicht="uebersicht" aria-current="page">Uebersicht</button>
-      <button class="nav" data-ansicht="lieferung">Lieferung</button>
-      <button class="nav" data-ansicht="coverage">Pruefumfang</button>
+      <button class="nav" data-ansicht="lagebild" aria-current="page">Lagebild</button>
       <button class="nav" data-ansicht="befunde">Befunde</button>
+      <button class="nav" data-ansicht="dubletten">Dubletten</button>
+      <button class="nav" data-ansicht="coverage">Pruefumfang</button>
+      <button class="nav" data-ansicht="lieferung">Lieferung</button>
       <button class="nav" data-ansicht="ausnahmen">Ausnahmen</button>
       <button class="nav" data-ansicht="laeufe">Laeufe</button>
     </nav>
@@ -39,6 +40,7 @@
     <div class="seitenleiste-fuss">
       <label class="feldchen" for="lauf-auswahl">Angezeigter Lauf</label>
       <select id="lauf-auswahl" aria-label="Angezeigten Lauf waehlen"></select>
+      <button id="praesentation" class="knopf">Praesentation</button>
       <button id="lauf-starten" class="knopf knopf-haupt">Pruefung starten</button>
       <p id="projekt-fuss" class="leise"></p>
     </div>
@@ -55,28 +57,60 @@
 
     <div id="meldungen" class="meldungen" role="status" aria-live="polite"></div>
 
-    <!-- ------------------------------------------------------ Uebersicht -->
-    <section id="ansicht-uebersicht" class="ansicht">
-      <div id="u-kennzahlen" class="kacheln"></div>
-      <div class="spalten">
-        <div class="karte">
-          <h2>Befunde nach Schweregrad</h2>
-          <div id="u-schweregrade" class="balken"></div>
+    <!-- -------------------------------------------------------- Lagebild -->
+    <section id="ansicht-lagebild" class="ansicht">
+      <div class="lagebild">
+        <div>
+          <div class="karte hero">
+            <div class="hero-titel">Datenqualitaet</div>
+            <div id="lb-score" class="hero-wert">-</div>
+            <div id="lb-einordnung"></div>
+            <p id="lb-score-zusatz" class="hero-zusatz"></p>
+          </div>
+          <div class="karte">
+            <h2>Pruefumfang</h2>
+            <div id="lb-ring"></div>
+            <p id="lb-ring-text" class="leise abstand-oben"></p>
+          </div>
         </div>
-        <div class="karte">
-          <h2>Befunde nach Bereich</h2>
-          <div id="u-bereiche" class="balken"></div>
+
+        <div>
+          <div class="karte">
+            <h2>Auf einen Blick</h2>
+            <div id="lb-ampel" class="ampel"></div>
+          </div>
+
+          <div class="karte">
+            <h2>Befunde nach Schweregrad</h2>
+            <div id="lb-schweregrade" class="saeulen"></div>
+            <p class="leise abstand-oben">Zum Filtern auf eine Zeile klicken.</p>
+          </div>
+
+          <div class="karte">
+            <h2>Befunde nach Objektbereich</h2>
+            <div id="lb-bereiche" class="saeulen"></div>
+          </div>
         </div>
       </div>
+
+      <div class="spalten">
+        <div class="karte">
+          <h2>Woran es am haeufigsten liegt</h2>
+          <div id="lb-regeln" class="saeulen"></div>
+        </div>
+        <div class="karte">
+          <h2>Was eine Nachlieferung braechte</h2>
+          <p class="leise">Nach Wirkung geordnet: wieviele zusaetzliche Pruefungen
+             die Tabelle freischaltet.</p>
+          <div id="lb-nachforderung" class="saeulen"></div>
+        </div>
+      </div>
+
       <div class="karte">
         <h2>Bewertung je Bereich</h2>
         <p class="leise">Der Wert ist unter dem Vorbehalt des jeweils erreichten
            Pruefumfangs zu lesen. Was nicht geprueft werden konnte, geht nicht ein.</p>
-        <div id="u-bewertung"></div>
-      </div>
-      <div class="karte">
-        <h2>Haeufigste Regeln</h2>
-        <div id="u-regeln"></div>
+        <div id="lb-bewertung"></div>
       </div>
     </section>
 
@@ -162,6 +196,32 @@
       </div>
     </section>
 
+    <!-- -------------------------------------------------------- Dubletten -->
+    <section id="ansicht-dubletten" class="ansicht" hidden>
+      <div id="d-kennzahlen" class="kacheln"></div>
+
+      <div class="karte">
+        <h2>Nach Regel</h2>
+        <div id="d-je-regel" class="saeulen"></div>
+      </div>
+
+      <div class="karte">
+        <h2>Cluster</h2>
+        <div class="werkzeugleiste">
+          <input id="d-suche" type="search" placeholder="Name oder Schluessel"
+                 aria-label="Cluster durchsuchen">
+          <select id="d-art" aria-label="Art des Treffers">
+            <option value="">Nachweis: alle</option>
+            <option value="exakt">exakt - harter Schluessel</option>
+            <option value="unscharf">unscharf - Namensaehnlichkeit</option>
+          </select>
+          <button id="d-alle-auf" class="knopf knopf-leise">Alle aufklappen</button>
+        </div>
+        <p id="d-anzahl" class="leise"></p>
+        <div id="d-cluster"></div>
+      </div>
+    </section>
+
     <!-- ------------------------------------------------------- Ausnahmen -->
     <section id="ansicht-ausnahmen" class="ansicht" hidden>
       <div class="karte">
@@ -213,6 +273,19 @@
       <p id="p-status"></p>
       <pre id="p-protokoll" class="protokoll" aria-live="polite"></pre>
     </div>
+  </div>
+</div>
+
+<!-- --------------------------------------------------------- Praesentation -->
+<div id="buehne" class="buehne" hidden>
+  <div id="folie" class="folie" role="region" aria-live="polite"></div>
+  <div class="buehne-fuss">
+    <span id="folie-titel" class="titel"></span>
+    <button id="folie-zurueck" class="knopf knopf-leise" aria-label="Vorige Folie">&larr;</button>
+    <span id="folie-zaehler" class="zaehler"></span>
+    <button id="folie-vor" class="knopf knopf-leise" aria-label="Naechste Folie">&rarr;</button>
+    <button id="folie-drucken" class="knopf knopf-leise">Als PDF</button>
+    <button id="buehne-schliessen" class="knopf knopf-leise">Beenden</button>
   </div>
 </div>
 

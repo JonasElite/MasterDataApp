@@ -221,6 +221,50 @@ class TestVergleich:
             api.vergleich(state, {"vorher": ["a"]})
 
 
+class TestDubletten:
+    """Die Dublettenansicht ist die, die im Kundentermin gezeigt wird."""
+
+    def test_cluster_kommen_mit_ihren_mitgliedern(self, state, gelaufen):
+        _, ergebnis = gelaufen
+        daten = api.dubletten(state, ergebnis.run_id)
+        assert daten["anzahl_cluster"] > 0
+        assert daten["betroffene_saetze"] >= daten["anzahl_cluster"] * 2
+        for eintrag in daten["cluster"]:
+            assert len(eintrag["mitglieder"]) == eintrag["anzahl_saetze"]
+
+    def test_grosse_cluster_stehen_oben(self, state, gelaufen):
+        _, ergebnis = gelaufen
+        groessen = [c["anzahl_saetze"] for c in api.dubletten(state, ergebnis.run_id)["cluster"]]
+        assert groessen == sorted(groessen, reverse=True)
+
+    def test_einsparung_zaehlt_den_fuehrenden_satz_nicht_mit(self, state, gelaufen):
+        """Je Cluster bleibt ein Stammsatz stehen - er ist keine Einsparung."""
+        _, ergebnis = gelaufen
+        daten = api.dubletten(state, ergebnis.run_id)
+        assert daten["einsparung"] == daten["betroffene_saetze"] - daten["anzahl_cluster"]
+
+    def test_mitglieder_tragen_die_verglichenen_felder(self, state, gelaufen):
+        """Ohne sie kann die Oberflaeche nichts gegenueberstellen."""
+        _, ergebnis = gelaufen
+        daten = api.dubletten(state, ergebnis.run_id)
+        unscharf = [c for c in daten["cluster"] if c["art"] == "unscharf" and c["verglichene_felder"]]
+        assert unscharf, "kein unscharfes Cluster mit verglichenen Feldern"
+        cluster = unscharf[0]
+        for mitglied in cluster["mitglieder"]:
+            assert set(mitglied["felder"]) == set(cluster["verglichene_felder"])
+
+    def test_je_regel_summiert_die_cluster(self, state, gelaufen):
+        _, ergebnis = gelaufen
+        daten = api.dubletten(state, ergebnis.run_id)
+        assert sum(g["cluster"] for g in daten["je_regel"]) == daten["anzahl_cluster"]
+        assert sum(g["saetze"] for g in daten["je_regel"]) == daten["betroffene_saetze"]
+
+    def test_lauf_ohne_befunde_ist_kein_fehler(self, state):
+        with pytest.raises(api.ApiFehler) as fehler:
+            api.dubletten(state, "gibtsnicht")
+        assert fehler.value.status == 404
+
+
 # ----------------------------------------------------------------- Server
 @pytest.fixture
 def server(gelaufen):
@@ -288,6 +332,13 @@ class TestServer:
             richtlinie = antwort.headers.get("Content-Security-Policy")
         assert "default-src 'self'" in richtlinie
 
+    def test_dubletten_kommen_ueber_die_schnittstelle(self, server, gelaufen):
+        _, basis, token = server
+        _, ergebnis = gelaufen
+        status, koerper = ruf(basis, f"/api/laeufe/{ergebnis.run_id}/dubletten", token=token)
+        assert status == 200
+        assert json.loads(koerper)["anzahl_cluster"] > 0
+
     def test_ein_lauf_laesst_sich_ansehen(self, server, gelaufen):
         _, basis, token = server
         _, ergebnis = gelaufen
@@ -313,6 +364,23 @@ class TestAusgelieferteDateien:
     def test_alle_dateien_sind_vorhanden(self):
         for name in ("index.html", "app.js", "stil.css", "zeichen.svg"):
             assert (STATIC_DIR / name).is_file(), name
+
+    def test_keine_stilangaben_am_element(self):
+        """Die Content-Security-Policy laesst nur Stile aus der CSS-Datei zu.
+
+        Ein ``style``-Attribut im Markup wird vom Browser verworfen - ohne
+        sichtbaren Fehler, aber mit kaputtem Layout. Der Test faengt das ab,
+        bevor es jemand im Kundentermin bemerkt. Ueber die CSSOM gesetzte
+        Eigenschaften (``element.style.width = ...``) sind davon nicht
+        betroffen und bleiben erlaubt.
+        """
+        for name in ("index.html", "app.js"):
+            text = (STATIC_DIR / name).read_text(encoding="utf-8")
+            for verdacht in ('style="', "style: \""):
+                assert verdacht not in text, (
+                    f"{name} setzt ein style-Attribut - die Richtlinie verwirft es. "
+                    "Gehoert als Klasse nach stil.css."
+                )
 
     def test_nichts_wird_aus_dem_netz_geladen(self):
         """Kein src, href, url() oder fetch() zeigt nach draussen.

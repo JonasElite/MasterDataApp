@@ -54,8 +54,15 @@ python tools/beispieldaten.py kundenprojekt/data/input --vendors 400
 sapmdq run -c kundenprojekt/projekt.yaml
 ```
 
-Die Beispiellieferung enthaelt 24 gezielt eingebaute Maengel; welche das sind,
-steht in der miterzeugten Datei `EINGEBAUTE_MAENGEL.md`.
+Die Beispiellieferung enthaelt 45 gezielt eingebaute Maengel ueber Kreditoren,
+Debitoren und Material; welche das sind, steht in der miterzeugten Datei
+`EINGEBAUTE_MAENGEL.md`. Darunter sind mehrere Dublettenfaelle - derselbe Kunde
+unter Schreibvarianten, derselbe Kunde ohne jede Namensaehnlichkeit aber mit
+gleicher USt-IdNr. - und zwei Faelle, die **nicht** gemeldet werden duerfen:
+zwei verschiedene Firmen mit gleichem Namensstamm in derselben Strasse, und
+eine Schreibvariante, die der unscharfe Abgleich nachweislich nicht findet.
+Auch das steht dort, denn wer das Werkzeug vorfuehrt, sollte seine Grenzen
+nennen koennen.
 
 Wer die Ergebnisse lieber ansieht als liest:
 
@@ -63,10 +70,13 @@ Wer die Ergebnisse lieber ansieht als liest:
 sapmdq ui -c kundenprojekt/projekt.yaml
 ```
 
-Das oeffnet eine oertliche Oberflaeche im Browser - Kennzahlen, Lieferung,
-Pruefumfang, filterbare Befunde und der Vergleich zweier Laeufe. Ausnahmen und
-Bearbeitungsstaende lassen sich dort per Klick pflegen, Laeufe von dort
-starten. Kein Server, keine zusaetzliche Abhaengigkeit, nichts aus dem Netz;
+Das oeffnet eine oertliche Oberflaeche im Browser: ein Lagebild mit Punktwert,
+Pruefumfang und Verteilung der Befunde, eine filterbare Befundliste, die
+Dublettencluster mit Gegenueberstellung der betroffenen Stammsaetze, Lieferung,
+Pruefumfang und der Vergleich zweier Laeufe. Ausnahmen und Bearbeitungsstaende
+lassen sich per Klick pflegen, Laeufe von dort starten. Der Knopf
+*Praesentation* baut aus dem Lauf eine Folienabfolge fuer den Kundentermin,
+druckbar als PDF. Kein Server, keine zusaetzliche Abhaengigkeit, nichts aus dem Netz;
 gebunden wird nur an 127.0.0.1. Einzelheiten in
 [docs/oberflaeche.md](docs/oberflaeche.md), die Einrichtung Schritt fuer
 Schritt in [docs/installation.md](docs/installation.md).
@@ -229,7 +239,7 @@ ausserhalb des Werkzeugs und sind organisatorisch zu regeln; siehe
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest              # 341 Tests
+python -m pytest              # 375 Tests
 python -m pytest tests/test_akzeptanzkriterien.py -v   # Abnahmenachweis
 ```
 

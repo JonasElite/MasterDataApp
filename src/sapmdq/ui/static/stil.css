@@ -16,12 +16,23 @@
   --akzent-text:  #ffffff;
   --akzent-leise: #e8eef5;
 
-  --critical: #c0392b;
-  --high:     #e67e22;
-  --medium:   #d4a806;
-  --low:      #7f8894;
+  /* Schweregrad ist eine Statusskala mit vier fest belegten Stufen, keine
+     frei waehlbare Serienfarbe. Gelb und Orange liegen fuer das normale Sehen
+     dichter beieinander, als es fuer eine Unterscheidung allein ueber die
+     Farbe reichte - deshalb steht der Schweregrad ueberall auch als Wort
+     daneben. Dieselben Werte gelten im Excel-Export. */
+  --critical: #d03b3b;
+  --high:     #ec835a;
+  --medium:   #fab219;
+  --low:      #95a5a6;
   --info:     #5c6478;
   --gut:      #1e8449;
+
+  /* Einzelne Folge fuer Groessenvergleiche - ein Farbton, hell nach dunkel.
+     Mengen je Bereich sind ein Groessenvergleich und keine Identitaet; eine
+     bunte Palette machte daraus eine Suche nach der Legende. */
+  --menge:      #2a78d6;
+  --menge-spur: #e7eef8;
 
   --radius: 10px;
   --schatten: 0 1px 2px rgba(15, 22, 36, .06), 0 4px 16px rgba(15, 22, 36, .06);
@@ -42,12 +53,16 @@
     --akzent-text:  #0f1319;
     --akzent-leise: #232f3d;
 
-    --critical: #e05a4b;
-    --high:     #f0913c;
-    --medium:   #e8c33c;
-    --low:      #8b95a3;
+    /* Die vier Statusstufen sind auf beiden Untergruenden dieselben - sie
+       halten auf dem dunklen Grund 3:1 ein. */
+    --critical: #d03b3b;
+    --high:     #ec835a;
+    --medium:   #fab219;
+    --low:      #95a5a6;
     --info:     #9aa3b4;
     --gut:      #4bb377;
+    --menge:      #3987e5;
+    --menge-spur: #202b39;
     --schatten: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
   }
 }
@@ -278,3 +293,168 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   .paar { grid-template-columns: 1fr; }
   .paar dt { margin-top: 6px; }
 }
+
+
+/* ===================================================== Diagramme und Lagebild
+   Alles aus HTML und CSS, ohne Zeichenbibliothek. Fuer die wenigen Formen, die
+   hier gebraucht werden - Groessenvergleich, Anteil, Kennzahl - ist eine
+   Bibliothek nicht noetig, und sie waere die einzige Abhaengigkeit, die aus
+   dem Netz nachgeladen werden muesste. */
+
+.lagebild { display: grid; grid-template-columns: minmax(260px, 320px) 1fr; gap: 16px; align-items: start; }
+@media (max-width: 1000px) { .lagebild { grid-template-columns: 1fr; } }
+
+/* Kennzahl, mit der eine Auswertung aufmacht. */
+.hero { text-align: center; padding: 22px 18px 18px; }
+.hero-wert { font-size: 62px; font-weight: 650; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.hero-einheit { font-size: 18px; font-weight: 400; color: var(--text-leise); letter-spacing: 0; }
+.hero-titel { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-leise); margin-bottom: 10px; }
+.hero-zusatz { font-size: 13px; color: var(--text-leise); margin-top: 10px; }
+.hero-einordnung { display: inline-block; margin-top: 12px; }
+
+/* Anteilsring: ein Wert gegen sein Ganzes. */
+.ring { --anteil: 0; --ton: var(--menge);
+  width: 132px; height: 132px; margin: 4px auto 0; border-radius: 50%;
+  background: conic-gradient(var(--ton) calc(var(--anteil) * 1%), var(--menge-spur) 0);
+  display: grid; place-items: center;
+}
+.ring::after {
+  content: ""; width: 96px; height: 96px; border-radius: 50%;
+  background: var(--flaeche); grid-area: 1 / 1;
+}
+.ring-text { grid-area: 1 / 1; z-index: 1; text-align: center; }
+.ring-wert { font-size: 26px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.ring-unter { font-size: 11px; color: var(--text-leise); }
+
+/* Liegende Saeulen mit Wert am Ende. Der Wert steht immer da; niemand soll
+   eine Laenge schaetzen oder erst mit der Maus danach suchen muessen. */
+.saeulen { display: flex; flex-direction: column; gap: 10px; }
+.saeule { display: grid; grid-template-columns: minmax(84px, 148px) 1fr auto; gap: 12px; align-items: center; }
+.saeule-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Regelbezeichnungen sind Saetze, keine Etiketten - sie brauchen mehr Platz,
+   sonst bleibt vom Namen nur "Loeschvormerkung ..." uebrig. */
+.saeulen.lange-namen .saeule { grid-template-columns: minmax(150px, 300px) 1fr auto; }
+.saeule-spur { background: var(--menge-spur); border-radius: 4px; height: 22px; position: relative; }
+.saeule-balken {
+  height: 100%; border-radius: 4px; background: var(--menge);
+  min-width: 3px; transition: width .25s ease;
+}
+@media (prefers-reduced-motion: reduce) { .saeule-balken { transition: none; } }
+.saeule-wert { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; min-width: 52px; text-align: right; }
+.saeule-anteil { font-size: 12px; color: var(--text-leise); font-variant-numeric: tabular-nums; }
+.saeule.klickbar { cursor: pointer; }
+.saeule.klickbar:hover .saeule-spur { outline: 2px solid var(--rand); outline-offset: 2px; }
+
+.legende { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 12px; color: var(--text-leise); }
+.legende-punkt { display: inline-flex; align-items: center; gap: 6px; }
+.legende-farbe { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+/* Ampelzeile: Reihe kleiner Kennzahlen mit Zustand. */
+.ampel { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.ampel-feld { border: 1px solid var(--rand); border-radius: 8px; padding: 10px 12px; border-left-width: 3px; }
+.ampel-feld.critical { border-left-color: var(--critical); }
+.ampel-feld.high     { border-left-color: var(--high); }
+.ampel-feld.medium   { border-left-color: var(--medium); }
+.ampel-feld.low      { border-left-color: var(--low); }
+.ampel-feld.gut      { border-left-color: var(--gut); }
+.ampel-wert { font-size: 22px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.ampel-titel { font-size: 12px; color: var(--text-leise); }
+
+/* Veraenderung gegen den Vorlauf. */
+.trend { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; }
+.trend.besser { color: var(--gut); }
+.trend.schlechter { color: var(--critical); }
+.trend.gleich { color: var(--text-leise); }
+
+/* ============================================================== Dubletten */
+
+.cluster-karte {
+  border: 1px solid var(--rand); border-radius: var(--radius);
+  margin-bottom: 12px; overflow: hidden; background: var(--flaeche);
+}
+.cluster-kopf {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 11px 14px; background: var(--flaeche-2);
+  border-bottom: 1px solid var(--rand); cursor: pointer;
+}
+.cluster-kopf:hover { filter: brightness(.985); }
+.cluster-titel { font-weight: 600; }
+.cluster-kopf .fuellung { margin-left: auto; }
+
+/* Gegenueberstellung: je Stammsatz eine Spalte, je Feld eine Zeile. */
+.gegenueber { overflow-x: auto; padding: 14px; }
+.gegenueber table { min-width: 100%; }
+.gegenueber th.feld {
+  width: 150px; color: var(--text-leise); font-weight: 600;
+  position: static; background: none;
+}
+.gegenueber td { vertical-align: top; font-size: 13px; }
+.gegenueber .satzkopf { font-family: var(--schrift-fest); font-weight: 600; white-space: nowrap; }
+.gegenueber .abweichend {
+  background: color-mix(in srgb, var(--high) 16%, transparent);
+  border-radius: 4px; padding: 2px 6px; margin: -2px -6px; display: inline-block;
+}
+.gegenueber .gleich { color: var(--text-leise); }
+.hinweis-zeile { font-size: 13px; color: var(--text-leise); padding: 0 14px 12px; }
+
+/* ======================================================== Praesentation */
+
+.buehne {
+  position: fixed; inset: 0; z-index: 40; background: var(--grund);
+  display: flex; flex-direction: column;
+}
+.folie {
+  flex: 1; display: flex; flex-direction: column; justify-content: center;
+  padding: 3vh 6vw; overflow: auto; gap: 18px;
+}
+.folie h2 {
+  font-size: clamp(22px, 3.4vw, 40px); text-transform: none; letter-spacing: -.02em;
+  color: var(--text); margin: 0;
+}
+.folie .unterzeile { font-size: clamp(14px, 1.5vw, 19px); color: var(--text-leise); margin: 0; }
+.folie .gross { font-size: clamp(46px, 9vw, 108px); font-weight: 650; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.folie .aussage { font-size: clamp(15px, 1.7vw, 22px); max-width: 46em; line-height: 1.5; }
+.folie ul { font-size: clamp(14px, 1.5vw, 19px); line-height: 1.7; margin: 0; padding-left: 1.2em; max-width: 46em; }
+.folie table { font-size: clamp(12px, 1.25vw, 16px); }
+.folie .saeule-name, .folie .saeule-wert { font-size: clamp(12px, 1.3vw, 17px); }
+.folie .saeule-spur { height: clamp(18px, 2.2vw, 30px); }
+.folie-titelseite { justify-content: center; align-items: flex-start; }
+/* Der Inhalt steht als Spalte in der Mitte. Auf einem breiten Beamerbild
+   klebte er sonst am linken Rand. */
+.folie > * { width: 100%; max-width: 1180px; margin-inline: auto; }
+
+.buehne-fuss {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 6vw; border-top: 1px solid var(--rand); background: var(--flaeche);
+}
+.buehne-fuss .zaehler { font-variant-numeric: tabular-nums; color: var(--text-leise); font-size: 13px; }
+.buehne-fuss .titel { font-size: 13px; color: var(--text-leise); margin-right: auto;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Gedruckt wird jede Folie auf eine eigene Seite - so entsteht aus dem
+   Praesentationsmodus ohne Umweg ein PDF zum Weitergeben. */
+@media print {
+  .seitenleiste, .kopf, .meldungen, .buehne-fuss, .blende { display: none !important; }
+  body, .rahmen { display: block; background: #fff; }
+  .buehne { position: static; }
+  .folie {
+    page-break-after: always; break-after: page;
+    min-height: 92vh; padding: 4vh 4vw;
+  }
+  .karte { box-shadow: none; }
+}
+
+/* Kleine Abstandsklassen. Sie stehen hier und nicht als style-Attribut am
+   Element: die Content-Security-Policy laesst nur Stile aus dieser Datei zu.
+   Das ist keine Formalie - die Richtlinie ist der Grund, warum die
+   Oberflaeche nichts aus dem Netz nachladen kann (NFA-04). */
+.abstand-oben     { margin-top: 12px; }
+.abstand-oben-weit{ margin-top: 18px; }
+.abstand-unten    { margin-bottom: 8px; }
+.ohne-abstand     { margin: 0; }
+.fuss-knopf       { padding: 0 14px 14px; }
+
+/* Nebeneinander, solange der Platz reicht. */
+.nebeneinander { display: flex; gap: min(6vw, 48px); align-items: center; flex-wrap: wrap; }
+.nebeneinander > .aussage { flex: 1 1 300px; }
+.ampel-breit { max-width: 900px; }

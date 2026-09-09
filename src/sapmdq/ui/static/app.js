@@ -139,7 +139,7 @@ const Z = {
   laeufe: [],
   laufId: "",
   lauf: null,
-  ansicht: "uebersicht",
+  ansicht: "lagebild",
   befunde: { seite: 1, gesamt: 0, seiten: 1 },
   fortschrittUhr: null,
 };
@@ -192,6 +192,105 @@ function balken(eintraege, farbeFuer) {
   }));
 }
 
+/* ------------------------------------------------------------ Diagramme
+ *
+ * Alles aus HTML und CSS. Zwei Formen genuegen fuer das, was hier gezeigt
+ * wird: liegende Saeulen fuer einen Groessenvergleich und ein Ring fuer einen
+ * Anteil. Jeder Wert steht als Zahl daneben - niemand soll eine Laenge
+ * schaetzen oder erst mit der Maus danach suchen muessen.
+ */
+
+/** Liegende Saeulen mit Beschriftung am Ende.
+ *
+ * ``eintraege``: {name, wert, farbe?, titel?, aufKlick?, anteilVon?}
+ */
+function saeulen(eintraege, einstellungen) {
+  const opt = einstellungen || {};
+  if (!eintraege.length) {
+    return el("p", { class: "nichts", text: opt.leer || "Nichts vorhanden." });
+  }
+  const groesster = Math.max(...eintraege.map((e) => e.wert), 1);
+  const summe = eintraege.reduce((a, e) => a + e.wert, 0);
+
+  return el("div", { class: "saeulen" + (opt.langeNamen ? " lange-namen" : "") },
+      eintraege.map((eintrag) => {
+    const balken = el("div", { class: "saeule-balken" });
+    balken.style.width = Math.max((eintrag.wert / groesster) * 100, 1.5) + "%";
+    if (eintrag.farbe) balken.style.background = eintrag.farbe;
+
+    const anteil = opt.anteile && summe
+      ? el("span", { class: "saeule-anteil", text: " " + Math.round((eintrag.wert / summe) * 100) + " %" })
+      : null;
+
+    return el("div", {
+      class: "saeule" + (eintrag.aufKlick ? " klickbar" : ""),
+      title: eintrag.titel || (eintrag.name + ": " + zahl(eintrag.wert)),
+      tabindex: eintrag.aufKlick ? "0" : null,
+      role: eintrag.aufKlick ? "button" : null,
+      onclick: eintrag.aufKlick || null,
+      onkeydown: eintrag.aufKlick
+        ? (ereignis) => {
+            if (ereignis.key === "Enter" || ereignis.key === " ") {
+              ereignis.preventDefault();
+              eintrag.aufKlick();
+            }
+          }
+        : null,
+    }, [
+      el("div", { class: "saeule-name", text: eintrag.name }),
+      el("div", { class: "saeule-spur" }, [balken]),
+      el("div", { class: "saeule-wert" }, [zahl(eintrag.wert), anteil]),
+    ]);
+  }));
+}
+
+/** Anteilsring - ein Wert gegen sein Ganzes. */
+function ring(anteil, wert, unter, ton) {
+  const koerper = el("div", { class: "ring" }, [
+    el("div", { class: "ring-text" }, [
+      el("div", { class: "ring-wert", text: wert }),
+      el("div", { class: "ring-unter", text: unter || "" }),
+    ]),
+  ]);
+  koerper.style.setProperty("--anteil", Math.max(0, Math.min(100, anteil * 100)));
+  if (ton) koerper.style.setProperty("--ton", ton);
+  return koerper;
+}
+
+function ampelfeld(titel, wert, klasse, hinweis) {
+  return el("div", { class: "ampel-feld " + (klasse || ""), title: hinweis || null }, [
+    el("div", { class: "ampel-wert", text: wert }),
+    el("div", { class: "ampel-titel", text: titel }),
+  ]);
+}
+
+/** Veraenderung gegen den Vorlauf. Weniger Befunde ist besser. */
+function trend(neu, behoben) {
+  const netto = (neu || 0) - (behoben || 0);
+  if (!neu && !behoben) return el("span", { class: "trend gleich", text: "unveraendert" });
+  const klasse = netto < 0 ? "besser" : netto > 0 ? "schlechter" : "gleich";
+  const zeichen = netto < 0 ? "\u2193 " : netto > 0 ? "\u2191 " : "";
+  return el("span", { class: "trend " + klasse, title:
+      zahl(behoben) + " behoben, " + zahl(neu) + " neu hinzugekommen" }, [
+    zeichen + zahl(Math.abs(netto)) + (netto === 0 ? " netto" : netto < 0 ? " weniger" : " mehr"),
+  ]);
+}
+
+/** Einordnung eines Punktwertes in Worten.
+ *
+ * Wortlaut und Schwellen sind dieselben wie in ``report/score.py``. Sonst
+ * stuende in der Management-Summary ein anderes Wort als auf dem Bildschirm,
+ * und beides waere im selben Termin zu sehen.
+ */
+function einordnung(score) {
+  if (score === null || score === undefined) return { text: "nicht bewertbar", klasse: "leise" };
+  if (score >= 95) return { text: "sehr gut", klasse: "gut" };
+  if (score >= 85) return { text: "gut", klasse: "gut" };
+  if (score >= 70) return { text: "befriedigend", klasse: "medium" };
+  if (score >= 50) return { text: "kritisch", klasse: "high" };
+  return { text: "unzureichend", klasse: "critical" };
+}
+
 function kachel(titel, wert, zusatz, klasse) {
   return el("div", { class: "kachel " + (klasse || "") }, [
     el("div", { class: "titel", text: titel }),
@@ -203,79 +302,146 @@ function kachel(titel, wert, zusatz, klasse) {
 const farbeSchweregrad = (grad) =>
   "var(--" + (SCHWEREGRADE.includes(grad) ? grad : "low") + ")";
 
-/* ------------------------------------------------------------ Uebersicht */
+/* ------------------------------------------------------------- Lagebild */
 
-function zeigeUebersicht() {
+function zeigeLagebild() {
   const lauf = Z.lauf;
+  const leer = (id) => setzen($(id), [el("p", { class: "nichts", text: "Kein Lauf ausgewaehlt." })]);
   if (!lauf) {
-    setzen($("#u-kennzahlen"), []);
-    setzen($("#u-schweregrade"), [el("p", { class: "nichts", text: "Kein Lauf ausgewaehlt." })]);
-    setzen($("#u-bereiche"), []);
-    setzen($("#u-bewertung"), []);
-    setzen($("#u-regeln"), []);
+    for (const id of ["#lb-ampel", "#lb-schweregrade", "#lb-bereiche", "#lb-regeln",
+                      "#lb-nachforderung", "#lb-bewertung", "#lb-ring"]) leer(id);
+    $("#lb-score").textContent = "-";
     return;
   }
 
   const befunde = lauf.befunde || {};
   const coverage = lauf.coverage || {};
   const bewertung = lauf.bewertung || {};
+  const vergleich = lauf.vergleich;
   const jeGrad = befunde.je_schweregrad || {};
 
-  setzen($("#u-kennzahlen"), [
-    kachel("Geprueft", zahl(lauf.saetze_verarbeitet), "Saetze in " + dauer(lauf.laufzeit_sekunden)),
-    kachel("Offene Befunde", zahl(befunde.effektiv),
-      (befunde.ausnahmen || 0) + " als Ausnahme anerkannt"),
-    kachel("Kritisch", zahl(jeGrad.critical || 0),
-      zahl(jeGrad.high || 0) + " hoch, " + zahl(jeGrad.medium || 0) + " mittel",
-      (jeGrad.critical || 0) > 0 ? "critical" : "gut"),
-    kachel("Pruefumfang", prozent(coverage.anteil),
-      (coverage.ausfuehrbar || 0) + " von " + (coverage.regeln_gesamt || 0) + " Regeln",
-      (coverage.anteil || 0) < 0.7 ? "warnung" : "gut"),
-    kachel("Bewertung",
-      bewertung.gesamt === null || bewertung.gesamt === undefined
-        ? "-" : String(bewertung.gesamt).replace(".", ","),
-      "von 100 Punkten",
-      (bewertung.gesamt || 0) < 70 ? "warnung" : "gut"),
-    kachel("Regelfehler", zahl(lauf.regelfehler),
-      lauf.regelfehler ? "Ergebnis unvollstaendig" : "keine",
-      lauf.regelfehler ? "critical" : "gut"),
+  // ------------------------------------------------------------ Kennzahl
+  const score = bewertung.gesamt;
+  $("#lb-score").textContent = score === null || score === undefined
+    ? "-" : String(score).replace(".", ",");
+  const note = einordnung(score);
+  setzen($("#lb-einordnung"), [
+    el("span", { class: "merkmal hero-einordnung " + note.klasse, text: note.text }),
   ]);
+  $("#lb-score-zusatz").textContent =
+    "von 100 Punkten, aus " + zahl(lauf.saetze_verarbeitet) + " geprueften Saetzen.";
 
-  setzen($("#u-schweregrade"), [balken(
-    SCHWEREGRADE.filter((grad) => jeGrad[grad]).map((grad) => ({ name: grad, wert: jeGrad[grad] })),
-    (eintrag) => farbeSchweregrad(eintrag.name),
+  // ------------------------------------------------------- Pruefumfang
+  setzen($("#lb-ring"), [ring(
+    coverage.anteil || 0,
+    prozent(coverage.anteil),
+    (coverage.ausfuehrbar || 0) + " von " + (coverage.regeln_gesamt || 0),
+  )]);
+  $("#lb-ring-text").textContent = coverage.vorbehalt || "";
+
+  // ---------------------------------------------------------- Ampelzeile
+  const felder = [
+    ampelfeld("Befunde offen", zahl(befunde.effektiv),
+      (befunde.effektiv || 0) ? "" : "gut",
+      "Ohne die als Ausnahme anerkannten Befunde."),
+    ampelfeld("kritisch", zahl(jeGrad.critical || 0),
+      (jeGrad.critical || 0) ? "critical" : "gut"),
+    ampelfeld("hoch", zahl(jeGrad.high || 0), (jeGrad.high || 0) ? "high" : "gut"),
+    ampelfeld("Ausnahmen", zahl(befunde.ausnahmen || 0), "",
+      "Befunde, die mit Begruendung anerkannt wurden."),
+    ampelfeld("Regelfehler", zahl(lauf.regelfehler),
+      lauf.regelfehler ? "critical" : "gut",
+      lauf.regelfehler ? "Das Ergebnis ist unvollstaendig." : "Alle Regeln liefen durch."),
+  ];
+  if (vergleich) {
+    felder.push(el("div", { class: "ampel-feld" }, [
+      el("div", { class: "ampel-wert" }, [trend(vergleich.neu, vergleich.behoben)]),
+      el("div", { class: "ampel-titel", text: "gegen den Vorlauf" }),
+    ]));
+  }
+  setzen($("#lb-ampel"), felder);
+
+  // ------------------------------------------------------- Schweregrade
+  setzen($("#lb-schweregrade"), [saeulen(
+    SCHWEREGRADE.filter((grad) => jeGrad[grad]).map((grad) => ({
+      name: grad,
+      wert: jeGrad[grad],
+      farbe: "var(--" + grad + ")",
+      titel: zahl(jeGrad[grad]) + " Befunde mit Schweregrad " + grad
+             + " - klicken, um die Liste darauf einzuschraenken",
+      aufKlick: () => {
+        zuAnsicht("befunde");
+        $("#b-schweregrad").value = grad;
+        Z.befunde.seite = 1;
+        zeigeBefunde();
+      },
+    })),
+    { anteile: true, leer: "Keine Befunde." },
   )]);
 
-  setzen($("#u-bereiche"), [balken(
+  // ------------------------------------------------------------ Bereiche
+  setzen($("#lb-bereiche"), [saeulen(
     Object.entries(befunde.je_bereich || {})
-      .map(([schluessel, wert]) => ({ name: bereichName(schluessel), wert: wert }))
+      .map(([schluessel, wert]) => ({
+        name: bereichName(schluessel),
+        wert: wert,
+        titel: zahl(wert) + " Befunde in " + bereichName(schluessel)
+               + " - klicken, um die Liste darauf einzuschraenken",
+        aufKlick: () => {
+          zuAnsicht("befunde");
+          $("#b-bereich").value = schluessel;
+          Z.befunde.seite = 1;
+          zeigeBefunde();
+        },
+      }))
       .sort((a, b) => b.wert - a.wert),
+    { anteile: true, leer: "Keine Befunde." },
   )]);
 
-  setzen($("#u-bewertung"), [tabelle([
+  // -------------------------------------------------------------- Regeln
+  const haeufigste = (lauf.regellauf || [])
+    .filter((eintrag) => eintrag.befunde > 0)
+    .sort((a, b) => b.befunde - a.befunde)
+    .slice(0, 8);
+  setzen($("#lb-regeln"), [saeulen(
+    haeufigste.map((eintrag) => ({
+      name: eintrag.name,
+      wert: eintrag.befunde,
+      titel: eintrag.id + ": " + eintrag.name + " - " + zahl(eintrag.befunde) + " Befunde",
+      aufKlick: () => zuAnsicht("befunde", { regel: eintrag.id }),
+    })),
+    { leer: "Keine Befunde.", langeNamen: true },
+  )]);
+
+  // ------------------------------------------------------- Nachforderung
+  const offen = (coverage.nachforderung || [])
+    .filter((k) => !k.geliefert)
+    .slice()
+    .sort((a, b) => (b.kumuliert || 0) - (a.kumuliert || 0))
+    .slice(0, 8);
+  setzen($("#lb-nachforderung"), [saeulen(
+    offen.map((kandidat) => ({
+      name: kandidat.tabelle,
+      wert: kandidat.kumuliert || kandidat.zusaetzliche_pruefungen || 0,
+      titel: kandidat.tabelle + " (" + kandidat.bedeutung + "): schaltet "
+             + zahl(kandidat.kumuliert) + " weitere Pruefungen frei",
+    })),
+    { leer: "Die Lieferung ist vollstaendig - es fehlt nichts." },
+  )]);
+
+  // ----------------------------------------------------------- Bewertung
+  setzen($("#lb-bewertung"), [tabelle([
     { titel: "Bereich", zelle: (z) => bereichName(z.bereich) },
     { titel: "Punkte", zahl: true, zelle: (z) => z.score === null ? "-" : String(z.score).replace(".", ",") },
-    { titel: "Einordnung", zelle: (z) => z.einordnung },
+    { titel: "Einordnung", zelle: (z) => {
+        const n = einordnung(z.score);
+        return merkmal(z.einordnung || n.text, n.klasse);
+      } },
     { titel: "Befunde", zahl: true, zelle: (z) => zahl(z.befunde) },
     { titel: "Saetze", zahl: true, zelle: (z) => zahl(z.gepruefte_saetze) },
     { titel: "Regeln", zahl: true, zelle: (z) => z.regeln_ausfuehrbar + " / " + z.regeln_gesamt },
     { titel: "Vorbehalt", zelle: (z) => z.vorbehalt || "" },
   ], bewertung.bereiche || [])]);
-
-  const nachBefunden = (lauf.regellauf || [])
-    .filter((eintrag) => eintrag.befunde > 0)
-    .sort((a, b) => b.befunde - a.befunde)
-    .slice(0, 12);
-  setzen($("#u-regeln"), [tabelle([
-    { titel: "Regel", fest: true, zelle: (z) => z.id },
-    { titel: "Bezeichnung", zelle: (z) => z.name },
-    { titel: "Befunde", zahl: true, zelle: (z) => zahl(z.befunde) },
-    { titel: "Dauer", zahl: true, zelle: (z) => dauer(z.dauer_sekunden) },
-    { titel: "", zelle: () => el("span", { class: "leise", text: "ansehen" }) },
-  ], nachBefunden, (zeile) => {
-    $("#b-suche").value = "";
-    zuAnsicht("befunde", { regel: zeile.id });
-  })]);
 }
 
 /* -------------------------------------------------------------- Lieferung */
@@ -668,6 +834,206 @@ function ausnahmeFormular(befund, findingId) {
   ]);
 }
 
+/* -------------------------------------------------------------- Dubletten */
+
+let dublettenDaten = null;
+
+async function zeigeDubletten() {
+  if (!Z.laufId) {
+    setzen($("#d-cluster"), [el("p", { class: "nichts", text: "Kein Lauf ausgewaehlt." })]);
+    return;
+  }
+  try {
+    dublettenDaten = await hole("/api/laeufe/" + encodeURIComponent(Z.laufId) + "/dubletten");
+  } catch (fehler) {
+    setzen($("#d-cluster"), [el("p", { class: "nichts", text: fehler.message })]);
+    return;
+  }
+
+  const daten = dublettenDaten;
+  setzen($("#d-kennzahlen"), [
+    kachel("Cluster", zahl(daten.anzahl_cluster), "mutmasslich mehrfach angelegt"),
+    kachel("Betroffene Saetze", zahl(daten.betroffene_saetze), "in allen Clustern zusammen"),
+    kachel("Bereinigungspotenzial", zahl(daten.einsparung),
+      "Saetze entfallen, wenn je Cluster einer fuehrend wird",
+      daten.einsparung ? "warnung" : "gut"),
+  ]);
+
+  setzen($("#d-je-regel"), [saeulen(
+    // Ein Farbton: verglichen werden Mengen, nicht Zugehoerigkeiten. Der
+    // Schweregrad steht als Wort in der Beschriftung und an jedem Cluster.
+    (daten.je_regel || []).map((gruppe) => ({
+      name: gruppe.id + " \u2013 " + gruppe.name,
+      wert: gruppe.saetze,
+      titel: gruppe.id + ": " + gruppe.cluster + " Cluster mit zusammen "
+             + zahl(gruppe.saetze) + " Saetzen, Nachweis " + gruppe.art
+             + ", Schweregrad " + gruppe.schweregrad,
+    })),
+    { leer: "Keine Dubletten gefunden.", langeNamen: true },
+  )]);
+
+  zeichneCluster();
+}
+
+function zeichneCluster() {
+  const daten = dublettenDaten;
+  if (!daten) return;
+  const suche = $("#d-suche").value.trim().toLowerCase();
+  const art = $("#d-art").value;
+
+  const gefiltert = (daten.cluster || []).filter((cluster) => {
+    if (art && cluster.art !== art) return false;
+    if (!suche) return true;
+    const text = [cluster.schluessel, cluster.rule_id]
+      .concat((cluster.mitglieder || []).map((m) => m.schluessel + " " + m.name))
+      .join(" ").toLowerCase();
+    return text.includes(suche);
+  });
+
+  $("#d-anzahl").textContent = gefiltert.length === (daten.cluster || []).length
+    ? zahl(gefiltert.length) + " Cluster"
+    : zahl(gefiltert.length) + " von " + zahl((daten.cluster || []).length) + " Clustern";
+
+  setzen($("#d-cluster"), gefiltert.length
+    ? gefiltert.map((cluster) => clusterKarte(cluster))
+    : [el("p", { class: "nichts", text: "Kein Cluster passt zu diesem Filter." })]);
+}
+
+function clusterKarte(cluster) {
+  const inhalt = el("div", { hidden: true });
+  const pfeil = el("span", { class: "leise", text: "aufklappen" });
+
+  const kopf = el("div", {
+    class: "cluster-kopf",
+    role: "button",
+    tabindex: "0",
+    "aria-expanded": "false",
+    onclick: () => umschalten(),
+    onkeydown: (ereignis) => {
+      if (ereignis.key === "Enter" || ereignis.key === " ") {
+        ereignis.preventDefault();
+        umschalten();
+      }
+    },
+  }, [
+    schweregradMerkmal(cluster.schweregrad),
+    el("span", { class: "fest leise", text: cluster.rule_id }),
+    el("span", { class: "cluster-titel", text: kurzname(cluster) }),
+    merkmal(cluster.anzahl_saetze + " Saetze", "leise"),
+    // Der Nachweis ist die wichtigste Angabe: ein harter Schluessel ist ein
+    // Beweis, eine Namensaehnlichkeit ein begruendeter Verdacht.
+    cluster.art === "exakt"
+      ? merkmal("harter Schluessel", "critical")
+      : merkmal("Aehnlichkeit " + Math.round(cluster.score || 0), "medium"),
+    cluster.ausnahme || cluster.ausnahme_vorgemerkt
+      ? merkmal(cluster.ausnahme ? "Ausnahme" : "Ausnahme vorgemerkt", "leise")
+      : null,
+    el("span", { class: "fuellung" }, [pfeil]),
+  ]);
+
+  let offen = false;
+  function umschalten(erzwinge) {
+    offen = erzwinge === undefined ? !offen : erzwinge;
+    inhalt.hidden = !offen;
+    kopf.setAttribute("aria-expanded", String(offen));
+    pfeil.textContent = offen ? "zuklappen" : "aufklappen";
+    if (offen && !inhalt.firstChild) setzen(inhalt, clusterInhalt(cluster));
+  }
+
+  const karte = el("div", { class: "cluster-karte" }, [kopf, inhalt]);
+  karte.aufklappen = umschalten;
+  return karte;
+}
+
+/** Kurze Bezeichnung eines Clusters: die ersten beiden Namen. */
+function kurzname(cluster) {
+  const namen = (cluster.mitglieder || [])
+    .map((m) => m.name || m.schluessel)
+    .filter(Boolean);
+  if (!namen.length) return cluster.schluessel;
+  const gezeigt = namen.slice(0, 2).join("  /  ");
+  return namen.length > 2 ? gezeigt + "  / +" + (namen.length - 2) : gezeigt;
+}
+
+/** Die Saetze eines Clusters nebeneinander, abweichende Werte hervorgehoben.
+ *
+ * Je Stammsatz eine Spalte, je Feld eine Zeile. Wer zwei Kreditoren
+ * zusammenfuehren soll, muss sehen, worin sie sich unterscheiden - und das
+ * ist genau das, was eine Liste untereinander nicht zeigt.
+ */
+function clusterInhalt(cluster) {
+  const mitglieder = cluster.mitglieder || [];
+  const felder = cluster.verglichene_felder || [];
+
+  // Die erste Zeile traegt den Namen der Spalte, die verglichen wurde. Bei
+  // MAT-DUP-002 ist das die EAN und nicht ein Name - "Name" darueberzuschreiben
+  // waere schlicht falsch.
+  const zeilen = [{
+    feld: cluster.namensfeld || "Name",
+    werte: mitglieder.map((m) => m.name || ""),
+  }].concat(
+    felder.map((feld) => ({
+      feld: feld,
+      werte: mitglieder.map((m) => (m.felder || {})[feld] || ""),
+    })),
+  );
+
+  const kopfzeile = el("tr", {}, [el("th", { class: "feld", text: "" })].concat(
+    mitglieder.map((m) => el("th", { class: "satzkopf", text: m.schluessel })),
+  ));
+
+  const koerper = el("tbody", {}, zeilen.map((zeile) => {
+    // Hervorgehoben wird, was aus der Reihe faellt - nicht die ganze Zeile.
+    // Tragen zwei von drei Saetzen "Seeweg 8" und einer "See-Weg 8", ist der
+    // dritte der Ausreisser; die beiden anderen mitzufaerben verwischte genau
+    // die Stelle, auf die es ankommt.
+    const haeufigkeit = new Map();
+    for (const wert of zeile.werte) haeufigkeit.set(wert, (haeufigkeit.get(wert) || 0) + 1);
+    const haeufigster = [...haeufigkeit.entries()]
+      .sort((a, b) => b[1] - a[1])[0];
+    // Nur wenn ein Wert wirklich ueberwiegt, gibt es einen Ausreisser. Bei
+    // lauter verschiedenen Werten weicht jeder ab.
+    const eindeutig = haeufigkeit.size > 1;
+    const mehrheitswert = haeufigster && haeufigster[1] > 1 ? haeufigster[0] : null;
+
+    return el("tr", {}, [el("th", { class: "feld", text: zeile.feld })].concat(
+      zeile.werte.map((wert) => {
+        const abweichend = eindeutig && wert !== mehrheitswert;
+        return el("td", {}, [
+          el("span", {
+            class: abweichend ? "abweichend" : "gleich",
+            text: wert || "-",
+            title: abweichend
+              ? "weicht von den uebrigen Saetzen ab"
+              : (eindeutig ? "" : "in allen Saetzen gleich"),
+          }),
+        ]);
+      }),
+    ));
+  }));
+
+  return [
+    el("div", { class: "gegenueber" }, [
+      el("table", {}, [el("thead", {}, [kopfzeile]), koerper]),
+    ]),
+    el("p", { class: "hinweis-zeile" }, [
+      (cluster.begruendung || []).join("; ") || "",
+      cluster.art === "unscharf"
+        ? "  \u2013  Ein unscharfer Treffer ist ein begruendeter Verdacht, kein Nachweis. "
+          + "Berechtigte Mehrfachanlagen - etwa je Werk - gehoeren als Ausnahme vermerkt."
+        : "  \u2013  Ein harter Schluessel ist ein Nachweis: dieselbe Nummer kann nicht "
+          + "zwei Partnern gehoeren.",
+    ]),
+    el("div", { class: "fuss-knopf" }, [
+      el("button", {
+        class: "knopf knopf-leise",
+        text: "Befund oeffnen",
+        onclick: () => oeffneBefund(cluster.finding_id),
+      }),
+    ]),
+  ];
+}
+
 /* -------------------------------------------------------------- Ausnahmen */
 
 async function zeigeAusnahmen() {
@@ -730,7 +1096,7 @@ function zeigeLaeufe() {
       return;
     }
     $("#lauf-auswahl").value = zeile.lauf_id;
-    waehleLauf(zeile.lauf_id).then(() => zuAnsicht("uebersicht"));
+    waehleLauf(zeile.lauf_id).then(() => zuAnsicht("lagebild"));
   })]);
 
   // Verglichen werden kann jeder Lauf mit einer Befunddatei, auch einer ohne
@@ -783,6 +1149,250 @@ async function vergleichen() {
       { titel: "Behoben", zahl: true, zelle: (z) => zahl(z.behoben) },
     ], daten.je_regel || []),
   ]);
+}
+
+/* ---------------------------------------------------------- Praesentation
+ *
+ * Eine Abfolge von Folien, die sich aus dem Lauf ergibt. Sie soll den Bogen
+ * schlagen, den ein Termin braucht: was geliefert wurde, worueber das Werkzeug
+ * ueberhaupt eine Aussage macht, wie es steht, woran es liegt, und was als
+ * naechstes zu tun ist.
+ *
+ * Der Vorbehalt zum Pruefumfang steht bewusst vor dem Ergebnis. Eine Zahl, die
+ * ohne ihn gezeigt wird, wird als vollstaendiges Urteil verstanden - und das
+ * waere sie nicht.
+ */
+
+const P = { folien: [], index: 0 };
+
+function folie(titel, aufbau) {
+  return { titel: titel, aufbau: aufbau };
+}
+
+function baueFolien() {
+  const lauf = Z.lauf;
+  if (!lauf) return [];
+
+  const befunde = lauf.befunde || {};
+  const coverage = lauf.coverage || {};
+  const bewertung = lauf.bewertung || {};
+  const lieferung = lauf.lieferung || {};
+  const jeGrad = befunde.je_schweregrad || {};
+  const projekt = lauf.projekt || {};
+  const folien = [];
+
+  // ------------------------------------------------------------ Titelseite
+  folien.push(folie("Titel", () => el("div", { class: "folie-titelseite" }, [
+    el("p", { class: "unterzeile", text: "Analyse der Stammdatenqualitaet" }),
+    el("h2", { text: projekt.kunde || projekt.name || "Stammdatenpruefung" }),
+    el("p", { class: "aussage", text:
+      "Quellsystem " + (projekt.quellsystem || "unbekannt")
+      + " \u2013 " + zahl(lauf.saetze_verarbeitet) + " Stammsaetze"
+      + " \u2013 Stand " + zeitpunkt(lauf.erstellt_am) }),
+    projekt.analyst ? el("p", { class: "unterzeile", text: projekt.analyst }) : null,
+  ])));
+
+  // ------------------------------------------------------------- Lieferung
+  folien.push(folie("Was geprueft wurde", () => el("div", {}, [
+    el("h2", { text: "Was geprueft wurde" }),
+    el("p", { class: "aussage", text:
+      (lieferung.dateien || []).length + " Dateien mit zusammen "
+      + zahl(lauf.saetze_verarbeitet) + " Saetzen aus "
+      + (lieferung.tabellen || []).length + " Tabellen. Jede Datei ist ueber "
+      + "ihre Pruefsumme im Bericht nachweisbar." }),
+    saeulen(
+      (lieferung.tabellen || [])
+        .slice().sort((a, b) => b.saetze - a.saetze).slice(0, 9)
+        .map((tabelle) => ({
+          name: tabelle.name + " \u2013 " + bereichName(tabelle.bereich),
+          wert: tabelle.saetze,
+        })),
+      { leer: "Keine Tabellen." },
+    ),
+    lieferung.verwertbar === false
+      ? el("p", { class: "meldung fehler", text:
+          "Die Lieferung wurde als nicht verwertbar bewertet. Die Ergebnisse "
+          + "sind entsprechend eingeschraenkt." })
+      : null,
+  ])));
+
+  // ----------------------------------------------------------- Pruefumfang
+  folien.push(folie("Worueber eine Aussage moeglich ist", () => el("div", {}, [
+    el("h2", { text: "Worueber eine Aussage moeglich ist" }),
+    el("div", { class: "nebeneinander" }, [
+      ring(coverage.anteil || 0, prozent(coverage.anteil),
+        (coverage.ausfuehrbar || 0) + " von " + (coverage.regeln_gesamt || 0)),
+      el("p", { class: "aussage", text: coverage.vorbehalt || "" }),
+    ]),
+  ])));
+
+  // -------------------------------------------------------------- Ergebnis
+  const note = einordnung(bewertung.gesamt);
+  folien.push(folie("Ergebnis", () => el("div", {}, [
+    el("p", { class: "unterzeile", text: "Datenqualitaet insgesamt" }),
+    el("div", { class: "gross", text:
+      bewertung.gesamt === null || bewertung.gesamt === undefined
+        ? "-" : String(bewertung.gesamt).replace(".", ",") }),
+    el("p", { class: "unterzeile" }, [
+      "von 100 Punkten \u2013 ",
+      el("span", { class: "merkmal " + note.klasse, text: note.text }),
+    ]),
+    el("div", { class: "ampel abstand-oben ampel-breit" }, [
+      ampelfeld("Befunde offen", zahl(befunde.effektiv), ""),
+      ampelfeld("kritisch", zahl(jeGrad.critical || 0), (jeGrad.critical || 0) ? "critical" : "gut"),
+      ampelfeld("hoch", zahl(jeGrad.high || 0), (jeGrad.high || 0) ? "high" : "gut"),
+      ampelfeld("mittel", zahl(jeGrad.medium || 0), "medium"),
+    ]),
+  ])));
+
+  // ----------------------------------------------------------- Wo es liegt
+  folien.push(folie("Wo die Befunde liegen", () => el("div", {}, [
+    el("h2", { text: "Wo die Befunde liegen" }),
+    saeulen(
+      Object.entries(befunde.je_bereich || {})
+        .map(([schluessel, wert]) => ({ name: bereichName(schluessel), wert: wert }))
+        .sort((a, b) => b.wert - a.wert),
+      { anteile: true, leer: "Keine Befunde." },
+    ),
+    el("p", { class: "unterzeile abstand-oben-weit", text: "Nach Kategorie" }),
+    saeulen(
+      Object.entries(befunde.je_kategorie || {})
+        .map(([schluessel, wert]) => ({ name: schluessel, wert: wert }))
+        .sort((a, b) => b.wert - a.wert).slice(0, 7),
+      { leer: "" },
+    ),
+  ])));
+
+  // ------------------------------------------------------- Haeufigste Regeln
+  folien.push(folie("Woran es am haeufigsten liegt", () => el("div", {}, [
+    el("h2", { text: "Woran es am haeufigsten liegt" }),
+    saeulen(
+      (lauf.regellauf || [])
+        .filter((eintrag) => eintrag.befunde > 0)
+        .sort((a, b) => b.befunde - a.befunde).slice(0, 8)
+        .map((eintrag) => ({ name: eintrag.name, wert: eintrag.befunde })),
+      { leer: "Keine Befunde." },
+    ),
+  ])));
+
+  // -------------------------------------------------------------- Dubletten
+  if (dublettenDaten && dublettenDaten.anzahl_cluster) {
+    const beispiel = (dublettenDaten.cluster || [])
+      .filter((c) => c.art === "unscharf" && (c.mitglieder || []).length > 1)[0]
+      || dublettenDaten.cluster[0];
+    folien.push(folie("Mehrfach angelegte Stammsaetze", () => el("div", {}, [
+      el("h2", { text: "Mehrfach angelegte Stammsaetze" }),
+      el("p", { class: "aussage", text:
+        zahl(dublettenDaten.anzahl_cluster) + " Cluster mit zusammen "
+        + zahl(dublettenDaten.betroffene_saetze) + " Stammsaetzen. Bleibt je "
+        + "Cluster ein fuehrender Satz stehen, entfallen "
+        + zahl(dublettenDaten.einsparung) + " Saetze." }),
+      beispiel ? el("div", { class: "karte ohne-abstand" }, [
+        el("p", { class: "unterzeile abstand-unten", text:
+          "Beispiel \u2013 " + beispiel.rule_id + ", "
+          + (beispiel.art === "exakt"
+              ? "ueber einen harten Schluessel nachgewiesen"
+              : "Namensaehnlichkeit " + Math.round(beispiel.score || 0) + " von 100") }),
+      ].concat(clusterInhalt(beispiel).slice(0, 2))) : null,
+    ])));
+  }
+
+  // ---------------------------------------------------------- Nachforderung
+  const offen = (coverage.nachforderung || [])
+    .filter((k) => !k.geliefert)
+    .slice()
+    .sort((a, b) => (b.kumuliert || 0) - (a.kumuliert || 0));
+  if (offen.length) {
+    folien.push(folie("Was eine Nachlieferung braechte", () => el("div", {}, [
+      el("h2", { text: "Was eine Nachlieferung braechte" }),
+      el("p", { class: "aussage", text:
+        "Nach Wirkung geordnet: wieviele zusaetzliche Pruefungen jede Tabelle "
+        + "freischaltet." }),
+      saeulen(
+        offen.slice(0, 8).map((kandidat) => ({
+          name: kandidat.tabelle + " \u2013 " + kandidat.bedeutung,
+          wert: kandidat.kumuliert || kandidat.zusaetzliche_pruefungen || 0,
+        })),
+        { leer: "" },
+      ),
+    ])));
+  }
+
+  // ------------------------------------------------------------- Empfehlung
+  folien.push(folie("Naechste Schritte", () => {
+    const schritte = [];
+    if (jeGrad.critical) {
+      schritte.push(zahl(jeGrad.critical) + " kritische Befunde zuerst klaeren - "
+        + "sie betreffen Zahlungsverkehr, Steuer oder Bilanz.");
+    }
+    if (dublettenDaten && dublettenDaten.anzahl_cluster) {
+      schritte.push(zahl(dublettenDaten.anzahl_cluster) + " Dublettencluster sichten "
+        + "und je Cluster den fuehrenden Stammsatz bestimmen.");
+    }
+    if (offen.length) {
+      schritte.push("Fehlende Tabellen nachfordern (" + offen.slice(0, 3)
+        .map((k) => k.tabelle).join(", ") + "), um den Pruefumfang von "
+        + prozent(coverage.anteil) + " anzuheben.");
+    }
+    schritte.push("Berechtigte Faelle als Ausnahme mit Begruendung vermerken, "
+      + "damit sie im Folgelauf nicht erneut als Befund erscheinen.");
+    schritte.push("Nach der Bereinigung erneut messen - die Aussage liegt im "
+      + "Verlauf, nicht im einzelnen Wert.");
+    return el("div", {}, [
+      el("h2", { text: "Naechste Schritte" }),
+      el("ul", {}, schritte.map((text) => el("li", { text: text }))),
+    ]);
+  }));
+
+  return folien;
+}
+
+async function praesentationOeffnen() {
+  // Die Dublettenfolie braucht die Cluster. Sie werden hier geholt, damit die
+  // Abfolge vollstaendig ist, auch wenn die Ansicht noch nicht offen war.
+  if (!dublettenDaten && Z.laufId) {
+    try {
+      dublettenDaten = await hole("/api/laeufe/" + encodeURIComponent(Z.laufId) + "/dubletten");
+    } catch (fehler) {
+      dublettenDaten = null;
+    }
+  }
+  P.folien = baueFolien();
+  if (!P.folien.length) {
+    melden("Ohne Lauf laesst sich nichts zeigen.", "warnung");
+    return;
+  }
+  P.index = 0;
+  $("#buehne").hidden = false;
+  folieZeichnen();
+}
+
+function folieZeichnen() {
+  const aktuell = P.folien[P.index];
+  if (!aktuell) return;
+  setzen($("#folie"), [aktuell.aufbau()]);
+  $("#folie-titel").textContent = aktuell.titel;
+  $("#folie-zaehler").textContent = (P.index + 1) + " / " + P.folien.length;
+  $("#folie-zurueck").disabled = P.index === 0;
+  $("#folie-vor").disabled = P.index === P.folien.length - 1;
+  $("#folie").scrollTop = 0;
+}
+
+function folieWechseln(schritt) {
+  const ziel = P.index + schritt;
+  if (ziel < 0 || ziel >= P.folien.length) return;
+  P.index = ziel;
+  folieZeichnen();
+}
+
+/** Zum Drucken werden alle Folien untereinander gestellt - je eine Seite. */
+function praesentationDrucken() {
+  const behaelter = $("#folie");
+  const gemerkt = P.index;
+  setzen(behaelter, P.folien.map((eintrag) => el("div", { class: "folie" }, [eintrag.aufbau()])));
+  window.print();
+  P.index = gemerkt;
+  folieZeichnen();
 }
 
 /* ------------------------------------------------------------ Lauf starten */
@@ -844,10 +1454,11 @@ function fortschrittVerfolgen() {
 /* ------------------------------------------------------------- Navigation */
 
 const ANSICHTEN = {
-  uebersicht: { titel: "Uebersicht", zeichnen: zeigeUebersicht },
-  lieferung: { titel: "Lieferung", zeichnen: zeigeLieferung },
-  coverage: { titel: "Pruefumfang", zeichnen: zeigeCoverage },
+  lagebild: { titel: "Lagebild", zeichnen: zeigeLagebild },
   befunde: { titel: "Befunde", zeichnen: zeigeBefunde },
+  dubletten: { titel: "Dubletten", zeichnen: zeigeDubletten },
+  coverage: { titel: "Pruefumfang", zeichnen: zeigeCoverage },
+  lieferung: { titel: "Lieferung", zeichnen: zeigeLieferung },
   ausnahmen: { titel: "Ausnahmen", zeichnen: zeigeAusnahmen },
   laeufe: { titel: "Laeufe", zeichnen: zeigeLaeufe },
 };
@@ -896,6 +1507,7 @@ async function waehleLauf(laufId) {
     + " - Katalog " + (lauf.regelkatalog || {}).version
     + " - Werkzeug " + lauf.werkzeug_version;
   fuelleBefundfilter();
+  dublettenDaten = null;
   Z.befunde.seite = 1;
   ANSICHTEN[Z.ansicht].zeichnen();
 }
@@ -952,6 +1564,7 @@ async function starten() {
     if (ereignis.key !== "Escape") return;
     schliesseBlende();
     $("#laufblende").hidden = true;
+    $("#buehne").hidden = true;
   });
 
   let entprellung = null;
@@ -978,12 +1591,38 @@ async function starten() {
   $("#b-zurueck").addEventListener("click", () => { Z.befunde.seite -= 1; zeigeBefunde(); });
   $("#b-weiter").addEventListener("click", () => { Z.befunde.seite += 1; zeigeBefunde(); });
 
+  $("#d-suche").addEventListener("input", zeichneCluster);
+  $("#d-art").addEventListener("change", zeichneCluster);
+  $("#d-alle-auf").addEventListener("click", () => {
+    const karten = document.querySelectorAll("#d-cluster .cluster-karte");
+    const aufklappen = $("#d-alle-auf").dataset.zustand !== "auf";
+    for (const karte of karten) if (karte.aufklappen) karte.aufklappen(aufklappen);
+    $("#d-alle-auf").dataset.zustand = aufklappen ? "auf" : "zu";
+    $("#d-alle-auf").textContent = aufklappen ? "Alle zuklappen" : "Alle aufklappen";
+  });
+
   $("#c-suche").addEventListener("input", zeichneRegeln);
   $("#c-nur-entfallen").addEventListener("change", zeichneRegeln);
   $("#v-starten").addEventListener("click", vergleichen);
 
+  $("#praesentation").addEventListener("click", praesentationOeffnen);
+  $("#folie-vor").addEventListener("click", () => folieWechseln(1));
+  $("#folie-zurueck").addEventListener("click", () => folieWechseln(-1));
+  $("#folie-drucken").addEventListener("click", praesentationDrucken);
+  $("#buehne-schliessen").addEventListener("click", () => { $("#buehne").hidden = true; });
+  document.addEventListener("keydown", (ereignis) => {
+    if ($("#buehne").hidden) return;
+    if (ereignis.key === "ArrowRight" || ereignis.key === "PageDown" || ereignis.key === " ") {
+      ereignis.preventDefault();
+      folieWechseln(1);
+    } else if (ereignis.key === "ArrowLeft" || ereignis.key === "PageUp") {
+      ereignis.preventDefault();
+      folieWechseln(-1);
+    }
+  });
+
   await ladeLaeufe();
-  zuAnsicht("uebersicht");
+  zuAnsicht("lagebild");
 
   // Ein Lauf kann schon arbeiten, etwa wenn die Seite neu geladen wurde.
   const stand = await hole("/api/fortschritt").catch(() => null);

@@ -71,7 +71,7 @@ umgesetzt.
 | FA-502 | Exakter Abgleich auf harten Schluesseln | M | umgesetzt | IBAN, USt-IdNr., Steuernummer, EAN, Bankverbindung |
 | FA-503 | Unscharfer Abgleich mit konfigurierbarem Schwellwert | M | umgesetzt | RapidFuzz, Schwellwert je Regel und je Projekt |
 | FA-504 | Blocking-Strategie | M | umgesetzt | fuenf Strategien; uebergangene Bloecke werden gemeldet |
-| FA-505 | Cluster mit Aehnlichkeitsscore statt Paarliste | S | umgesetzt | ein Befund je Cluster, im Excel je Mitglied aufgefuehrt |
+| FA-505 | Cluster mit Aehnlichkeitsscore statt Paarliste | S | umgesetzt | ein Befund je Cluster, im Excel je Mitglied aufgefuehrt; in der Oberflaeche mit Gegenueberstellung der Saetze |
 
 ## 4.6 Ergebnisverarbeitung
 
@@ -104,7 +104,7 @@ umgesetzt.
 | NFA-05 | Identische Eingabe ergibt bitgleiches Ergebnis | umgesetzt | Nachweis AK-04, byteweiser Vergleich |
 | NFA-06 | Befund auf Regelversion, Dateihash, Zeitstempel zurueckfuehrbar | umgesetzt | Nachweis AK-05 |
 | NFA-07 | Start ueber einen Befehl, kein Programmierwissen | umgesetzt | `sapmdq run -c projekt.yaml`, wahlweise `sapmdq ui` |
-| NFA-08 | Neue Regel ohne Kernaenderung, Testabdeckung der Engine | umgesetzt | 341 Tests |
+| NFA-08 | Neue Regel ohne Kernaenderung, Testabdeckung der Engine | umgesetzt | 375 Tests |
 | NFA-09 | Regelfehler bricht den Lauf nicht ab | umgesetzt | Ausfall wird als Regelfehler ausgewiesen |
 
 ## 6 Datenschutz und Informationssicherheit

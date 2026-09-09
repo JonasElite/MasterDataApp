@@ -329,6 +329,91 @@ def befund(state: UiState, lauf_id: str, finding_id: str) -> dict[str, Any]:
     return ergebnis
 
 
+# -------------------------------------------------------------------- Dubletten
+def dubletten(state: UiState, lauf_id: str) -> dict[str, Any]:
+    """Alle Dublettencluster eines Laufs, gross zuerst.
+
+    Eigener Aufruf und nicht ein Filter auf die Befundliste: ein Cluster wird
+    mit seinen Mitgliedern und deren verglichenen Feldern gebraucht, damit die
+    Oberflaeche sie nebeneinanderstellen kann. Das aus der Liste heraus je
+    Cluster einzeln nachzuladen waere eine Abfrage je Zeile.
+    """
+    pfad = _befunddatei(state, lauf_id)
+    quelle = f"read_parquet({quote_literal(str(pfad))})"
+
+    with duckdb.connect() as con:
+        zeilen = con.execute(
+            f"SELECT finding_id, rule_id, rule_name, severity, object_area,"
+            f" object_key, detail, status, whitelisted, whitelist_reason"
+            f" FROM {quelle} WHERE category = 'duplicate'"
+            " ORDER BY severity_rank, rule_id, object_key"
+        ).fetchall()
+
+    speicher, liste = _pflegestand(state)
+    cluster: list[dict[str, Any]] = []
+    for zeile in zeilen:
+        try:
+            detail = json.loads(zeile[6] or "{}")
+        except json.JSONDecodeError:
+            detail = {}
+        eintrag = {
+            "finding_id": zeile[0],
+            "rule_id": zeile[1],
+            "rule_name": zeile[2],
+            "schweregrad": zeile[3],
+            "bereich": zeile[4],
+            "schluessel": zeile[5],
+            "status": zeile[7],
+            "ausnahme": zeile[8],
+            "ausnahme_grund": zeile[9],
+            "anzahl_saetze": detail.get("anzahl_saetze", 0),
+            "score": detail.get("aehnlichkeitsscore"),
+            "art": detail.get("art_des_treffers", ""),
+            "begruendung": detail.get("begruendung", []),
+            "namensfeld": detail.get("namensfeld", ""),
+            "verglichene_felder": detail.get("verglichene_felder", []),
+            "mitglieder": detail.get("mitglieder", []),
+        }
+        _ueberlagern(eintrag, speicher, liste)
+        cluster.append(eintrag)
+
+    # Grosse Cluster zuerst: sie binden die meiste Bereinigungsarbeit und
+    # eignen sich am besten, um das Verfahren zu zeigen.
+    cluster.sort(key=lambda e: (-e["anzahl_saetze"], e["rule_id"], e["schluessel"]))
+
+    betroffene = sum(eintrag["anzahl_saetze"] for eintrag in cluster)
+    return {
+        "cluster": cluster,
+        "anzahl_cluster": len(cluster),
+        "betroffene_saetze": betroffene,
+        # Was eine Bereinigung an Stammsaetzen einspart: je Cluster bleibt
+        # einer stehen, die uebrigen entfallen.
+        "einsparung": betroffene - len(cluster),
+        "je_regel": _je_regel(cluster),
+    }
+
+
+def _je_regel(cluster: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Fasst die Cluster je Regel zusammen."""
+    gruppen: dict[str, dict[str, Any]] = {}
+    for eintrag in cluster:
+        gruppe = gruppen.setdefault(
+            eintrag["rule_id"],
+            {
+                "id": eintrag["rule_id"],
+                "name": eintrag["rule_name"],
+                "schweregrad": eintrag["schweregrad"],
+                "bereich": eintrag["bereich"],
+                "art": eintrag["art"],
+                "cluster": 0,
+                "saetze": 0,
+            },
+        )
+        gruppe["cluster"] += 1
+        gruppe["saetze"] += eintrag["anzahl_saetze"]
+    return sorted(gruppen.values(), key=lambda g: -g["saetze"])
+
+
 # -------------------------------------------------------------------- Ausnahmen
 def ausnahmen(state: UiState) -> dict[str, Any]:
     """Alle hinterlegten Ausnahmen."""

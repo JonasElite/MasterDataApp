@@ -167,6 +167,8 @@ class UiHandler(BaseHTTPRequestHandler):
                 self._json(api.laeufe(state))
             elif len(teile) == 2 and teile[0] == "laeufe":
                 self._json(api.lauf(state, teile[1]))
+            elif len(teile) == 3 and teile[0] == "laeufe" and teile[2] == "dubletten":
+                self._json(api.dubletten(state, teile[1]))
             elif len(teile) == 3 and teile[0] == "laeufe" and teile[2] == "befunde":
                 self._json(api.befunde(state, teile[1], werte))
             elif len(teile) == 4 and teile[0] == "laeufe" and teile[2] == "befunde":

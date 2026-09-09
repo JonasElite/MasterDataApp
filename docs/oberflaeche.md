@@ -50,12 +50,67 @@ als Parameter in die Abfrage und nicht in ihren Text.
 
 | Ansicht | Inhalt |
 |---|---|
-| Uebersicht | Kennzahlen, Befunde je Schweregrad und Bereich, Bewertung je Bereich mit Vorbehalt, haeufigste Regeln |
-| Lieferung | Urteil ueber die Verwertbarkeit, Dateien mit Hash und Stichtag, Tabellen, Ergebnisse der Lieferungspruefungen (FA-2xx) |
-| Pruefumfang | Coverage-Grad je Bereich, Nachforderungsliste nach Wirkung, alle Regeln mit Begruendung fuer entfallene (FA-3xx) |
+| Lagebild | Punktwert gross, Pruefumfang als Ring, Befunde je Schweregrad und Bereich, haeufigste Regeln, Nachforderung nach Wirkung, Bewertung je Bereich mit Vorbehalt |
 | Befunde | filterbare Liste mit Detailansicht, Regelbeschreibung und Handlungsempfehlung |
+| Dubletten | Cluster mit Gegenueberstellung der Stammsaetze (FA-501 bis FA-505) |
+| Pruefumfang | Coverage-Grad je Bereich, Nachforderungsliste nach Wirkung, alle Regeln mit Begruendung fuer entfallene (FA-3xx) |
+| Lieferung | Urteil ueber die Verwertbarkeit, Dateien mit Hash und Stichtag, Tabellen, Ergebnisse der Lieferungspruefungen (FA-2xx) |
 | Ausnahmen | alle hinterlegten Ausnahmen mit Geltungsbereich, Begruendung und Ablauf (FA-602) |
 | Laeufe | alle Laeufe des Projekts, Vergleich zweier Laeufe (FA-605) |
+
+Im Lagebild sind die Balken anklickbar: ein Klick auf "critical" oder auf einen
+Objektbereich springt in die Befundliste und setzt den Filter.
+
+## Dubletten
+
+Die Ansicht zeigt je Cluster die betroffenen Stammsaetze **nebeneinander** - je
+Satz eine Spalte, je verglichenem Feld eine Zeile. Hervorgehoben wird, was aus
+der Reihe faellt: tragen zwei von drei Saetzen "Seeweg 8" und einer
+"See-Weg 8", ist der dritte markiert und die beiden anderen nicht. Eine Liste
+untereinander zeigt das nicht, und wer zwei Kreditoren zusammenfuehren soll,
+muss genau das sehen.
+
+Jedes Cluster nennt seinen Nachweis, und zwar unterschieden:
+
+* **harter Schluessel** - gleiche USt-IdNr., Steuernummer oder Bankverbindung.
+  Das ist ein Nachweis: dieselbe Nummer kann nicht zwei Partnern gehoeren.
+* **Aehnlichkeit *n* von 100** - der unscharfe Namensabgleich. Das ist ein
+  begruendeter Verdacht, kein Nachweis; die Zahl sagt, wie stark er ist.
+
+Die Kennzahl *Bereinigungspotenzial* nennt, wieviele Stammsaetze entfallen,
+wenn je Cluster einer fuehrend wird - die Cluster selbst zaehlen dabei nicht
+mit.
+
+## Praesentation
+
+Der Knopf *Praesentation* baut aus dem Lauf eine Abfolge von Vollbildfolien:
+Titel, was geprueft wurde, worueber ueberhaupt eine Aussage moeglich ist,
+Ergebnis, wo die Befunde liegen, woran es am haeufigsten liegt, ein
+Dublettenbeispiel, was eine Nachlieferung braechte, naechste Schritte.
+
+Weiter mit Pfeiltaste oder Leertaste, zurueck mit der linken Pfeiltaste,
+`Esc` beendet. *Als PDF* stellt alle Folien untereinander und ruft den Druck
+des Browsers auf - jede Folie wird eine Seite. Damit entsteht ohne Umweg eine
+Fassung zum Weitergeben.
+
+Der Vorbehalt zum Pruefumfang steht bewusst **vor** dem Ergebnis. Eine
+Qualitaetszahl, die ohne ihn gezeigt wird, wird als vollstaendiges Urteil
+verstanden - und das ist sie nicht.
+
+## Farben
+
+Die vier Schweregrade sind eine Statusskala mit fest belegten Stufen, keine
+frei waehlbaren Serienfarben. Dieselben Werte gelten im Excel-Export: wer eine
+Auswertung auf dem Bildschirm gezeigt bekommen hat und danach die Mappe
+oeffnet, findet dieselben Farben wieder.
+
+Fuer das normale Sehen liegen die Stufen "high" und "medium" dichter
+beieinander, als es fuer eine Unterscheidung allein ueber die Farbe reichte.
+Deshalb steht der Schweregrad ueberall auch als Wort daneben - in der Liste,
+am Balken und auf der Folie. Groessenvergleiche (Befunde je Bereich, je Regel)
+verwenden dagegen einen einzigen Farbton: verglichen werden Mengen und keine
+Zugehoerigkeiten, und eine bunte Palette machte daraus eine Suche nach der
+Legende.
 
 ## Pflege statt YAML
 
@@ -115,6 +170,10 @@ er sich trotzdem, dafuer genuegt die Befunddatei.
   Rollen und keine Mehrbenutzersperre; das Sitzungsmerkmal trennt Sitzungen,
   nicht Personen. Wer Zugriff auf den Rechner hat, arbeitet als derselbe
   Benutzer.
+- Die Diagramme sind bewusst schlicht: liegende Balken und ein Anteilsring,
+  beides aus HTML und CSS. Fuer das, was hier gezeigt wird, genuegt das - und
+  eine Zeichenbibliothek waere die einzige Abhaengigkeit, die aus dem Netz
+  nachgeladen werden muesste.
 - Regeln lassen sich ansehen, aber nicht bearbeiten. Der Katalog ist versioniert
   und gehoert in die Versionsverwaltung, nicht in ein Eingabefeld -
   siehe [regeln_schreiben.md](regeln_schreiben.md).

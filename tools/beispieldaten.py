@@ -53,6 +53,8 @@ STAMMWOERTER = [
     "Reinhardt", "Schuster", "Thiel", "Ulrich", "Vogel", "Wendt", "Zimmer",
     "Ahrens", "Bergmann", "Clausen", "Dietrich", "Engel", "Fischer", "Grabowski",
     "Huber", "Ingwer", "Jansen", "Koehler", "Lorenz", "Moser", "Nolte",
+    "Petersen", "Richter", "Stein", "Voigt", "Werner", "Adler", "Busch",
+    "Cordes", "Dohme", "Ehlers",
 ]
 FORMEN = ["GmbH", "AG", "KG", "GmbH & Co. KG", "OHG", "e.K."]
 STRASSEN = ["Hauptstrasse", "Bahnhofstrasse", "Industrieweg", "Am Markt", "Lindenallee"]
@@ -360,10 +362,16 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         [neuer_kreditor(LAND1="DE", STCEG="", STCD1="") for _ in range(6)],
     )
 
-    # VEN-FMT-001: USt-IdNr. mit falscher Pruefziffer
+    # VEN-FMT-001: USt-IdNr. mit falscher Pruefziffer.
+    #
+    # Jeder Satz bekommt eine andere falsche Nummer. Traegen alle vier dieselbe,
+    # meldet VEN-DUP-001 sie nebenher als Dublettencluster - voellig zu Recht,
+    # aber es steht dann ein unbenanntes Cluster im Bericht, das die
+    # absichtlich eingebauten Dubletten verwaessert.
+    falsche_ustid = [f"DE1111111{ziffer}1" for ziffer in range(4)]
     gruppe(
         "VEN-FMT-001: 4 Kreditoren mit falscher USt-IdNr.-Pruefziffer",
-        [neuer_kreditor(LAND1="DE", STCEG="DE111111111") for _ in range(4)],
+        [neuer_kreditor(LAND1="DE", STCEG=nummer) for nummer in falsche_ustid],
     )
 
     # VEN-FMT-002: Postleitzahl passt nicht zum Land
@@ -576,6 +584,309 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         makt[30]["MAKTX"] = makt[29]["MAKTX"]
         defekte.append("MAT-DUP-001: 1 Cluster mit doppelter Materialkurzbezeichnung")
 
+    # ======================================================== Debitoren
+    #
+    # Der Debitorenstamm traegt dieselben Mangelarten wie der Kreditorenstamm,
+    # dazu die Dublettenfaelle als Schaustueck: derselbe Kunde mehrfach
+    # angelegt, einmal ueber Schreibvarianten erkennbar und einmal nur ueber
+    # die USt-IdNr. Dazu ein Gegenbeispiel, das nicht gemeldet werden darf.
+    kna1: list[dict] = []
+    knb1: list[dict] = []
+    knbk: list[dict] = []
+    knvv: list[dict] = []
+
+    customer_count = max(120, vendor_count // 3)
+    KUNDEN_MANGELNAMEN = 45
+    kundennamen = eindeutige_namen(rng, customer_count + KUNDEN_MANGELNAMEN)
+
+    def debitor_saetze(kunnr: str, felder: dict, mit_buchungskreis: bool = True,
+                       mit_bank: bool = True, mit_vertrieb: bool = True) -> dict:
+        """Legt einen Debitor in allen vier Sichten an."""
+        land = felder.get("LAND1", "DE")
+        angelegt = felder.pop("_erdat", None) or (
+            heute - timedelta(days=rng.randint(30, 2600))
+        )
+        allgemein = {
+            "MANDT": mandant, "KUNNR": kunnr, "NAME1": "", "NAME2": "",
+            "LAND1": land, "ORT01": "", "PSTLZ": "", "STRAS": "", "PFACH": "",
+            "KTOKD": "KUNA", "ERDAT": angelegt.strftime("%Y%m%d"),
+            "ERNAM": f"USER{rng.randint(1, 12):02d}",
+            "STCEG": make_vat(land, rng),
+            "STCD1": "" if land in ("DE", "AT", "NL", "FR", "IT") else f"{rng.randint(100000000, 999999999)}",
+            "LOEVM": "", "SPERR": "", "AUFSD": "", "LIFSD": "", "FAKSD": "",
+            "XCPDK": "", "STKZN": "", "ADRNR": "", "TELF1": "",
+        }
+        allgemein.update(felder)
+        kna1.append(allgemein)
+
+        if mit_buchungskreis:
+            knb1.append({
+                "MANDT": mandant, "KUNNR": kunnr, "BUKRS": "1000",
+                "AKONT": "0000140000", "ZTERM": rng.choice(["ZB01", "ZB02", "ZB03"]),
+                "ZWELS": "U", "ZAHLS": "",
+                "LOEVM": allgemein["LOEVM"], "SPERR": "",
+                "ERDAT": angelegt.strftime("%Y%m%d"),
+            })
+        if mit_bank:
+            bankland = land if land in IBAN_LENGTHS else "DE"
+            bankleitzahl = "".join(
+                str(rng.randint(0, 9)) for _ in range(BANK_KEY_LENGTHS.get(bankland, 8))
+            )
+            knbk.append({
+                "MANDT": mandant, "KUNNR": kunnr, "BANKS": bankland,
+                "BANKL": bankleitzahl,
+                "BANKN": f"{rng.randint(1000000000, 9999999999)}",
+                "IBAN": make_iban(bankland, rng, bankleitzahl),
+                "BKONT": "", "KOINH": "",
+            })
+        if mit_vertrieb:
+            knvv.append({
+                "MANDT": mandant, "KUNNR": kunnr, "VKORG": "1000",
+                "VTWEG": "10", "SPART": "00", "LOEVM": "",
+            })
+        return allgemein
+
+    # ------------------------------------------------- regulaere Debitoren
+    for index in range(1, customer_count + 1):
+        strasse, plz, ort, land = anschrift()
+        debitor_saetze(
+            f"{200000 + index}",
+            {
+                "NAME1": kuerzbarer_name(kundennamen[index - 1], rng.choice(FORMEN)),
+                "LAND1": land, "ORT01": ort, "PSTLZ": plz, "STRAS": strasse,
+            },
+        )
+
+    kundenmangelnamen = kundennamen[customer_count:][::-1]
+    naechster_kunde = customer_count
+
+    def neuer_debitor(eindeutig: bool = True, **felder) -> dict:
+        """Legt einen Debitor mit einem gezielt eingebauten Mangel an.
+
+        Wie bei den Kreditoren traegt der Name einen unterscheidungskraeftigen
+        Zusatz, damit die Saetze einer Mangelgruppe nicht selbst als Cluster
+        gemeldet werden und die eingebauten Dubletten darin untergehen.
+        """
+        nonlocal naechster_kunde
+        naechster_kunde += 1
+        kunnr = f"{200000 + naechster_kunde}"
+        strasse, plz, ort, land = anschrift(felder.get("LAND1"))
+        vorgabe = {
+            "NAME1": kuerzbarer_name(
+                kundenmangelnamen[naechster_kunde % len(kundenmangelnamen)],
+                rng.choice(FORMEN),
+            ) if eindeutig else "",
+            "LAND1": land, "ORT01": ort, "PSTLZ": plz, "STRAS": strasse,
+        }
+        vorgabe.update(felder)
+        return debitor_saetze(
+            kunnr, vorgabe,
+            mit_buchungskreis=felder.pop("_mit_buchungskreis", True),
+            mit_bank=felder.pop("_mit_bank", True),
+            mit_vertrieb=felder.pop("_mit_vertrieb", True),
+        )
+
+    def kundengruppe(beschreibung: str, saetze: list[dict]) -> None:
+        schluessel = ", ".join(satz["KUNNR"] for satz in saetze[:8])
+        weiter = " ..." if len(saetze) > 8 else ""
+        defekte.append(f"{beschreibung} | betroffen: {schluessel}{weiter}")
+
+    # ------------------------------------------- Dubletten als Schaustueck
+    #
+    # Fall 1: derselbe Kunde dreimal, erkennbar allein am Namen. Umlaut,
+    # ausgeschriebene und abgekuerzte Rechtsform, Bindestrich - fuer den
+    # Menschen offensichtlich, fuer einen Gleichheitsvergleich unsichtbar.
+    schreibvarianten = [
+        ("Nordwind Handels GmbH", "Seeweg 8"),
+        ("NORDWIND HANDELS G.M.B.H.", "Seeweg 8"),
+        ("Nordwind Handels-Ges. mbH", "See-Weg 8"),
+    ]
+    kundengruppe(
+        "CUS-DUP-002: 1 Cluster aus 3 Schreibvarianten desselben Kunden",
+        [
+            neuer_debitor(eindeutig=False, NAME1=name, STRAS=strasse,
+                          PSTLZ="24103", ORT01="Kiel", LAND1="DE")
+            for name, strasse in schreibvarianten
+        ],
+    )
+
+    # Vierte Variante desselben Kunden, an derselben Anschrift - und dennoch
+    # nicht gefunden: "Handelsgesellschaft" in einem Wort erreicht gegen
+    # "Handels GmbH" nur 73 von 100, und auch die gleiche Adresse hebt den
+    # zusammengesetzten Wert nur auf 82 - unter der Schwelle von 85.
+    #
+    # Der Fall steht hier absichtlich. Ein unscharfer Abgleich, der zusammen-
+    # gesetzte Woerter zerlegte, faende ihn - und meldete dafuer jede
+    # "Handelsgesellschaft" als moegliche Dublette jeder anderen. Wer das
+    # Werkzeug vorfuehrt, sollte diese Grenze kennen und nennen koennen.
+    nicht_gefunden = neuer_debitor(
+        eindeutig=False, NAME1="Nordwind Handelsgesellschaft mbH",
+        STRAS="Seeweg 8", PSTLZ="24103", ORT01="Kiel", LAND1="DE",
+    )
+    defekte.append(
+        "GRENZFALL (wird bewusst NICHT gefunden): 4. Schreibvariante desselben "
+        "Kunden, Rechtsform mit dem Namen zu einem Wort verschmolzen "
+        f"(\"Handelsgesellschaft\") | betroffen: {nicht_gefunden['KUNNR']}"
+    )
+
+    # Fall 2: ein Paar mit Umlautvariante und abweichender Rechtsformschreibung.
+    kundengruppe(
+        "CUS-DUP-002: 1 Cluster aus 2 Schreibvarianten (Umlaut, Rechtsform)",
+        [
+            neuer_debitor(eindeutig=False, NAME1=name, STRAS="Lindenallee 44",
+                          PSTLZ="04109", ORT01="Leipzig", LAND1="DE")
+            for name in ("Baeckerei Kruse e.K.", "Bäckerei Kruse eK")
+        ],
+    )
+
+    # Fall 3: derselbe Kunde unter voellig verschiedenem Namen an einer anderen
+    # Anschrift. Der unscharfe Abgleich hat hier keine Chance - nur die
+    # gemeinsame USt-IdNr. beweist die Dublette. Genau dafuer gibt es zwei
+    # getrennte Regeln.
+    geteilte_kunden_ustid = make_vat("DE", rng)
+    kundengruppe(
+        "CUS-DUP-001: 2 Debitoren mit gleicher USt-IdNr., ohne Namensaehnlichkeit",
+        [
+            neuer_debitor(eindeutig=False, NAME1="Alpenland Vertrieb GmbH",
+                          STRAS="Bergweg 3", PSTLZ="83022", ORT01="Rosenheim",
+                          LAND1="DE", STCEG=geteilte_kunden_ustid),
+            neuer_debitor(eindeutig=False, NAME1="Suedstern Distribution AG",
+                          STRAS="Hafenstrasse 19", PSTLZ="18055", ORT01="Rostock",
+                          LAND1="DE", STCEG=geteilte_kunden_ustid),
+        ],
+    )
+
+    # Gegenbeispiel: zwei verschiedene Unternehmen mit gleichem Namensstamm in
+    # derselben Strasse. Verschiedene Hausnummer, verschiedene USt-IdNr.,
+    # verschiedenes Geschaeft. Diese beiden duerfen nicht gemeldet werden -
+    # sonst waere die Dublettenerkennung im Kundentermin nicht vorzeigbar.
+    gegenbeispiel = [
+        neuer_debitor(eindeutig=False, NAME1="Weber Metallbau GmbH",
+                      STRAS="Industriering 7", PSTLZ="70565", ORT01="Stuttgart",
+                      LAND1="DE"),
+        neuer_debitor(eindeutig=False, NAME1="Weber Kunststoff GmbH",
+                      STRAS="Industriering 9", PSTLZ="70565", ORT01="Stuttgart",
+                      LAND1="DE"),
+    ]
+    defekte.append(
+        "GEGENBEISPIEL (darf NICHT gemeldet werden): 2 verschiedene Unternehmen "
+        "mit gleichem Namensstamm in derselben Strasse | betroffen: "
+        + ", ".join(satz["KUNNR"] for satz in gegenbeispiel)
+    )
+
+    # --------------------------------------------- uebrige Debitorenmaengel
+    kundengruppe(
+        "CUS-COMP-001: 5 Debitoren ohne USt-IdNr.",
+        [neuer_debitor(LAND1="DE", STCEG="") for _ in range(5)],
+    )
+    kundengruppe(
+        "CUS-COMP-002: 3 Debitoren ohne Ort oder Postleitzahl",
+        [neuer_debitor(PSTLZ="") for _ in range(2)]
+        + [neuer_debitor(ORT01="")],
+    )
+    kundengruppe(
+        "CUS-FMT-001: 4 Debitoren mit ungueltiger USt-IdNr.",
+        [neuer_debitor(LAND1="DE", STCEG=f"DE{rng.randint(100000000, 999999999)}")
+         for _ in range(4)],
+    )
+    kundengruppe(
+        "CUS-FMT-002: 3 Debitoren mit Postleitzahl, die nicht zum Land passt",
+        [neuer_debitor(LAND1="DE", PSTLZ="123") for _ in range(3)],
+    )
+    kundengruppe(
+        "CUS-CONS-004: 2 Debitoren mit USt-IdNr. eines anderen Landes",
+        [neuer_debitor(LAND1="DE", STCEG=make_vat("AT", rng)) for _ in range(2)],
+    )
+    kundengruppe(
+        "CUS-CONS-005: 3 Debitoren mit Vertriebssperre, Buchungskreis offen",
+        [neuer_debitor(AUFSD="01") for _ in range(3)],
+    )
+    kundengruppe(
+        "CUS-RISK-001: 3 Debitoren mit reiner Postfachanschrift",
+        [neuer_debitor(STRAS="", PFACH=f"{rng.randint(1000, 9999)}") for _ in range(3)],
+    )
+    kundengruppe(
+        "CUS-LC-001: 4 Debitoren mit alter Loeschvormerkung ohne Archivierung",
+        [neuer_debitor(LOEVM="X", _erdat=heute - timedelta(days=1500))
+         for _ in range(4)],
+    )
+    kundengruppe(
+        "CUS-CONS-003: 3 Debitoren zentral zur Loeschung vorgemerkt, im "
+        "Buchungskreis aber nicht",
+        [neuer_debitor(LOEVM="X") for _ in range(3)],
+    )
+    # Der Buchungskreis der drei Saetze muss offen bleiben, sonst ist es kein
+    # Widerspruch mehr. debitor_saetze uebernimmt LOEVM - hier zuruecksetzen.
+    for satz in knb1[-3:]:
+        satz["LOEVM"] = ""
+
+    # Buchungskreis- und Vertriebsdaten ohne allgemeine Daten: die Saetze
+    # entstehen ohne KNA1-Eintrag und muessen deshalb von Hand angelegt werden.
+    for lauf in range(2):
+        naechster_kunde += 1
+        verwaist = f"{200000 + naechster_kunde}"
+        knb1.append({
+            "MANDT": mandant, "KUNNR": verwaist, "BUKRS": "1000",
+            "AKONT": "0000140000", "ZTERM": "ZB01", "ZWELS": "U", "ZAHLS": "",
+            "LOEVM": "", "SPERR": "", "ERDAT": heute.strftime("%Y%m%d"),
+        })
+    defekte.append(
+        "CUS-CONS-001: 2 Buchungskreisdatensaetze ohne allgemeine Daten | betroffen: "
+        f"{knb1[-2]['KUNNR']}, {knb1[-1]['KUNNR']}"
+    )
+
+    naechster_kunde += 1
+    verwaister_vertrieb = f"{200000 + naechster_kunde}"
+    knvv.append({"MANDT": mandant, "KUNNR": verwaister_vertrieb, "VKORG": "1000",
+                 "VTWEG": "10", "SPART": "00", "LOEVM": ""})
+    defekte.append(
+        "CUS-CONS-002: 1 Vertriebsbereichsdatensatz ohne allgemeine Daten | "
+        f"betroffen: {verwaister_vertrieb}"
+    )
+
+    # CUS-COMP-004 und CUS-COMP-005: Buchungskreisdaten ohne Abstimmkonto
+    # beziehungsweise ohne Zahlungsbedingung.
+    for satz in knb1[3:6]:
+        satz["AKONT"] = ""
+    defekte.append(
+        "CUS-COMP-004: 3 Buchungskreisdatensaetze ohne Abstimmkonto | betroffen: "
+        + ", ".join(satz["KUNNR"] for satz in knb1[3:6])
+    )
+    for satz in knb1[8:11]:
+        satz["ZTERM"] = ""
+    defekte.append(
+        "CUS-COMP-005: 3 Buchungskreisdatensaetze ohne Zahlungsbedingung | betroffen: "
+        + ", ".join(satz["KUNNR"] for satz in knb1[8:11])
+    )
+
+    # CUS-REF-001: Abstimmkonto, das es im Buchungskreis nicht gibt.
+    knb1[12]["AKONT"] = "0000149999"
+    defekte.append(
+        f"CUS-REF-001: 1 Buchungskreisdatensatz mit unbekanntem Abstimmkonto | "
+        f"betroffen: {knb1[12]['KUNNR']}"
+    )
+
+    # CUS-FMT-003: ungueltige IBAN in den Bankdaten des Debitors.
+    for satz in knbk[2:5]:
+        satz["IBAN"] = satz["IBAN"][:-1] + ("0" if satz["IBAN"][-1] != "0" else "1")
+    defekte.append(
+        "CUS-FMT-003: 3 Debitoren mit ungueltiger IBAN | betroffen: "
+        + ", ".join(satz["KUNNR"] for satz in knbk[2:5])
+    )
+
+    # CUS-COMP-003: Debitor ohne Buchungskreisdaten.
+    kundengruppe(
+        "CUS-COMP-003: 3 Debitoren ohne Buchungskreisdaten",
+        [neuer_debitor(_mit_buchungskreis=False) for _ in range(3)],
+    )
+
+    # CUS-REF-005: Vertriebsbereichsdaten mit unbekannter Verkaufsorganisation.
+    knvv[5]["VKORG"] = "9999"
+    defekte.append(
+        f"CUS-REF-005: 1 Vertriebsbereich mit unbekannter Verkaufsorganisation | "
+        f"betroffen: {knvv[5]['KUNNR']}"
+    )
+
     # ------------------------------------------------------ Customizing
     t001 = [{"MANDT": mandant, "BUKRS": "1000", "BUTXT": "Musterwerk AG",
              "LAND1": "DE", "WAERS": "EUR", "KTOPL": "INT"}]
@@ -592,6 +903,9 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
              "XEGLD": "X" if land in ("DE", "AT", "NL", "FR", "IT") else ""}
             for land in ("DE", "AT", "CH", "NL", "FR", "IT")]
     t077k = [{"MANDT": mandant, "KTOKK": "KRED", "NUMKR": "01"}]
+    t077d = [{"MANDT": mandant, "KTOKD": "KUNA", "NUMKR": "02"}]
+    tvko = [{"MANDT": mandant, "VKORG": "1000", "VTEXT": "Vertrieb Inland",
+             "BUKRS": "1000", "WAERS": "EUR"}]
     t134 = [{"MANDT": mandant, "MTART": a, "KKREF": k} for a, k in
             (("ROH", "0001"), ("HALB", "0002"), ("FERT", "0002"), ("HAWA", "0001"))]
     t025 = [{"MANDT": mandant, "BKLAS": b, "KKREF": k} for b, k in
@@ -609,6 +923,10 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     write_csv(target / "LFB1.csv", lfb1, list(lfb1[0]))
     write_csv(target / "LFM1.csv", lfm1, list(lfm1[0]))
     write_csv(target / "LFBK.csv", lfbk, list(lfbk[0]))
+    write_csv(target / "KNA1.csv", kna1, list(kna1[0]))
+    write_csv(target / "KNB1.csv", knb1, list(knb1[0]))
+    write_csv(target / "KNBK.csv", knbk, list(knbk[0]))
+    write_csv(target / "KNVV.csv", knvv, list(knvv[0]))
     write_csv(target / "MARA.csv", mara, list(mara[0]))
     write_csv(target / "MAKT.csv", makt, list(makt[0]))
     write_csv(target / "MARC.csv", marc, list(marc[0]))
@@ -617,17 +935,18 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         ("T001", t001), ("T052", t052), ("T042Z", t042z), ("T005", t005),
         ("T077K", t077k), ("T134", t134), ("T025", t025), ("T023", t023),
         ("T006", t006), ("T001W", t001w), ("SKB1", skb1), ("TCURC", tcurc),
-        ("T024E", t024e),
+        ("T024E", t024e), ("T077D", t077d), ("TVKO", tvko),
     ):
         write_csv(target / f"{name}.csv", rows, list(rows[0]))
 
     zaehlung = {
         "LFA1": len(lfa1), "LFB1": len(lfb1), "LFM1": len(lfm1), "LFBK": len(lfbk),
+        "KNA1": len(kna1), "KNB1": len(knb1), "KNBK": len(knbk), "KNVV": len(knvv),
         "MARA": len(mara), "MAKT": len(makt), "MARC": len(marc), "MBEW": len(mbew),
         "T001": len(t001), "T052": len(t052), "T042Z": len(t042z), "T005": len(t005),
         "T077K": len(t077k), "T134": len(t134), "T025": len(t025), "T023": len(t023),
         "T006": len(t006), "T001W": len(t001w), "SKB1": len(skb1), "TCURC": len(tcurc),
-        "T024E": len(t024e),
+        "T024E": len(t024e), "T077D": len(t077d), "TVKO": len(tvko),
     }
 
     manifest = ["# Begleitzettel der Beispiellieferung", "delivery:",

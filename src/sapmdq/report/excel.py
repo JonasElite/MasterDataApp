@@ -34,10 +34,20 @@ _INVALID_SHEET_CHARS = re.compile(r"[\[\]:*?/\\]")
 MAX_SHEET_NAME = 31
 
 #: Farbgebung der Schweregrade.
+#:
+#: Dieselben Werte gelten in der Oberflaeche (``ui/static/stil.css``). Wer eine
+#: Auswertung auf dem Bildschirm gezeigt bekommen hat und danach die Mappe
+#: oeffnet, soll dieselben Farben wiederfinden.
+#:
+#: Es ist eine Statusskala und keine Reihe frei waehlbarer Serienfarben: die
+#: vier Stufen sind fest belegt. Gelb und Orange liegen fuer das normale Sehen
+#: dichter beieinander, als es fuer eine reine Farbunterscheidung reichte -
+#: deshalb steht der Schweregrad ueberall auch als Wort daneben, in der Mappe
+#: wie auf dem Bildschirm.
 SEVERITY_COLORS = {
-    "critical": "#C0392B",
-    "high": "#E67E22",
-    "medium": "#F1C40F",
+    "critical": "#D03B3B",
+    "high": "#EC835A",
+    "medium": "#FAB219",
     "low": "#95A5A6",
 }
 

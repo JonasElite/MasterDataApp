@@ -57,9 +57,11 @@ Meldet die Shell, `sapmdq` sei unbekannt, ist die Umgebung nicht aktiv - das
 ## Erster Lauf mit Beispieldaten
 
 Ohne Kundendaten laesst sich das Werkzeug an einer erzeugten Lieferung
-ausprobieren. Sie enthaelt 24 gezielt eingebaute Maengel; welche das sind, steht
-in der miterzeugten Datei `EINGEBAUTE_MAENGEL.md` - eine Gegenprobe, ob das
-Werkzeug findet, was es finden soll.
+ausprobieren. Sie enthaelt 45 gezielt eingebaute Maengel ueber Kreditoren,
+Debitoren und Material; welche das sind, steht in der miterzeugten Datei
+`EINGEBAUTE_MAENGEL.md` - eine Gegenprobe, ob das Werkzeug findet, was es
+finden soll, und ebenso, ob es die dort benannten Faelle in Ruhe laesst, die
+keine Maengel sind.
 
 ```bash
 sapmdq init testprojekt --name "Testlauf"
