@@ -31,6 +31,7 @@
       <button class="nav" data-ansicht="lagebild" aria-current="page">Lagebild</button>
       <button class="nav" data-ansicht="befunde">Befunde</button>
       <button class="nav" data-ansicht="dubletten">Dubletten</button>
+      <button class="nav" data-ansicht="abdeckung">Abdeckung</button>
       <button class="nav" data-ansicht="coverage">Pruefumfang</button>
       <button class="nav" data-ansicht="lieferung">Lieferung</button>
       <button class="nav" data-ansicht="ausnahmen">Ausnahmen</button>
@@ -130,6 +131,33 @@
       <div class="karte">
         <h2>Pruefungen der Lieferung</h2>
         <div id="l-pruefungen"></div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------- Abdeckung -->
+    <section id="ansicht-abdeckung" class="ansicht" hidden>
+      <p class="leise">Was das Werkzeug ueberhaupt prueft - unabhaengig von
+         dieser Lieferung. Je Prozess steht daneben, wieviel davon sich mit
+         den gelieferten Tabellen tatsaechlich pruefen liess.</p>
+
+      <div id="ab-kennzahlen" class="kacheln"></div>
+
+      <h2 class="abschnitt-titel">Kernprozesse</h2>
+      <div id="ab-kern"></div>
+
+      <h2 class="abschnitt-titel">Querschnittsthemen</h2>
+      <div id="ab-quer"></div>
+
+      <div class="karte">
+        <h2>Alle Tabellen</h2>
+        <p class="leise">Welche Tabelle wofuer gebraucht wird und an wievielen
+           Regeln sie haengt.</p>
+        <div class="werkzeugleiste">
+          <input id="ab-suche" type="search" placeholder="Tabelle suchen"
+                 aria-label="Tabelle suchen">
+          <label class="schalter"><input id="ab-nur-fehlend" type="checkbox"> nur fehlende</label>
+        </div>
+        <div id="ab-tabellen"></div>
       </div>
     </section>
 

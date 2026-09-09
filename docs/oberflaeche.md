@@ -53,6 +53,7 @@ als Parameter in die Abfrage und nicht in ihren Text.
 | Lagebild | Punktwert gross, Pruefumfang als Ring, Befunde je Schweregrad und Bereich, haeufigste Regeln, Nachforderung nach Wirkung, Bewertung je Bereich mit Vorbehalt |
 | Befunde | filterbare Liste mit Detailansicht, Regelbeschreibung und Handlungsempfehlung |
 | Dubletten | Cluster mit Gegenueberstellung der Stammsaetze (FA-501 bis FA-505) |
+| Abdeckung | welche Geschaeftsprozesse und SAP-Tabellen das Werkzeug ueberhaupt abdeckt und was je Prozess geprueft wird |
 | Pruefumfang | Coverage-Grad je Bereich, Nachforderungsliste nach Wirkung, alle Regeln mit Begruendung fuer entfallene (FA-3xx) |
 | Lieferung | Urteil ueber die Verwertbarkeit, Dateien mit Hash und Stichtag, Tabellen, Ergebnisse der Lieferungspruefungen (FA-2xx) |
 | Ausnahmen | alle hinterlegten Ausnahmen mit Geltungsbereich, Begruendung und Ablauf (FA-602) |
@@ -60,6 +61,41 @@ als Parameter in die Abfrage und nicht in ihren Text.
 
 Im Lagebild sind die Balken anklickbar: ein Klick auf "critical" oder auf einen
 Objektbereich springt in die Befundliste und setzt den Filter.
+
+## Abdeckung
+
+Die Seite beantwortet die Frage, die im Kundentermin als erste kommt: *welche
+Prozesse deckt ihr ab?* Je Prozess stehen dort die Prozesskette, die
+Pruefschwerpunkte in Stichpunkten, die benoetigten SAP-Tabellen und - eigens
+hervorgehoben - die **Grenzen**. Darunter eine Liste aller Tabellen mit ihrer
+Bedeutung, ihrer Einstufung, der Zahl der daran haengenden Regeln und den
+Prozessen, die sie brauchen.
+
+Zwei Zahlen stehen dabei immer nebeneinander und duerfen nicht verwechselt
+werden: **was der Katalog abdeckt** ist ein Leistungsversprechen, **was in
+dieser Lieferung davon ausfuehrbar war** ist ein Befund. Die Karte zeigt beides,
+der Balken am Fuss nennt das Verhaeltnis.
+
+Unterschied zum *Pruefumfang*: dort steht, welche Regeln in dieser Lieferung
+laufen konnten. Hier steht, was das Werkzeug ueberhaupt leistet - unabhaengig
+davon, was geliefert wurde.
+
+### Gepflegt wird das in `rules/prozesse.yaml`
+
+Die Zuordnung steht getrennt von den Regeln, weil eine Regel ihren
+Objektbereich kennt, aber nicht ihren fachlichen Zusammenhang. Eine Regel darf
+mehreren Prozessen gehoeren - ein fehlendes Abstimmkonto blockiert den Zahllauf
+*und* bricht die Verbindung ins Hauptbuch.
+
+Zugeordnet wird ueber drei Wege, die sich ergaenzen: `bereiche` (alle Regeln
+eines Objektbereichs), `kategorien` (alle Regeln einer Kategorie) und `regeln`
+(einzelne IDs). Wie die Uebersetzungen geht die Datei nicht in den Inhaltshash
+des Katalogs ein - eine geschaerfte Formulierung darf die Katalogversion nicht
+veraendern.
+
+Tests halten die Zuordnung vollstaendig: jede Regel gehoert zu einem Prozess,
+jeder Prozess nennt seine Grenzen und mindestens drei Pruefschwerpunkte, jeder
+Kernprozess hat eine Prozesskette.
 
 ## Dubletten
 
@@ -84,9 +120,10 @@ mit.
 ## Praesentation
 
 Der Knopf *Praesentation* baut aus dem Lauf eine Abfolge von Vollbildfolien:
-Titel, was geprueft wurde, worueber ueberhaupt eine Aussage moeglich ist,
-Ergebnis, wo die Befunde liegen, woran es am haeufigsten liegt, ein
-Dublettenbeispiel, was eine Nachlieferung braechte, naechste Schritte.
+Titel, was geprueft wurde, was das Werkzeug prueft, wieviel davon hier pruefbar
+war, worueber ueberhaupt eine Aussage moeglich ist, Ergebnis, wo die Befunde
+liegen, woran es am haeufigsten liegt, ein Dublettenbeispiel, was eine
+Nachlieferung braechte, naechste Schritte.
 
 Weiter mit Pfeiltaste oder Leertaste, zurueck mit der linken Pfeiltaste,
 `Esc` beendet. *Als PDF* stellt alle Folien untereinander und ruft den Druck

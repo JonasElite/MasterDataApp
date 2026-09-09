@@ -187,4 +187,5 @@ sonst waere die Reproduzierbarkeit von der Tagesform des Dienstes abhaengig.
 | Neues Eingangsformat | `ingest/readers.py` | nein |
 | Neue Ansicht der Oberflaeche | `ui/api.py`, `ui/server.py`, `ui/static/` | nein |
 | Uebersetzung einer Regel | `rules/i18n/<sprache>.yaml` | ja |
+| Neuer Geschaeftsprozess auf der Abdeckungsseite | `rules/prozesse.yaml` | ja |
 | Weitere Sprache der Oberflaeche | `ui/static/texte.js` und `rules/i18n/` | nein |

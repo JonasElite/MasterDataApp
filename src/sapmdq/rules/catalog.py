@@ -39,6 +39,10 @@ logger = get_logger("rules.catalog")
 #: Unterverzeichnis mit den Uebersetzungen des Katalogs.
 I18N_DIR = "i18n"
 
+#: Datei mit der Zuordnung der Regeln zu Geschaeftsprozessen.
+#: Sie steht neben den Regeln, ist aber keine.
+PROCESS_FILE = "prozesse.yaml"
+
 CATALOG_META = "catalog.yaml"
 
 
@@ -304,12 +308,13 @@ def load_catalog(
         # Sortierte Reihenfolge: der Inhaltshash und damit die Katalogversion
         # muessen unabhaengig von der Reihenfolge des Dateisystems sein (NFA-05).
         for path in sorted(directory.rglob("*.y*ml")):
-            if path.name == CATALOG_META:
+            if path.name in (CATALOG_META, PROCESS_FILE):
                 continue
-            # Uebersetzungen sind keine Regeln. Sie gehen auch nicht in den
-            # Inhaltshash ein: eine korrigierte Formulierung darf die
-            # Katalogversion nicht veraendern, sonst saehe ein Vergleich
-            # zweier Laeufe nach einer Aenderung des Massstabs aus (FA-605).
+            # Uebersetzungen und die Prozesszuordnung sind keine Regeln. Sie
+            # gehen auch nicht in den Inhaltshash ein: eine korrigierte
+            # Formulierung darf die Katalogversion nicht veraendern, sonst
+            # saehe ein Vergleich zweier Laeufe nach einer Aenderung des
+            # Massstabs aus (FA-605).
             if I18N_DIR in path.parts:
                 continue
             text = path.read_text(encoding="utf-8")

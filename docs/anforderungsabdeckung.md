@@ -38,7 +38,7 @@ umgesetzt.
 |---|---|---|---|---|
 | FA-301 | Regeln deklarieren ihre Abhaengigkeiten | M | umgesetzt | erzwungen: eine Abfrage mit undeklariertem Feld wird beim Laden zurueckgewiesen |
 | FA-302 | Ausfuehrbare Regeln beim Start ermitteln | M | umgesetzt | `rules/capability.py` |
-| FA-303 | Coverage-Report mit fehlender Tabelle bzw. fehlendem Feld | M | umgesetzt | in Summary, Excel und `coverage.csv` |
+| FA-303 | Coverage-Report mit fehlender Tabelle bzw. fehlendem Feld | M | umgesetzt | in Summary, Excel und `coverage.csv`; Abdeckungsseite nennt Prozesse, Tabellen und Grenzen |
 | FA-304 | Priorisierte Nachforderungsliste | S | umgesetzt | gierig aufgebaut, mit kumulierter Wirkung; fehlende und unvollstaendige Tabellen getrennt |
 | FA-305 | Coverage-Grad als Vorbehalt im Bericht | M | umgesetzt | steht vor den Zahlen, nicht im Anhang |
 
@@ -104,7 +104,7 @@ umgesetzt.
 | NFA-05 | Identische Eingabe ergibt bitgleiches Ergebnis | umgesetzt | Nachweis AK-04, byteweiser Vergleich |
 | NFA-06 | Befund auf Regelversion, Dateihash, Zeitstempel zurueckfuehrbar | umgesetzt | Nachweis AK-05 |
 | NFA-07 | Start ueber einen Befehl, kein Programmierwissen | umgesetzt | `sapmdq run -c projekt.yaml`, wahlweise `sapmdq ui` |
-| NFA-08 | Neue Regel ohne Kernaenderung, Testabdeckung der Engine | umgesetzt | 390 Tests |
+| NFA-08 | Neue Regel ohne Kernaenderung, Testabdeckung der Engine | umgesetzt | 404 Tests |
 | NFA-09 | Regelfehler bricht den Lauf nicht ab | umgesetzt | Ausfall wird als Regelfehler ausgewiesen |
 
 ## 6 Datenschutz und Informationssicherheit

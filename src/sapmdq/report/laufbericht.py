@@ -22,6 +22,7 @@ import duckdb
 
 from sapmdq.logging_setup import get_logger
 from sapmdq.results import RunResult
+from sapmdq.sap.tables import load_registry
 from sapmdq.sap.sql_conversion import quote_literal
 from sapmdq.util.timeutil import iso_timestamp
 from sapmdq.version import APP_VERSION, RESULT_SCHEMA_VERSION
@@ -144,6 +145,106 @@ def _coverage(result: RunResult) -> dict[str, Any]:
     }
 
 
+def _abdeckung(result: RunResult) -> dict[str, Any]:
+    """Welche Geschaeftsprozesse und Tabellen das Werkzeug abdeckt (FA-303).
+
+    Zwei Lesarten stehen nebeneinander, und sie duerfen nicht verwechselt
+    werden: was der Katalog ueberhaupt abdeckt, und was in dieser Lieferung
+    davon ausfuehrbar war. Die erste Zahl ist ein Leistungsversprechen, die
+    zweite ein Befund.
+    """
+    from sapmdq.rules.prozesse import assign, load_processes
+
+    if result.catalog is None:
+        return {}
+
+    katalog = assign(
+        load_processes(result.config.rules.catalog_dirs), result.catalog.rules
+    )
+    if not katalog.processes:
+        return {}
+
+    registry = load_registry()
+    geliefert = set(result.ingestion.tables) if result.ingestion else set()
+    ausfuehrbar = (
+        {faehigkeit.rule.id for faehigkeit in result.coverage.executable}
+        if result.coverage
+        else set()
+    )
+
+    prozesse = []
+    for prozess in katalog.processes:
+        regeln = katalog.rules_of(prozess, result.catalog.rules)
+        tabellen = sorted({tabelle for regel in regeln for tabelle in regel.requires.all_tables})
+        kategorien: dict[str, int] = {}
+        for regel in regeln:
+            kategorien[regel.category.label] = kategorien.get(regel.category.label, 0) + 1
+
+        prozesse.append(
+            {
+                "id": prozess.id,
+                "name": prozess.name,
+                "gruppe": prozess.gruppe,
+                "beschreibung": prozess.beschreibung,
+                "schritte": list(prozess.schritte),
+                "schwerpunkte": list(prozess.schwerpunkte),
+                "grenzen": prozess.grenzen,
+                "regeln_gesamt": len(regeln),
+                "regeln_ausfuehrbar": sum(1 for regel in regeln if regel.id in ausfuehrbar),
+                "regeln": sorted(regel.id for regel in regeln),
+                "je_kategorie": dict(sorted(kategorien.items())),
+                "tabellen": [
+                    {
+                        "name": name,
+                        "bedeutung": spezifikation.description if spezifikation else "",
+                        "einstufung": spezifikation.tier if spezifikation else "could",
+                        "geliefert": name in geliefert,
+                    }
+                    for name, spezifikation in (
+                        (name, registry.get(name)) for name in tabellen
+                    )
+                ],
+            }
+        )
+
+    # Alle Tabellen des Katalogs, unabhaengig vom Prozess - fuer die
+    # Gesamtuebersicht. Genannt wird auch, welche Prozesse an ihr haengen:
+    # das ist die Begruendung, warum eine Nachlieferung sich lohnt.
+    alle_tabellen: dict[str, dict[str, Any]] = {}
+    for prozess in prozesse:
+        for tabelle in prozess["tabellen"]:
+            eintrag = alle_tabellen.setdefault(
+                tabelle["name"],
+                {
+                    "name": tabelle["name"],
+                    "bedeutung": tabelle["bedeutung"],
+                    "einstufung": tabelle["einstufung"],
+                    "geliefert": tabelle["geliefert"],
+                    "prozesse": [],
+                    "regeln": 0,
+                },
+            )
+            eintrag["prozesse"].append(prozess["id"])
+    for name, eintrag in alle_tabellen.items():
+        eintrag["regeln"] = sum(
+            1
+            for regel in result.catalog.rules
+            if name in regel.requires.all_tables
+        )
+
+    return {
+        "version": katalog.version,
+        "regeln_gesamt": len(result.catalog.rules),
+        "prozesse": prozesse,
+        "tabellen": sorted(alle_tabellen.values(), key=lambda e: e["name"]),
+        # Regeln ohne Prozesszuordnung. Sollte leer sein; steht hier, damit
+        # eine Luecke sichtbar wird statt stillschweigend zu fehlen.
+        "ohne_zuordnung": sorted(
+            regel.id for regel in result.catalog.rules if regel.id not in katalog.by_rule
+        ),
+    }
+
+
 def _regellauf(result: RunResult) -> list[dict[str, Any]]:
     return [
         {
@@ -263,6 +364,7 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> dict[str
         "regelfehler": len(result.failed_rules),
         "lieferung": _lieferung(result),
         "coverage": _coverage(result),
+        "abdeckung": _abdeckung(result),
         "regellauf": _regellauf(result),
         "befunde": _befunde(con, result),
         "bewertung": _bewertung(result),

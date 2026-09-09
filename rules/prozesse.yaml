@@ -1,0 +1,255 @@
+# Zuordnung der Pruefregeln zu Geschaeftsprozessen.
+#
+# Diese Datei beantwortet die Frage, die im Kundentermin als erste kommt:
+# "Welche Prozesse deckt ihr ab?" Sie aendert nichts an der Pruefung und geht
+# deshalb - wie die Uebersetzungen - nicht in den Inhaltshash des Katalogs ein.
+#
+# Eine Regel darf mehreren Prozessen zugeordnet sein. Das ist kein Schoenheits-
+# fehler, sondern der Sachverhalt: ein fehlendes Abstimmkonto blockiert den
+# Zahllauf (Purchase-to-Pay) und bricht zugleich die Verbindung ins Hauptbuch
+# (Record-to-Report).
+#
+# Zuordnung ueber drei Wege, die sich ergaenzen:
+#   bereiche:   alle Regeln dieser Objektbereiche
+#   kategorien: alle Regeln dieser Kategorien
+#   regeln:     einzelne Regel-IDs
+#
+# Jeder Prozess nennt ausserdem seine Grenzen. Das ist der wichtigste Teil:
+# wer im Termin sagen kann, was das Werkzeug *nicht* leistet, wird beim Rest
+# geglaubt.
+
+version: "1.0.0"
+
+processes:
+
+  # ============================================================ Kernprozesse
+  - id: p2p
+    name: Purchase-to-Pay
+    gruppe: kern
+    beschreibung: >
+      Von der Lieferantenanlage bis zur Zahlung. Geprueft werden die
+      Stammdaten, ohne die eine Bestellung nicht buchbar und ein Zahllauf
+      nicht ausfuehrbar ist.
+    schritte:
+      - Lieferantenanlage
+      - Bestellung
+      - Wareneingang
+      - Rechnungspruefung
+      - Zahllauf
+    schwerpunkte:
+      - Voraussetzungen des Zahllaufs - IBAN nach ISO 13616, BIC, Zahlweg je Land, Bankland gegen IBAN
+      - Buchbarkeit - Abstimmkonto vorhanden, im Buchungskreis angelegt und als Kreditorenkonto gekennzeichnet
+      - Faelligkeit und Skonto - Zahlungsbedingung in Buchungskreis und Einkauf, widerspruchsfrei
+      - Mehrfach angelegte Lieferanten ueber USt-IdNr., Bankverbindung und Namensaehnlichkeit
+      - Zahlungsumleitungsrisiken - kuerzlich geaenderte Bankdaten, fehlende Funktionstrennung, CpD mit fester Bankverbindung
+    grenzen: >
+      Bestellungen, Wareneingaenge, Rechnungen und Zahlungen sind nicht im
+      Umfang. Doppelte Rechnungen, Abweichungen im Drei-Wege-Abgleich und
+      Bestellungen am Rahmenvertrag vorbei lassen sich damit nicht finden.
+    bereiche: [vendor]
+    regeln: [X-FMT-001, X-CONS-001, X-RISK-001, X-REF-001, X-CONS-002]
+
+  - id: o2c
+    name: Order-to-Cash
+    gruppe: kern
+    beschreibung: >
+      Vom Kundenstammsatz bis zum Zahlungseingang. Im Mittelpunkt stehen die
+      Angaben, an denen Steuerfreiheit, Fakturierbarkeit und Mahnwesen
+      haengen.
+    schritte:
+      - Kundenanlage
+      - Auftrag
+      - Lieferung
+      - Faktura
+      - Zahlungseingang
+      - Mahnwesen
+    schwerpunkte:
+      - Steuerfreiheit innergemeinschaftlicher Lieferungen - USt-IdNr. vorhanden, formal richtig, ueber VIES bestaetigt
+      - Fakturierbarkeit - Buchungskreis- und Vertriebsbereichsdaten vollstaendig, Verkaufsorganisation vorhanden
+      - Faelligkeit und Altersstruktur - Zahlungsbedingung im Buchungskreis
+      - Wirksamkeit von Sperren - Vertriebssperre gegen offenen Buchungskreis
+      - Kundendubletten, die Zahlungshistorie und Kreditlimit auf mehrere Konten verteilen
+    grenzen: >
+      Auftraege, Lieferungen und Fakturen sind nicht im Umfang. Die
+      Kreditausschoepfung gegen das Limit, die Umsatzverteilung und offene
+      Posten lassen sich damit nicht bewerten - wohl aber der Umstand, dass
+      ein Limit durch eine Dublette auf zwei Konten zerfaellt.
+    bereiche: [customer]
+
+  - id: bestand
+    name: Plan-to-Produce und Bestandsfuehrung
+    gruppe: kern
+    beschreibung: >
+      Vom Materialstammsatz ueber die Disposition bis zur Bestandsbewertung.
+      Geprueft wird, ob ein Material ueberhaupt disponierbar, bewegbar und
+      bewertbar ist.
+    schritte:
+      - Materialanlage
+      - Disposition
+      - Beschaffung oder Fertigung
+      - Bestandsfuehrung
+      - Bewertung
+    schwerpunkte:
+      - Disponierbarkeit - Dispomerkmal, Werkssicht, Basismengeneinheit
+      - Bewertbarkeit - Bewertungsklasse vorhanden und zur Materialart passend
+      - Bestandswert - Standardpreissteuerung ohne Preis, Bestand ohne Preis, Wert gegen Menge mal Preis
+      - Identifikation - Kurztext, EAN mit gueltiger Pruefziffer
+      - Doppelt angelegte Materialien, die Bestand und Bedarf zersplittern
+    grenzen: >
+      Warenbewegungen, Bestellungen und Fertigungsauftraege sind nicht im
+      Umfang. "Seit langem unbewegt" stuetzt sich auf das Aenderungsdatum im
+      Stammsatz, nicht auf die letzte Bewegung - ein Material mit regem
+      Umschlag, aber unveraendertem Stammsatz erscheint darin als Kandidat
+      fuer die Stilllegung.
+    bereiche: [material]
+
+  - id: r2r
+    name: Record-to-Report
+    gruppe: kern
+    beschreibung: >
+      Die Stellen, an denen Stammdaten unmittelbar in den Abschluss wirken.
+      Ein falsch zugeordnetes Bestandskonto faellt nicht beim Buchen auf,
+      sondern erst in der Bilanzanalyse.
+    schritte:
+      - Nebenbuch
+      - Kontenfindung
+      - Hauptbuch
+      - Abschluss
+    schwerpunkte:
+      - Abstimmkonten - vorhanden, im Buchungskreis angelegt, richtige Kontoart
+      - Kontenfindung im Materialstamm - Bewertungsklasse gegen Materialart ueber die Kontenkategorie-Referenz
+      - Bestandsbewertung - Wert, Menge und Preis muessen zueinander passen
+      - Verwaiste Nebenbuchsaetze ohne allgemeine Daten
+    grenzen: >
+      Buchungen, Belege und Salden sind nicht im Umfang. Das Werkzeug zeigt,
+      wo die Kontenfindung falsch aufgesetzt ist - nicht, welcher Betrag
+      dadurch auf dem falschen Konto gelandet ist.
+    regeln:
+      - VEN-COMP-006
+      - VEN-REF-001
+      - VEN-REF-002
+      - VEN-CONS-001
+      - CUS-COMP-004
+      - CUS-REF-001
+      - CUS-CONS-001
+      - MAT-COMP-005
+      - MAT-CONS-001
+      - MAT-CONS-002
+      - MAT-CONS-003
+      - MAT-CONS-004
+      - MAT-CONS-005
+      - MAT-REF-005
+
+  # ======================================================= Querschnittsthemen
+  - id: steuer
+    name: Steuer und Compliance
+    gruppe: quer
+    beschreibung: >
+      Angaben, an denen steuerliche Pflichten und aufsichtsrechtliche
+      Sorgfaltspflichten haengen - quer ueber Kreditoren und Debitoren.
+    schwerpunkte:
+      - USt-IdNr. - Vorhandensein, laenderspezifischer Aufbau, Pruefziffer fuer DE, NL und IT
+      - Qualifizierte Bestaetigung ueber das VIES-Verfahren der Europaeischen Kommission
+      - Laenderkennzeichen der USt-IdNr. gegen das Land des Partners
+      - Kennzeichen "natuerliche Person" - es steuert Quellensteuer und Meldepflichten
+      - Ladungsfaehige Anschrift statt reiner Postfachanschrift
+    grenzen: >
+      Steuerkennzeichen, Steuerfindung und Quellensteuerarten sind noch nicht
+      belegt, obwohl die Tabellen T007A, T059P und T059Z in den Metadaten
+      bereits beschrieben sind. Der Abgleich "natuerliche Person ohne
+      Quellensteuerkennzeichen" waere als reine Regeldatei nachzuziehen.
+    regeln:
+      - VEN-COMP-001
+      - VEN-COMP-004
+      - VEN-FMT-001
+      - VEN-CONS-005
+      - VEN-CONS-007
+      - VEN-RISK-002
+      - VEN-EXT-001
+      - CUS-COMP-001
+      - CUS-FMT-001
+      - CUS-CONS-004
+      - CUS-RISK-001
+      - CUS-EXT-001
+
+  - id: iks
+    name: Internes Kontrollsystem
+    gruppe: quer
+    beschreibung: >
+      Konstellationen, die in der Abschlusspruefung regelmaessig zur
+      Feststellung werden. Keine davon ist fuer sich genommen ein Nachweis -
+      jede verlangt eine Klaerung und deren Dokumentation.
+    schwerpunkte:
+      - Zahlungsumleitung - kuerzlich geaenderte Bankdaten, Bankverbindung eines Mitarbeiters
+      - Funktionstrennung - derselbe Benutzer legt an und aendert Bankdaten
+      - CpD-Konto mit fest hinterlegter Bankverbindung
+      - Dieselbe Bankverbindung bei mehreren Partnern oder ueber Kreditor und Debitor hinweg
+      - Zur Loeschung vorgemerkte Kreditoren ohne Zahlsperre
+    grenzen: >
+      Die Auswertung stuetzt sich auf Stammdaten und Aenderungsbelege. Ohne
+      Zahllaufdaten laesst sich nicht sagen, ob eine auffaellige Konstellation
+      auch tatsaechlich zu einer Zahlung gefuehrt hat.
+    kategorien: [risk]
+    regeln: [VEN-DUP-002, X-RISK-001, VEN-RISK-006]
+
+  - id: dubletten
+    name: Dublettenmanagement
+    gruppe: quer
+    beschreibung: >
+      Mehrfach angelegte Stammsaetze ueber alle Bereiche. Unterschieden wird
+      zwischen hartem Nachweis (gleiche USt-IdNr., gleiche Bankverbindung,
+      gleiche EAN) und begruendetem Verdacht aus dem unscharfen Namens- und
+      Adressabgleich.
+    schwerpunkte:
+      - Harter Nachweis ueber USt-IdNr., Steuernummer, Bankverbindung und EAN
+      - Unscharfer Abgleich nach Normalisierung von Umlauten, Rechtsformen und Strassenabkuerzungen
+      - Cluster statt Paarlisten - ein Befund je Gruppe, in einem Zug bereinigbar
+      - Bereinigungspotenzial in Stammsaetzen, wenn je Cluster einer fuehrend wird
+    grenzen: >
+      Ein unscharfer Treffer ist ein Verdacht mit Score, kein Nachweis.
+      Geblockt wird nach Land und Postleitzahl sowie nach Namensanfang; ein
+      Partner, der unter voellig anderem Namen an anderer Anschrift in einem
+      anderen Land angelegt wurde, wird nur ueber einen harten Schluessel
+      gefunden.
+    kategorien: [duplicate]
+
+  - id: lifecycle
+    name: Stammdatenlebenszyklus
+    gruppe: quer
+    beschreibung: >
+      Anlage, Sperre, Loeschvormerkung, Archivierung. Der haeufigste Befund
+      ist die nie abgeschlossene Archivierung - sie belastet jede Auswertung
+      und jede Dublettensuche.
+    schwerpunkte:
+      - Loeschvormerkung gesetzt, Archivierungslauf nie ausgefuehrt
+      - Vormerkung zentral gesetzt, im Buchungskreis oder Werk aber nicht - sie wirkt dann nicht
+      - Dauerhafte Sperren als Zeichen beendeter Geschaeftsbeziehungen
+      - Fehlanlagen - kurz nach der Anlage wieder vorgemerkt
+      - Material mit Loeschvormerkung, aber weiterhin mit Bestand
+    grenzen: >
+      "Seit langem unveraendert" stuetzt sich auf die Aenderungshistorie
+      (CDHDR/CDPOS) und auf das Aenderungsdatum im Stammsatz. Eine Buchung
+      ohne Stammdatenaenderung bleibt unsichtbar; die Aussage ist ein
+      Ersatzmass, kein Bewegungsnachweis.
+    kategorien: [lifecycle]
+    regeln: [VEN-CONS-003, VEN-CONS-004, CUS-CONS-003, MAT-CONS-006, BP-CONS-003]
+
+  - id: bp
+    name: Business Partner (S/4HANA)
+    gruppe: quer
+    beschreibung: >
+      Der zentrale Geschaeftspartner, der in S/4HANA an die Stelle getrennter
+      Kreditoren- und Debitorenstaemme tritt. Geprueft wird die Konsistenz
+      seiner Grunddaten und Rollen.
+    schwerpunkte:
+      - Identifizierbarkeit - Name je nach Partnertyp in den richtigen Feldern
+      - Rollen - ohne Rolle ist der Partner in keinem Prozess verwendbar
+      - Adresszuordnung ueber die zentrale Adressverwaltung
+      - Gueltigkeitszeitraeume und Loeschkennzeichen gegen aktive Rollen
+    grenzen: >
+      Der Abgleich zwischen Geschaeftspartner und den abgeleiteten
+      Kreditoren- und Debitorensichten (Customer/Vendor Integration) ist noch
+      nicht belegt. Eine eigene Dublettenregel auf Geschaeftspartnern gibt es
+      ebenfalls noch nicht - Dubletten werden ueber die Rollensichten
+      gefunden.
+    bereiche: [business_partner]

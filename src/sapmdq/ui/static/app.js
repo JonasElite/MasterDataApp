@@ -664,6 +664,132 @@ function zeigeLieferung() {
   ], lieferung.pruefungen || [])]);
 }
 
+/* -------------------------------------------------------------- Abdeckung
+ *
+ * Die Seite beantwortet die Frage, die im Kundentermin als erste kommt.
+ * Wichtig ist die Trennung zweier Zahlen: was der Katalog abdeckt (ein
+ * Leistungsversprechen) und was in dieser Lieferung davon ausfuehrbar war
+ * (ein Befund). Beide stehen nebeneinander, nie eine allein.
+ */
+
+function zeigeAbdeckung() {
+  const abdeckung = (Z.lauf || {}).abdeckung;
+  if (!abdeckung || !(abdeckung.prozesse || []).length) {
+    setzen($("#ab-kennzahlen"), []);
+    setzen($("#ab-kern"), [el("p", { class: "nichts", text: "Kein Lauf ausgewaehlt." })]);
+    setzen($("#ab-quer"), []);
+    setzen($("#ab-tabellen"), []);
+    return;
+  }
+
+  const prozesse = abdeckung.prozesse || [];
+  const tabellen = abdeckung.tabellen || [];
+  const geliefert = tabellen.filter((tabelle) => tabelle.geliefert).length;
+  const kern = prozesse.filter((p) => p.gruppe === "kern");
+  const vollstaendig = prozesse.filter(
+    (p) => p.regeln_gesamt && p.regeln_ausfuehrbar === p.regeln_gesamt
+  ).length;
+
+  setzen($("#ab-kennzahlen"), [
+    kachel("Prozesse", zahl(prozesse.length),
+      t("{n} davon Kernprozesse", { n: kern.length })),
+    kachel("Regeln", zahl(abdeckung.regeln_gesamt), t("im aktiven Katalog")),
+    kachel("Tabellen", zahl(tabellen.length),
+      t("{n} in dieser Lieferung vorhanden", { n: geliefert }),
+      geliefert === tabellen.length ? "gut" : ""),
+    kachel("Vollstaendig pruefbar", zahl(vollstaendig),
+      t("von {n} Prozessen in dieser Lieferung", { n: prozesse.length }),
+      vollstaendig === prozesse.length ? "gut" : "warnung"),
+  ]);
+
+  setzen($("#ab-kern"), [el("div", { class: "prozesse" },
+    kern.map((prozess) => prozessKarte(prozess)))]);
+  setzen($("#ab-quer"), [el("div", { class: "prozesse" },
+    prozesse.filter((p) => p.gruppe !== "kern").map((prozess) => prozessKarte(prozess)))]);
+
+  zeichneAbdeckungstabellen();
+}
+
+function prozessKarte(prozess) {
+  const anteil = prozess.regeln_gesamt
+    ? prozess.regeln_ausfuehrbar / prozess.regeln_gesamt : 0;
+  const fuellung = el("div", { class: "saeule-balken" });
+  fuellung.style.width = Math.max(anteil * 100, 1.5) + "%";
+  if (anteil < 1) fuellung.style.background = "var(--high)";
+
+  return el("div", { class: "karte prozess" }, [
+    el("div", { class: "prozess-kopf" }, [
+      el("span", { class: "prozess-name", text: prozess.name }),
+      merkmal(t("{n} Regeln", { n: prozess.regeln_gesamt }), "leise"),
+    ]),
+    el("p", { class: "leise", text: prozess.beschreibung }),
+
+    (prozess.schritte || []).length
+      ? el("div", { class: "kette" }, (prozess.schritte || []).flatMap((schritt, index) => [
+          index ? el("span", { class: "kette-pfeil", text: "\u2192" }) : null,
+          el("span", { class: "kette-schritt", text: schritt }),
+        ]).filter(Boolean))
+      : null,
+
+    el("div", {}, [
+      el("h3", { text: "Was geprueft wird" }),
+      el("ul", { class: "schwerpunkte" },
+        (prozess.schwerpunkte || []).map((punkt) => el("li", { text: punkt }))),
+    ]),
+
+    prozess.grenzen
+      ? el("p", { class: "grenzen" }, [
+          el("strong", { text: t("Nicht im Umfang:") }), " ", prozess.grenzen,
+        ])
+      : null,
+
+    el("div", {}, [
+      el("h3", { text: "Benoetigte Tabellen" }),
+      el("div", { class: "tabellen-marken" }, (prozess.tabellen || []).map((tabelle) =>
+        el("span", {
+          class: "tabellen-marke " + (tabelle.geliefert ? "geliefert" : "fehlt"),
+          title: tabelle.bedeutung + " \u2013 "
+                 + t(tabelle.geliefert ? "geliefert" : "in dieser Lieferung nicht enthalten"),
+          text: tabelle.name,
+        }))),
+    ]),
+
+    el("div", { class: "prozess-fuss" }, [
+      el("span", { class: "leise", text: t("in dieser Lieferung") }),
+      el("div", { class: "saeule-spur" }, [fuellung]),
+      el("span", { class: "saeule-wert", text: prozess.regeln_ausfuehrbar + " / " + prozess.regeln_gesamt }),
+    ]),
+  ]);
+}
+
+function zeichneAbdeckungstabellen() {
+  const abdeckung = (Z.lauf || {}).abdeckung || {};
+  const namen = {};
+  for (const prozess of abdeckung.prozesse || []) namen[prozess.id] = prozess.name;
+
+  const suche = $("#ab-suche").value.trim().toLowerCase();
+  const nurFehlend = $("#ab-nur-fehlend").checked;
+  const zeilen = (abdeckung.tabellen || []).filter((tabelle) => {
+    if (nurFehlend && tabelle.geliefert) return false;
+    if (!suche) return true;
+    return (tabelle.name + " " + tabelle.bedeutung).toLowerCase().includes(suche);
+  });
+
+  setzen($("#ab-tabellen"), [tabelle([
+    { titel: "Tabelle", fest: true, zelle: (z) => z.name },
+    { titel: "Bedeutung", zelle: (z) => z.bedeutung },
+    { titel: "Einstufung", zelle: (z) => merkmal(
+        t({ must: "unverzichtbar", should: "wichtig", could: "hilfreich" }[z.einstufung]
+          || z.einstufung),
+        z.einstufung === "must" ? "critical" : z.einstufung === "should" ? "medium" : "leise") },
+    { titel: "Geliefert", zelle: (z) => z.geliefert
+        ? merkmal("ja", "gut")
+        : merkmal("nein", "high") },
+    { titel: "Regeln", zahl: true, zelle: (z) => zahl(z.regeln) },
+    { titel: "Prozesse", zelle: (z) => (z.prozesse || []).map((id) => namen[id] || id).join(", ") },
+  ], zeilen)]);
+}
+
 /* --------------------------------------------------------------- Coverage */
 
 function zeigeCoverage() {
@@ -1412,6 +1538,48 @@ function baueFolien() {
       : null,
   ])));
 
+  // ------------------------------------------------------------- Abdeckung
+  const abdeckung = lauf.abdeckung || {};
+  const prozesse = abdeckung.prozesse || [];
+  if (prozesse.length) {
+    folien.push(folie("Was das Werkzeug prueft", () => el("div", {}, [
+      el("h2", { text: "Was das Werkzeug prueft" }),
+      el("p", { class: "aussage", text:
+        t("{regeln} Regeln ueber {prozesse} Geschaeftsprozesse, gestuetzt auf "
+          + "{tabellen} SAP-Tabellen. Geprueft werden die Stammdaten, auf denen "
+          + "die Prozesse aufsetzen - nicht die Prozessausfuehrung selbst.", {
+            regeln: abdeckung.regeln_gesamt,
+            prozesse: prozesse.length,
+            tabellen: (abdeckung.tabellen || []).length,
+          }) }),
+      saeulen(
+        prozesse.map((prozess) => ({
+          name: prozess.name,
+          wert: prozess.regeln_gesamt,
+          titel: prozess.name + ": " + prozess.beschreibung,
+        })),
+        { leer: "", langeNamen: true },
+      ),
+    ])));
+
+    // Zweite Folie: dieselben Prozesse, aber gegen die Lieferung gehalten.
+    folien.push(folie("Was davon hier pruefbar war", () => el("div", {}, [
+      el("h2", { text: "Was davon hier pruefbar war" }),
+      el("p", { class: "aussage", text:
+        t("Je Prozess: wieviele der Regeln mit den gelieferten Tabellen laufen "
+          + "konnten. Fehlende Tabellen stehen daneben.") }),
+      tabelle([
+        { titel: "Prozess", zelle: (z) => z.name },
+        { titel: "Regeln", zahl: true, zelle: (z) => z.regeln_ausfuehrbar + " / " + z.regeln_gesamt },
+        { titel: "Anteil", zahl: true, zelle: (z) => prozent(
+            z.regeln_gesamt ? z.regeln_ausfuehrbar / z.regeln_gesamt : 0) },
+        { titel: "Fehlende Tabellen", fest: true, zelle: (z) =>
+            (z.tabellen || []).filter((tab) => !tab.geliefert)
+              .map((tab) => tab.name).join(" ") || "\u2013" },
+      ], prozesse),
+    ])));
+  }
+
   // ----------------------------------------------------------- Pruefumfang
   folien.push(folie("Worueber eine Aussage moeglich ist", () => el("div", {}, [
     el("h2", { text: "Worueber eine Aussage moeglich ist" }),
@@ -1739,6 +1907,7 @@ const ANSICHTEN = {
   lagebild: { titel: "Lagebild", zeichnen: zeigeLagebild },
   befunde: { titel: "Befunde", zeichnen: zeigeBefunde },
   dubletten: { titel: "Dubletten", zeichnen: zeigeDubletten },
+  abdeckung: { titel: "Abdeckung", zeichnen: zeigeAbdeckung },
   coverage: { titel: "Pruefumfang", zeichnen: zeigeCoverage },
   lieferung: { titel: "Lieferung", zeichnen: zeigeLieferung },
   ausnahmen: { titel: "Ausnahmen", zeichnen: zeigeAusnahmen },
@@ -1917,6 +2086,9 @@ async function starten() {
     $("#d-alle-auf").textContent = t(aufklappen ? "Alle zuklappen" : "Alle aufklappen");
     $("#d-alle-auf").dataset.quelltext = aufklappen ? "Alle zuklappen" : "Alle aufklappen";
   });
+
+  $("#ab-suche").addEventListener("input", zeichneAbdeckungstabellen);
+  $("#ab-nur-fehlend").addEventListener("change", zeichneAbdeckungstabellen);
 
   $("#c-suche").addEventListener("input", zeichneRegeln);
   $("#c-nur-entfallen").addEventListener("change", zeichneRegeln);

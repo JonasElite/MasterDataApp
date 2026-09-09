@@ -446,6 +446,196 @@ const EN = {
   "Einordnung": "Assessment",
   "Vorbehalt": "Qualification",
 
+  // ---------------------------------------------------------------- Abdeckung
+  "Abdeckung": "Coverage",
+  "Was das Werkzeug ueberhaupt prueft - unabhaengig von dieser Lieferung. Je Prozess steht daneben, wieviel davon sich mit den gelieferten Tabellen tatsaechlich pruefen liess.":
+    "What the tool checks at all - independently of this delivery. For each process it also shows how much of that could actually be checked with the tables delivered.",
+  "Kernprozesse": "Core processes",
+  "Querschnittsthemen": "Cross-cutting topics",
+  "Alle Tabellen": "All tables",
+  "Welche Tabelle wofuer gebraucht wird und an wievielen Regeln sie haengt.":
+    "What each table is needed for and how many rules depend on it.",
+  "Tabelle suchen": "Search tables",
+  "nur fehlende": "missing only",
+  "Prozesse": "Processes",
+  "{n} davon Kernprozesse": "{n} of them core processes",
+  "im aktiven Katalog": "in the active catalogue",
+  "{n} in dieser Lieferung vorhanden": "{n} present in this delivery",
+  "Vollstaendig pruefbar": "Fully checkable",
+  "von {n} Prozessen in dieser Lieferung": "of {n} processes in this delivery",
+  "Nicht im Umfang:": "Out of scope:",
+  "Benoetigte Tabellen": "Tables required",
+  "in dieser Lieferung": "in this delivery",
+  "in dieser Lieferung nicht enthalten": "not contained in this delivery",
+  "Geliefert": "Delivered",
+  "wichtig": "important",
+  "hilfreich": "helpful",
+
+  // Folien zur Abdeckung
+  "Was das Werkzeug prueft": "What the tool checks",
+  "{regeln} Regeln ueber {prozesse} Geschaeftsprozesse, gestuetzt auf {tabellen} SAP-Tabellen. Geprueft werden die Stammdaten, auf denen die Prozesse aufsetzen - nicht die Prozessausfuehrung selbst.":
+    "{regeln} rules across {prozesse} business processes, resting on {tabellen} SAP tables. What is checked is the master data the processes build on - not the execution of the processes themselves.",
+  "Was davon hier pruefbar war": "How much of that was checkable here",
+  "Je Prozess: wieviele der Regeln mit den gelieferten Tabellen laufen konnten. Fehlende Tabellen stehen daneben.":
+    "Per process: how many rules could run with the tables delivered. Missing tables are named alongside.",
+  "Prozess": "Process",
+  "Anteil": "Share",
+  "Fehlende Tabellen": "Missing tables",
+
+  // ------------------------------------------------- Prozesse (prozesse.yaml)
+  "Plan-to-Produce und Bestandsfuehrung": "Plan-to-Produce and inventory",
+  "Steuer und Compliance": "Tax and compliance",
+  "Internes Kontrollsystem": "Internal control system",
+  "Dublettenmanagement": "Duplicate management",
+  "Stammdatenlebenszyklus": "Master data lifecycle",
+
+  // Prozessschritte
+  "Lieferantenanlage": "Vendor creation",
+  "Bestellung": "Purchase order",
+  "Wareneingang": "Goods receipt",
+  "Rechnungspruefung": "Invoice verification",
+  "Zahllauf": "Payment run",
+  "Kundenanlage": "Customer creation",
+  "Auftrag": "Sales order",
+  "Faktura": "Billing",
+  "Zahlungseingang": "Incoming payment",
+  "Mahnwesen": "Dunning",
+  "Materialanlage": "Material creation",
+  "Disposition": "Requirements planning",
+  "Beschaffung oder Fertigung": "Procurement or production",
+  "Bestandsfuehrung": "Inventory management",
+  "Bewertung": "Valuation",
+  "Nebenbuch": "Sub-ledger",
+  "Kontenfindung": "Account determination",
+  "Hauptbuch": "General ledger",
+  "Abschluss": "Closing",
+
+  // Beschreibungen
+  "Von der Lieferantenanlage bis zur Zahlung. Geprueft werden die Stammdaten, ohne die eine Bestellung nicht buchbar und ein Zahllauf nicht ausfuehrbar ist.":
+    "From vendor creation to payment. What is checked is the master data without which a purchase order cannot be posted and a payment run cannot be executed.",
+  "Vom Kundenstammsatz bis zum Zahlungseingang. Im Mittelpunkt stehen die Angaben, an denen Steuerfreiheit, Fakturierbarkeit und Mahnwesen haengen.":
+    "From the customer master record to the incoming payment. The focus is on the entries that tax exemption, billing and dunning depend on.",
+  "Vom Materialstammsatz ueber die Disposition bis zur Bestandsbewertung. Geprueft wird, ob ein Material ueberhaupt disponierbar, bewegbar und bewertbar ist.":
+    "From the material master record through requirements planning to inventory valuation. What is checked is whether a material can be planned, moved and valued at all.",
+  "Die Stellen, an denen Stammdaten unmittelbar in den Abschluss wirken. Ein falsch zugeordnetes Bestandskonto faellt nicht beim Buchen auf, sondern erst in der Bilanzanalyse.":
+    "The points where master data feed straight into the financial statements. A wrongly assigned stock account does not surface when posting, but only in the balance sheet analysis.",
+  "Angaben, an denen steuerliche Pflichten und aufsichtsrechtliche Sorgfaltspflichten haengen - quer ueber Kreditoren und Debitoren.":
+    "Entries that tax obligations and regulatory due diligence depend on - across vendors and customers alike.",
+  "Konstellationen, die in der Abschlusspruefung regelmaessig zur Feststellung werden. Keine davon ist fuer sich genommen ein Nachweis - jede verlangt eine Klaerung und deren Dokumentation.":
+    "Constellations that regularly become audit findings. None of them is proof in itself - each calls for clarification and its documentation.",
+  "Mehrfach angelegte Stammsaetze ueber alle Bereiche. Unterschieden wird zwischen hartem Nachweis (gleiche USt-IdNr., gleiche Bankverbindung, gleiche EAN) und begruendetem Verdacht aus dem unscharfen Namens- und Adressabgleich.":
+    "Master records created more than once, across all areas. A distinction is made between hard proof (same VAT registration number, same bank details, same EAN) and a reasoned suspicion from the fuzzy name and address match.",
+  "Anlage, Sperre, Loeschvormerkung, Archivierung. Der haeufigste Befund ist die nie abgeschlossene Archivierung - sie belastet jede Auswertung und jede Dublettensuche.":
+    "Creation, blocking, deletion flag, archiving. The most frequent finding is archiving that was never completed - it burdens every analysis and every duplicate search.",
+  "Der zentrale Geschaeftspartner, der in S/4HANA an die Stelle getrennter Kreditoren- und Debitorenstaemme tritt. Geprueft wird die Konsistenz seiner Grunddaten und Rollen.":
+    "The central business partner that replaces separate vendor and customer masters in S/4HANA. What is checked is the consistency of its basic data and roles.",
+
+  // Pruefschwerpunkte
+  "Voraussetzungen des Zahllaufs - IBAN nach ISO 13616, BIC, Zahlweg je Land, Bankland gegen IBAN":
+    "Prerequisites of the payment run - IBAN to ISO 13616, BIC, payment method per country, bank country against IBAN",
+  "Buchbarkeit - Abstimmkonto vorhanden, im Buchungskreis angelegt und als Kreditorenkonto gekennzeichnet":
+    "Postability - reconciliation account present, created in the company code and marked as a vendor account",
+  "Faelligkeit und Skonto - Zahlungsbedingung in Buchungskreis und Einkauf, widerspruchsfrei":
+    "Due date and cash discount - payment terms in company code and purchasing, free of contradiction",
+  "Mehrfach angelegte Lieferanten ueber USt-IdNr., Bankverbindung und Namensaehnlichkeit":
+    "Vendors created more than once, via VAT registration number, bank details and name similarity",
+  "Zahlungsumleitungsrisiken - kuerzlich geaenderte Bankdaten, fehlende Funktionstrennung, CpD mit fester Bankverbindung":
+    "Payment diversion risks - recently changed bank details, missing segregation of duties, one-time account with fixed bank details",
+  "Steuerfreiheit innergemeinschaftlicher Lieferungen - USt-IdNr. vorhanden, formal richtig, ueber VIES bestaetigt":
+    "Exemption of intra-Community supplies - VAT registration number present, formally correct, confirmed through VIES",
+  "Fakturierbarkeit - Buchungskreis- und Vertriebsbereichsdaten vollstaendig, Verkaufsorganisation vorhanden":
+    "Billability - company code and sales area data complete, sales organization present",
+  "Faelligkeit und Altersstruktur - Zahlungsbedingung im Buchungskreis":
+    "Due date and ageing - payment terms in the company code",
+  "Wirksamkeit von Sperren - Vertriebssperre gegen offenen Buchungskreis":
+    "Effectiveness of blocks - sales block against an open company code",
+  "Kundendubletten, die Zahlungshistorie und Kreditlimit auf mehrere Konten verteilen":
+    "Customer duplicates that split payment history and credit limit across several accounts",
+  "Disponierbarkeit - Dispomerkmal, Werkssicht, Basismengeneinheit":
+    "Planability - MRP type, plant view, base unit of measure",
+  "Bewertbarkeit - Bewertungsklasse vorhanden und zur Materialart passend":
+    "Valuability - valuation class present and matching the material type",
+  "Bestandswert - Standardpreissteuerung ohne Preis, Bestand ohne Preis, Wert gegen Menge mal Preis":
+    "Stock value - standard price control without a price, stock without a price, value against quantity times price",
+  "Identifikation - Kurztext, EAN mit gueltiger Pruefziffer":
+    "Identification - short text, EAN with a valid check digit",
+  "Doppelt angelegte Materialien, die Bestand und Bedarf zersplittern":
+    "Materials created twice that fragment stock and requirements",
+  "Abstimmkonten - vorhanden, im Buchungskreis angelegt, richtige Kontoart":
+    "Reconciliation accounts - present, created in the company code, correct account type",
+  "Kontenfindung im Materialstamm - Bewertungsklasse gegen Materialart ueber die Kontenkategorie-Referenz":
+    "Account determination in the material master - valuation class against material type via the account category reference",
+  "Bestandsbewertung - Wert, Menge und Preis muessen zueinander passen":
+    "Inventory valuation - value, quantity and price must match",
+  "Verwaiste Nebenbuchsaetze ohne allgemeine Daten":
+    "Orphaned sub-ledger records without general data",
+  "USt-IdNr. - Vorhandensein, laenderspezifischer Aufbau, Pruefziffer fuer DE, NL und IT":
+    "VAT registration number - presence, country-specific structure, check digit for DE, NL and IT",
+  "Qualifizierte Bestaetigung ueber das VIES-Verfahren der Europaeischen Kommission":
+    "Qualified confirmation through the European Commission's VIES procedure",
+  "Laenderkennzeichen der USt-IdNr. gegen das Land des Partners":
+    "Country code of the VAT registration number against the partner's country",
+  "Kennzeichen \"natuerliche Person\" - es steuert Quellensteuer und Meldepflichten":
+    "The \"natural person\" indicator - it drives withholding tax and reporting obligations",
+  "Ladungsfaehige Anschrift statt reiner Postfachanschrift":
+    "A physical address rather than a PO box only",
+  "Zahlungsumleitung - kuerzlich geaenderte Bankdaten, Bankverbindung eines Mitarbeiters":
+    "Payment diversion - recently changed bank details, an employee's bank details",
+  "Funktionstrennung - derselbe Benutzer legt an und aendert Bankdaten":
+    "Segregation of duties - the same user creates the record and changes the bank details",
+  "CpD-Konto mit fest hinterlegter Bankverbindung":
+    "One-time account with fixed bank details",
+  "Dieselbe Bankverbindung bei mehreren Partnern oder ueber Kreditor und Debitor hinweg":
+    "The same bank details with several partners, or across vendor and customer",
+  "Zur Loeschung vorgemerkte Kreditoren ohne Zahlsperre":
+    "Vendors flagged for deletion without a payment block",
+  "Harter Nachweis ueber USt-IdNr., Steuernummer, Bankverbindung und EAN":
+    "Hard proof via VAT registration number, tax number, bank details and EAN",
+  "Unscharfer Abgleich nach Normalisierung von Umlauten, Rechtsformen und Strassenabkuerzungen":
+    "Fuzzy matching after normalising umlauts, legal forms and street abbreviations",
+  "Cluster statt Paarlisten - ein Befund je Gruppe, in einem Zug bereinigbar":
+    "Clusters instead of pair lists - one finding per group, cleanable in one go",
+  "Bereinigungspotenzial in Stammsaetzen, wenn je Cluster einer fuehrend wird":
+    "Cleanup potential in master records once one per cluster becomes the leading one",
+  "Loeschvormerkung gesetzt, Archivierungslauf nie ausgefuehrt":
+    "Deletion flag set, archiving run never executed",
+  "Vormerkung zentral gesetzt, im Buchungskreis oder Werk aber nicht - sie wirkt dann nicht":
+    "Flag set centrally but not in the company code or plant - it then has no effect",
+  "Dauerhafte Sperren als Zeichen beendeter Geschaeftsbeziehungen":
+    "Permanent blocks as a sign of ended business relationships",
+  "Fehlanlagen - kurz nach der Anlage wieder vorgemerkt":
+    "Mistaken entries - flagged again shortly after creation",
+  "Material mit Loeschvormerkung, aber weiterhin mit Bestand":
+    "Material with a deletion flag but still carrying stock",
+  "Identifizierbarkeit - Name je nach Partnertyp in den richtigen Feldern":
+    "Identifiability - the name in the right fields for the partner category",
+  "Rollen - ohne Rolle ist der Partner in keinem Prozess verwendbar":
+    "Roles - without a role the partner is usable in no process",
+  "Adresszuordnung ueber die zentrale Adressverwaltung":
+    "Address assignment through central address management",
+  "Gueltigkeitszeitraeume und Loeschkennzeichen gegen aktive Rollen":
+    "Validity periods and deletion marks against active roles",
+
+  // Grenzen
+  "Bestellungen, Wareneingaenge, Rechnungen und Zahlungen sind nicht im Umfang. Doppelte Rechnungen, Abweichungen im Drei-Wege-Abgleich und Bestellungen am Rahmenvertrag vorbei lassen sich damit nicht finden.":
+    "Purchase orders, goods receipts, invoices and payments are out of scope. Duplicate invoices, three-way-match discrepancies and orders placed around the framework agreement cannot be found with this.",
+  "Auftraege, Lieferungen und Fakturen sind nicht im Umfang. Die Kreditausschoepfung gegen das Limit, die Umsatzverteilung und offene Posten lassen sich damit nicht bewerten - wohl aber der Umstand, dass ein Limit durch eine Dublette auf zwei Konten zerfaellt.":
+    "Sales orders, deliveries and billing documents are out of scope. Credit utilisation against the limit, revenue distribution and open items cannot be assessed with this - but the fact that a limit falls apart across two accounts through a duplicate can.",
+  "Warenbewegungen, Bestellungen und Fertigungsauftraege sind nicht im Umfang. \"Seit langem unbewegt\" stuetzt sich auf das Aenderungsdatum im Stammsatz, nicht auf die letzte Bewegung - ein Material mit regem Umschlag, aber unveraendertem Stammsatz erscheint darin als Kandidat fuer die Stilllegung.":
+    "Goods movements, purchase orders and production orders are out of scope. \"Unmoved for a long time\" rests on the change date in the master record, not on the last movement - a material with brisk turnover but an unchanged master record appears there as a candidate for retirement.",
+  "Buchungen, Belege und Salden sind nicht im Umfang. Das Werkzeug zeigt, wo die Kontenfindung falsch aufgesetzt ist - nicht, welcher Betrag dadurch auf dem falschen Konto gelandet ist.":
+    "Postings, documents and balances are out of scope. The tool shows where account determination is set up wrongly - not which amount ended up in the wrong account as a result.",
+  "Steuerkennzeichen, Steuerfindung und Quellensteuerarten sind noch nicht belegt, obwohl die Tabellen T007A, T059P und T059Z in den Metadaten bereits beschrieben sind. Der Abgleich \"natuerliche Person ohne Quellensteuerkennzeichen\" waere als reine Regeldatei nachzuziehen.":
+    "Tax codes, tax determination and withholding tax types are not covered yet, although tables T007A, T059P and T059Z are already described in the metadata. The check \"natural person without a withholding tax code\" could be added as a pure rule file.",
+  "Die Auswertung stuetzt sich auf Stammdaten und Aenderungsbelege. Ohne Zahllaufdaten laesst sich nicht sagen, ob eine auffaellige Konstellation auch tatsaechlich zu einer Zahlung gefuehrt hat.":
+    "The analysis rests on master data and change documents. Without payment run data it cannot be said whether a conspicuous constellation actually led to a payment.",
+  "Ein unscharfer Treffer ist ein Verdacht mit Score, kein Nachweis. Geblockt wird nach Land und Postleitzahl sowie nach Namensanfang; ein Partner, der unter voellig anderem Namen an anderer Anschrift in einem anderen Land angelegt wurde, wird nur ueber einen harten Schluessel gefunden.":
+    "A fuzzy hit is a suspicion with a score, not proof. Blocking is by country and postal code as well as by name prefix; a partner created under a completely different name, at a different address, in a different country is found only through a hard key.",
+  "\"Seit langem unveraendert\" stuetzt sich auf die Aenderungshistorie (CDHDR/CDPOS) und auf das Aenderungsdatum im Stammsatz. Eine Buchung ohne Stammdatenaenderung bleibt unsichtbar; die Aussage ist ein Ersatzmass, kein Bewegungsnachweis.":
+    "\"Unchanged for a long time\" rests on the change history (CDHDR/CDPOS) and on the change date in the master record. A posting without a master data change stays invisible; the statement is a proxy, not evidence of movement.",
+  "Der Abgleich zwischen Geschaeftspartner und den abgeleiteten Kreditoren- und Debitorensichten (Customer/Vendor Integration) ist noch nicht belegt. Eine eigene Dublettenregel auf Geschaeftspartnern gibt es ebenfalls noch nicht - Dubletten werden ueber die Rollensichten gefunden.":
+    "The reconciliation between the business partner and the derived vendor and customer views (Customer/Vendor Integration) is not covered yet. There is no dedicated duplicate rule on business partners either - duplicates are found through the role views.",
+
   // -------------------------------------------------------------- Wortschatz
   "Kreditoren": "Vendors",
   "Debitoren": "Customers",

@@ -458,3 +458,56 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .nebeneinander { display: flex; gap: min(6vw, 48px); align-items: center; flex-wrap: wrap; }
 .nebeneinander > .aussage { flex: 1 1 300px; }
 .ampel-breit { max-width: 900px; }
+
+
+/* ============================================================== Abdeckung */
+
+.abschnitt-titel {
+  font-size: 13px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-leise); margin: 22px 0 12px;
+}
+.abschnitt-titel:first-of-type { margin-top: 4px; }
+
+.prozesse { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .prozesse { grid-template-columns: 1fr; } }
+
+.prozess { display: flex; flex-direction: column; gap: 12px; }
+.prozess-kopf { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.prozess-name { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+
+/* Die Prozesskette. Bewusst schlicht: Kaestchen mit Pfeilen, kein Diagramm -
+   sie soll den Bogen zeigen, nicht die Ablauflogik. */
+.kette { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.kette-schritt {
+  border: 1px solid var(--rand); border-radius: 6px;
+  padding: 3px 9px; font-size: 12px; background: var(--flaeche-2); white-space: nowrap;
+}
+.kette-pfeil { color: var(--text-leise); font-size: 12px; }
+
+.schwerpunkte { margin: 0; padding-left: 1.1em; font-size: 13px; line-height: 1.6; }
+.schwerpunkte li { margin-bottom: 3px; }
+
+.grenzen {
+  font-size: 13px; border-left: 3px solid var(--rand);
+  padding: 6px 0 6px 11px; color: var(--text-leise);
+}
+.grenzen strong { color: var(--text); font-weight: 600; }
+
+/* Tabellenkuerzel als Marken - geliefert oder fehlend auf einen Blick. */
+.tabellen-marken { display: flex; flex-wrap: wrap; gap: 5px; }
+.tabellen-marke {
+  font-family: var(--schrift-fest); font-size: 11px; font-weight: 600;
+  border: 1px solid var(--rand); border-radius: 5px; padding: 2px 7px;
+  background: var(--flaeche-2); white-space: nowrap;
+}
+.tabellen-marke.fehlt {
+  border-color: var(--high); color: var(--high);
+  background: color-mix(in srgb, var(--high) 8%, transparent);
+}
+.tabellen-marke.geliefert { border-color: var(--gut); color: var(--gut); }
+
+.prozess-fuss {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  border-top: 1px solid var(--rand-leise); padding-top: 10px; margin-top: auto;
+}
+.prozess-fuss .saeule-spur { flex: 1 1 120px; height: 8px; }

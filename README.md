@@ -70,7 +70,9 @@ Wer die Ergebnisse lieber ansieht als liest:
 sapmdq ui -c kundenprojekt/projekt.yaml
 ```
 
-Das oeffnet eine oertliche Oberflaeche im Browser: ein Lagebild mit Punktwert,
+Das oeffnet eine oertliche Oberflaeche im Browser: eine Abdeckungsseite, die
+zeigt, welche Geschaeftsprozesse und SAP-Tabellen abgedeckt sind und was je
+Prozess geprueft wird; ein Lagebild mit Punktwert,
 Pruefumfang und Verteilung der Befunde, eine filterbare Befundliste, die
 Dublettencluster mit Gegenueberstellung der betroffenen Stammsaetze, Lieferung,
 Pruefumfang und der Vergleich zweier Laeufe. Ausnahmen und Bearbeitungsstaende
@@ -241,7 +243,7 @@ ausserhalb des Werkzeugs und sind organisatorisch zu regeln; siehe
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest              # 390 Tests
+python -m pytest              # 404 Tests
 python -m pytest tests/test_akzeptanzkriterien.py -v   # Abnahmenachweis
 ```
 

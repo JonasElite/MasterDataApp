@@ -176,3 +176,40 @@ def test_jede_pruefmeldung_hat_eine_englische_fassung(woerterbuch):
         and vorlage != "{tabelle}: {ist} Saetze wie gemeldet."
     )
     assert not fehlend, "Pruefmeldung ohne englische Fassung:\n  " + "\n  ".join(fehlend)
+
+
+# ------------------------------------------------------------ Prozesstexte
+
+
+def _prozesstexte() -> set[str]:
+    """Alle sichtbaren Texte aus rules/prozesse.yaml."""
+    import yaml
+
+    pfad = Path(__file__).resolve().parents[1] / "rules" / "prozesse.yaml"
+    daten = yaml.safe_load(pfad.read_text(encoding="utf-8")) or {}
+    gefunden = set()
+    for prozess in daten.get("processes", []) or []:
+        for feld in ("name", "beschreibung", "grenzen"):
+            wert = " ".join(str(prozess.get(feld, "")).split())
+            if wert:
+                gefunden.add(wert)
+        for feld in ("schritte", "schwerpunkte"):
+            for eintrag in prozess.get(feld) or []:
+                gefunden.add(" ".join(str(eintrag).split()))
+    return gefunden
+
+
+def test_jeder_prozesstext_hat_eine_englische_fassung(woerterbuch):
+    """Die Abdeckungsseite ist die, die dem Kunden zuerst gezeigt wird.
+
+    Sie besteht fast vollstaendig aus Text aus prozesse.yaml. Bliebe davon
+    etwas deutsch, faellt es genau dort auf, wo es am meisten stoert.
+    """
+    fehlend = sorted(
+        text for text in _prozesstexte()
+        if text not in woerterbuch
+        # Namen, die in beiden Sprachen gleich lauten.
+        and text not in {"Purchase-to-Pay", "Order-to-Cash", "Record-to-Report",
+                         "Business Partner (S/4HANA)"}
+    )
+    assert not fehlend, "Prozesstext ohne englische Fassung:\n  " + "\n  ".join(fehlend)
