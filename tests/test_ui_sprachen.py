@@ -178,6 +178,35 @@ def test_jede_pruefmeldung_hat_eine_englische_fassung(woerterbuch):
     assert not fehlend, "Prüfmeldung ohne englische Fassung:\n  " + "\n  ".join(fehlend)
 
 
+
+# ---------------------------------------------------------- Fehler des Servers
+
+
+def _fehlervorlagen() -> set[str]:
+    """Die Vorlagen, die die Oberflächen-Schnittstelle an ``uebersetzbar()`` gibt."""
+    wurzel = Path(__file__).resolve().parents[1] / "src" / "sapmdq" / "ui"
+    muster = re.compile(r'uebersetzbar\(\s*((?:"(?:[^"\\]|\\.)*"\s*)+)')
+    gefunden = set()
+    for datei in ("api.py", "server.py"):
+        text = (wurzel / datei).read_text(encoding="utf-8")
+        for treffer in muster.finditer(text):
+            teile = re.findall(r'"((?:[^"\\]|\\.)*)"', treffer.group(1))
+            gefunden.add(_entschluesseln("".join(teile)))
+    return gefunden
+
+
+def test_jede_fehlermeldung_des_servers_hat_eine_englische_fassung(woerterbuch):
+    """Ein abgewiesener Upload erklärt sich in der Sprache der Oberfläche.
+
+    Die Vorlagen stehen im Python-Quelltext und werden dort gelesen; wer eine
+    neue Meldung hinzufügt, sieht hier sofort, dass sie noch fehlt.
+    """
+    vorlagen = _fehlervorlagen()
+    assert vorlagen, "keine Vorlagen gefunden - der Test liefe ins Leere"
+    fehlend = sorted(v for v in vorlagen if v not in woerterbuch)
+    assert not fehlend, "Fehlermeldung ohne englische Fassung:\n  " + "\n  ".join(fehlend)
+
+
 # ------------------------------------------------------------ Prozesstexte
 
 
@@ -200,7 +229,7 @@ def _prozesstexte() -> set[str]:
 
 
 def test_jeder_prozesstext_hat_eine_englische_fassung(woerterbuch):
-    """Die Abdeckungsseite ist die, die dem Kunden zürst gezeigt wird.
+    """Die Abdeckungsseite ist die, die dem Kunden zuerst gezeigt wird.
 
     Sie besteht fast vollständig aus Text aus prozesse.yaml. Bliebe davon
     etwas deutsch, fällt es genau dort auf, wo es am meisten stört.

@@ -194,7 +194,7 @@ rules:
     description: >
       Ohne Zahlungsbedingung wird beim Buchen der Standardwert gezogen oder das
       Fälligkeitsdatum manuell gesetzt. Beides führt zu falschen
-      Fälligkeitsanalysen und zu verschenkten Skontörträgen.
+      Fälligkeitsanalysen und zu verschenkten Skontoerträgen.
     category: completeness
     severity: high
     version: "1.0.0"

@@ -27,7 +27,7 @@ rules:
         LFB1: [MANDT, LIFNR, BUKRS, AKONT]
     params: {}
     remediation: >
-      Zürst prüfen, ob LFA1 vollständig geliefert wurde. Bleibt der Befund
+      Zuerst prüfen, ob LFA1 vollständig geliefert wurde. Bleibt der Befund
       bestehen, liegt eine echte Inkonsistenz im Quellsystem vor.
     sql: |
       SELECT b.MANDT, b.LIFNR, b.BUKRS, b.AKONT

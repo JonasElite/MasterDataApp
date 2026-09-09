@@ -12,8 +12,8 @@ die eine Million Befunde vorhält, wäre weder schnell noch sparsam.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
-from datetime import date
+from dataclasses import dataclass, field
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -41,13 +41,26 @@ MAX_PAGE_SIZE = 200
 
 @dataclass
 class ApiFehler(Exception):
-    """Ein Aufruf war nicht ausführbar."""
+    """Ein Aufruf war nicht ausführbar.
+
+    ``vorlage`` und ``werte`` sind gesetzt, wenn die Meldung in der
+    Oberfläche übersetzt werden soll: die Vorlage ist der Schlüssel im
+    Wörterbuch, die Werte werden erst dort eingesetzt. Ohne sie zeigt die
+    Oberfläche ``meldung`` unverändert an.
+    """
 
     meldung: str
     status: int = 400
+    vorlage: str = ""
+    werte: dict[str, Any] = field(default_factory=dict)
 
     def __str__(self) -> str:  # pragma: no cover - Anzeige
         return self.meldung
+
+
+def uebersetzbar(vorlage: str, status: int = 400, **werte: Any) -> ApiFehler:
+    """Baut einen Fehler, dessen Wortlaut die Oberfläche übersetzen kann."""
+    return ApiFehler(vorlage.format(**werte), status, vorlage, dict(werte))
 
 
 def _erste(werte: Mapping[str, list[str]], name: str, vorgabe: str = "") -> str:
@@ -90,7 +103,7 @@ def projekt(state: UiState) -> dict[str, Any]:
 
 # ----------------------------------------------------------------------- Läufe
 def laeufe(state: UiState) -> dict[str, Any]:
-    """Liste aller Läufe, neueste zürst."""
+    """Liste aller Läufe, neueste zuerst."""
     eintraege: list[dict[str, Any]] = []
     if state.runs_dir.is_dir():
         for verzeichnis in sorted(state.runs_dir.iterdir(), reverse=True):
@@ -331,7 +344,7 @@ def befund(state: UiState, lauf_id: str, finding_id: str) -> dict[str, Any]:
 
 # -------------------------------------------------------------------- Dubletten
 def dubletten(state: UiState, lauf_id: str) -> dict[str, Any]:
-    """Alle Dublettencluster eines Laufs, groß zürst.
+    """Alle Dublettencluster eines Laufs, groß zuerst.
 
     Eigener Aufruf und nicht ein Filter auf die Befundliste: ein Cluster wird
     mit seinen Mitgliedern und deren verglichenen Feldern gebraucht, damit die
@@ -378,7 +391,7 @@ def dubletten(state: UiState, lauf_id: str) -> dict[str, Any]:
         _ueberlagern(eintrag, speicher, liste)
         cluster.append(eintrag)
 
-    # Große Cluster zürst: sie binden die meiste Bereinigungsarbeit und
+    # Große Cluster zuerst: sie binden die meiste Bereinigungsarbeit und
     # eignen sich am besten, um das Verfahren zu zeigen.
     cluster.sort(key=lambda e: (-e["anzahl_saetze"], e["rule_id"], e["schluessel"]))
 
@@ -628,3 +641,139 @@ def vergleich(state: UiState, werte: Mapping[str, list[str]]) -> dict[str, Any]:
             if eintrag.change != 0
         ],
     }
+
+
+# ------------------------------------------------------------------- Eingang
+#: Namen, die Windows für Geräte reserviert. Eine Datei "con.csv" liesse sich
+#: dort nicht anlegen; abgelehnt wird sie hier trotzdem auf jedem System,
+#: damit dieselbe Lieferung überall gleich behandelt wird.
+_GERAETENAMEN = {
+    "con", "prn", "aux", "nul",
+    *(f"com{n}" for n in range(1, 10)),
+    *(f"lpt{n}" for n in range(1, 10)),
+}
+
+#: Höchstgröße einer hochgeladenen Datei. Eine Extraktion aus MARA kann
+#: mehrere hundert Megabyte haben; darüber ist der Weg über das Dateisystem
+#: der ehrlichere.
+MAX_UPLOAD = 512 * 1024 * 1024
+
+
+def erlaubte_endungen() -> list[str]:
+    """Was hochgeladen werden darf.
+
+    Die Lesbarkeit entscheidet: Lieferdateien plus der Begleitzettel. Alles
+    andere wäre eine Datei, die im Eingang liegt und nichts bewirkt.
+    """
+    from sapmdq.ingest.mapping import KNOWN_SUFFIXES
+
+    return sorted(KNOWN_SUFFIXES | {".yaml", ".yml"})
+
+
+def sicherer_dateiname(name: str) -> str:
+    """Prüft einen vom Browser gemeldeten Dateinamen.
+
+    Der Name kommt vom Benutzer und bestimmt, wohin geschrieben wird - das
+    ist die einzige Stelle der Oberfläche, an der das so ist. Deshalb wird
+    nicht bereinigt, sondern abgelehnt: ein Name, der nicht durchgeht, wird
+    gemeldet und nicht stillschweigend zu etwas anderem gemacht.
+    """
+    name = (name or "").strip()
+    if not name:
+        raise uebersetzbar("Es wurde kein Dateiname übergeben.")
+    if len(name) > 120:
+        raise uebersetzbar("Der Dateiname ist zu lang (höchstens 120 Zeichen).")
+    if name != Path(name).name or name in (".", ".."):
+        raise uebersetzbar("Der Dateiname enthält einen Pfad: {name}", name=name)
+    if any(zeichen in name for zeichen in '/\\:*?"<>|') or any(ord(z) < 32 for z in name):
+        raise uebersetzbar("Der Dateiname enthält unzulässige Zeichen: {name}", name=name)
+    if name.startswith("."):
+        raise uebersetzbar("Ein Dateiname darf nicht mit einem Punkt beginnen.")
+    if Path(name).stem.lower() in _GERAETENAMEN:
+        raise uebersetzbar("Der Dateiname ist ein reservierter Name: {name}", name=name)
+
+    erlaubt = erlaubte_endungen()
+    if Path(name).suffix.lower() not in erlaubt:
+        raise uebersetzbar(
+            "Diese Dateiendung wird nicht gelesen: {name}. Möglich sind {endungen}.",
+            name=name,
+            endungen=", ".join(erlaubt),
+        )
+    return name
+
+
+def eingangsziel(state: UiState, name: str) -> Path:
+    """Liefert den Zielpfad einer Eingangsdatei.
+
+    Der Name ist zu diesem Zeitpunkt schon geprüft. Die zweite Prüfung gegen
+    das aufgelöste Verzeichnis kostet nichts und hält, falls die erste je
+    eine Lücke bekommt.
+    """
+    verzeichnis = state.neu_laden().paths.input_dir
+    verzeichnis.mkdir(parents=True, exist_ok=True)
+    ziel = (verzeichnis / sicherer_dateiname(name)).resolve()
+    try:
+        ziel.relative_to(verzeichnis.resolve())
+    except ValueError:
+        raise uebersetzbar(
+            "Der Dateiname führt aus dem Eingangsverzeichnis: {name}", name=name
+        ) from None
+    return ziel
+
+
+def _dateiangabe(pfad: Path, gelesen: bool) -> dict[str, Any]:
+    daten = pfad.stat()
+    return {
+        "name": pfad.name,
+        "groesse": daten.st_size,
+        "geaendert": datetime.fromtimestamp(daten.st_mtime).isoformat(timespec="seconds"),
+        "wird_gelesen": gelesen,
+    }
+
+
+def eingang(state: UiState) -> dict[str, Any]:
+    """Inhalt des Eingangsverzeichnisses.
+
+    Aufgeführt wird alles, was dort liegt - auch eine Datei, die kein Lauf
+    anfassen wird. Sie stillschweigend zu verschweigen wäre die schlechtere
+    Auskunft: wer eine Datei hochgeladen hat, will sie wiederfinden.
+    """
+    from sapmdq.ingest.mapping import collect_input_files
+
+    config = state.neu_laden()
+    verzeichnis = config.paths.input_dir
+    if not verzeichnis.is_dir():
+        return {
+            "verzeichnis": str(verzeichnis),
+            "dateien": [],
+            "hoechstgroesse": MAX_UPLOAD,
+            "endungen": erlaubte_endungen(),
+        }
+
+    gelesen = {pfad.name for pfad in collect_input_files(verzeichnis, config.ingestion.ignore_patterns)}
+    dateien = [
+        _dateiangabe(pfad, pfad.name in gelesen)
+        for pfad in sorted(verzeichnis.iterdir())
+        if pfad.is_file()
+    ]
+    return {
+        "verzeichnis": str(verzeichnis),
+        "dateien": dateien,
+        "hoechstgroesse": MAX_UPLOAD,
+        "endungen": erlaubte_endungen(),
+    }
+
+
+def eingang_entfernen(state: UiState, daten: Mapping[str, Any]) -> dict[str, Any]:
+    """Löscht eine Datei aus dem Eingangsverzeichnis.
+
+    Gelöscht wird nur im Eingang. Ein Lauf, der die Datei schon gelesen hat,
+    bleibt davon unberührt - seine Ergebnisse liegen im Ausgabeverzeichnis.
+    """
+    name = str(daten.get("name", ""))
+    ziel = eingangsziel(state, name)
+    if not ziel.is_file():
+        raise uebersetzbar("Diese Datei liegt nicht im Eingang: {name}", 404, name=name)
+    ziel.unlink()
+    logger.info("Eingangsdatei entfernt: %s", ziel.name)
+    return {"entfernt": ziel.name}

@@ -33,6 +33,7 @@
       <button class="nav" data-ansicht="dubletten">Dubletten</button>
       <button class="nav" data-ansicht="abdeckung">Abdeckung</button>
       <button class="nav" data-ansicht="coverage">Prüfumfang</button>
+      <button class="nav" data-ansicht="eingang">Eingang</button>
       <button class="nav" data-ansicht="lieferung">Lieferung</button>
       <button class="nav" data-ansicht="ausnahmen">Ausnahmen</button>
       <button class="nav" data-ansicht="laeufe">Läufe</button>
@@ -114,6 +115,33 @@
         <p class="leise">Der Wert ist unter dem Vorbehalt des jeweils erreichten
            Prüfumfangs zu lesen. Was nicht geprüft werden konnte, geht nicht ein.</p>
         <div id="lb-bewertung"></div>
+      </div>
+    </section>
+
+    <!-- --------------------------------------------------------- Eingang -->
+    <section id="ansicht-eingang" class="ansicht" hidden>
+      <p class="leise">Die Dateien, aus denen der nächste Lauf liest. Sie
+         bleiben auf diesem Rechner: der Browser schickt sie an das Werkzeug,
+         das hier läuft, und dieses legt sie in das Eingangsverzeichnis.</p>
+
+      <div class="karte">
+        <div id="eg-ablage" class="ablage" tabindex="0" role="button"
+             aria-label="Dateien auswählen oder hierher ziehen">
+          <div class="ablage-zeichen" aria-hidden="true">+</div>
+          <p class="ablage-text">Dateien hierher ziehen oder auswählen</p>
+          <p id="eg-endungen" class="leise"></p>
+          <input id="eg-auswahl" type="file" multiple class="versteckt"
+                 aria-label="Dateien auswählen">
+        </div>
+        <div id="eg-fortschritt" class="uploads"></div>
+      </div>
+
+      <div class="karte">
+        <div class="karte-kopf">
+          <h2>Im Eingangsverzeichnis</h2>
+          <p id="eg-pfad" class="leise fest"></p>
+        </div>
+        <div id="eg-dateien"></div>
       </div>
     </section>
 

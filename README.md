@@ -76,7 +76,9 @@ Prozess geprüft wird; ein Lagebild mit Punktwert,
 Prüfumfang und Verteilung der Befunde, eine filterbare Befundliste, die
 Dublettencluster mit Gegenüberstellung der betroffenen Stammsätze, Lieferung,
 Prüfumfang und der Vergleich zweier Läufe. Ausnahmen und Bearbeitungsstände
-lassen sich per Klick pflegen, Läufe von dort starten. Der Knopf
+lassen sich per Klick pflegen, Läufe von dort starten. Die Lieferdateien
+lassen sich im Browser auswählen oder per Ziehen-und-Ablegen in das
+Eingangsverzeichnis legen - sie bleiben dabei auf diesem Rechner. Der Knopf
 *Präsentation* baut aus dem Lauf eine Folienabfolge für den Kundentermin,
 druckbar als PDF. Die Oberfläche lässt sich zwischen Deutsch und Englisch
 umschalten - einschließlich der Regeltexte; die geschriebenen Berichte bleiben
@@ -243,7 +245,7 @@ außerhalb des Werkzeugs und sind organisatorisch zu regeln; siehe
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest              # 416 Tests
+python -m pytest              # 457 Tests
 python -m pytest tests/test_akzeptanzkriterien.py -v   # Abnahmenachweis
 ```
 

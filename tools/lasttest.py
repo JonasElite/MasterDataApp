@@ -9,7 +9,7 @@ Aufruf:
     python tools/lasttest.py --vendors 1000000 --materials 500000
 
 Die Daten werden zeilenweise geschrieben und nicht im Speicher gehalten -
-sonst mässe man den Generator und nicht das Werkzeug.
+sonst müsste man den Generator und nicht das Werkzeug.
 """
 
 from __future__ import annotations

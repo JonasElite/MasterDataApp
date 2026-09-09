@@ -115,6 +115,17 @@ function schweregradMerkmal(grad) {
 
 /* --------------------------------------------------------------- Aufrufe */
 
+/** Der Wortlaut eines Fehlers aus der Schnittstelle.
+ *
+ * Trägt die Antwort eine Vorlage, wird sie übersetzt und die Werte werden
+ * erst hier eingesetzt. Sonst bleibt der Satz, wie er kam.
+ */
+function fehlertext(daten, status) {
+  if (daten && daten.fehler_vorlage) return t(daten.fehler_vorlage, daten.fehler_werte || {});
+  return (daten && daten.fehler)
+    || t("Aufruf fehlgeschlagen ({status}).", { status: status });
+}
+
 async function hole(pfad, werte) {
   const url = new URL(pfad, location.origin);
   for (const [name, wert] of Object.entries(werte || {})) {
@@ -123,10 +134,7 @@ async function hole(pfad, werte) {
   }
   const antwort = await fetch(url, { headers: { "X-Sapmdq-Token": TOKEN } });
   const daten = await antwort.json().catch(() => ({ fehler: "Antwort nicht lesbar." }));
-  if (!antwort.ok) {
-    throw new Error(daten.fehler
-      || t("Aufruf fehlgeschlagen ({status}).", { status: antwort.status }));
-  }
+  if (!antwort.ok) throw new Error(fehlertext(daten, antwort.status));
   return daten;
 }
 
@@ -137,10 +145,7 @@ async function sende(pfad, daten) {
     body: JSON.stringify(daten || {}),
   });
   const ergebnis = await antwort.json().catch(() => ({ fehler: "Antwort nicht lesbar." }));
-  if (!antwort.ok) {
-    throw new Error(ergebnis.fehler
-      || t("Aufruf fehlgeschlagen ({status}).", { status: antwort.status }));
-  }
+  if (!antwort.ok) throw new Error(fehlertext(ergebnis, antwort.status));
   return ergebnis;
 }
 
@@ -615,6 +620,232 @@ function pruefmeldung(pruefung) {
     werte[name] = typeof wert === "string" ? t(wert) : wert;
   }
   return t(pruefung.meldung_vorlage, werte);
+}
+
+/* ---------------------------------------------------------------- Eingang
+ *
+ * Die einzige Ansicht, die etwas schreibt. Was der Browser schickt, geht an
+ * das Werkzeug auf demselben Rechner und von dort in das
+ * Eingangsverzeichnis - kein Dienst im Netz ist beteiligt (DS-02).
+ *
+ * Hochgeladen wird eine Datei je Anfrage, mit dem Namen im Abfrageteil und
+ * der Datei als Körper. Der Fortschritt kommt von XMLHttpRequest: fetch
+ * meldet beim Senden keinen.
+ */
+
+let EINGANG = { dateien: [], endungen: [], hoechstgroesse: 0, verzeichnis: "" };
+
+function dateigroesse(bytes) {
+  const wert = Number(bytes) || 0;
+  if (wert >= 1024 * 1024) {
+    const mb = wert / (1024 * 1024);
+    // Eine Nachkommastelle nur dort, wo sie etwas unterscheidet.
+    return (mb >= 10 ? zahl(Math.round(mb)) : dezimal(mb, 1)) + " MB";
+  }
+  if (wert >= 1024) return zahl(Math.round(wert / 1024)) + " kB";
+  return zahl(wert) + " B";
+}
+
+async function zeigeEingang() {
+  try {
+    EINGANG = await hole("/api/eingang");
+  } catch (fehler) {
+    setzen($("#eg-dateien"), [el("p", { class: "nichts", text: fehler.message })]);
+    return;
+  }
+  $("#eg-pfad").textContent = EINGANG.verzeichnis;
+  $("#eg-endungen").textContent = t("{endungen} - bis {groesse} je Datei", {
+    endungen: (EINGANG.endungen || []).join(", "),
+    groesse: dateigroesse(EINGANG.hoechstgroesse),
+  });
+  zeichneEingangsliste();
+}
+
+function zeichneEingangsliste() {
+  const dateien = EINGANG.dateien || [];
+  if (!dateien.length) {
+    setzen($("#eg-dateien"), [el("p", { class: "nichts",
+      text: "Noch keine Datei im Eingang." })]);
+    return;
+  }
+  setzen($("#eg-dateien"), [tabelle([
+    { titel: "Datei", fest: true, zelle: (z) => z.name },
+    { titel: "Größe", zahl: true, zelle: (z) => dateigroesse(z.groesse) },
+    { titel: "Abgelegt", zelle: (z) => zeitpunkt(z.geaendert) },
+    { titel: "Wird gelesen", zelle: (z) => z.wird_gelesen
+        ? merkmal("ja", "gut")
+        : el("span", { class: "merkmal leise", text: "nein",
+            title: "Diese Datei wird beim Lauf übergangen - die Endung gehört "
+              + "nicht zu den gelesenen oder ein Ausschlussmuster greift." }) },
+    { titel: "", zelle: (z) => el("button", {
+        class: "knopf knopf-leise knopf-gefahr",
+        text: "entfernen",
+        onclick: () => eingangsdateiEntfernen(z.name),
+      }) },
+  ], dateien)]);
+}
+
+async function eingangsdateiEntfernen(name) {
+  if (!window.confirm(t("{name} aus dem Eingangsverzeichnis löschen?", { name: name }))) return;
+  try {
+    await sende("/api/eingang/entfernen", { name: name });
+    melden(t("{name} entfernt.", { name: name }), "erfolg");
+    await zeigeEingang();
+    await projektAuffrischen();
+  } catch (fehler) {
+    melden(fehler.message, "fehler");
+  }
+}
+
+/** Eine Zeile im Fortschrittsbereich, die sich selbst weiterschreibt. */
+function uploadZeile(name) {
+  const stand = el("span", { class: "upload-stand", text: "0 %" });
+  const fuellung = el("span");
+  fuellung.style.width = "0%";
+  const zeile = el("div", { class: "upload" }, [
+    el("span", { class: "upload-name", text: name }),
+    stand,
+    el("div", { class: "fortschrittsleiste" }, [fuellung]),
+  ]);
+  $("#eg-fortschritt").append(zeile);
+  return {
+    fortschritt(anteil) {
+      fuellung.style.width = Math.round(anteil * 100) + "%";
+      stand.textContent = Math.round(anteil * 100) + " %";
+    },
+    fertig() {
+      zeile.classList.add("fertig");
+      fuellung.style.width = "100%";
+      stand.textContent = t("fertig");
+      setTimeout(() => zeile.remove(), 4000);
+    },
+    fehler(text) {
+      zeile.classList.add("fehler");
+      fuellung.style.width = "100%";
+      stand.textContent = t("Fehler");
+      zeile.append(el("p", { class: "leise", text: text }));
+    },
+  };
+}
+
+function dateiSenden(datei, aufFortschritt) {
+  return new Promise((erfuellen, ablehnen) => {
+    const anfrage = new XMLHttpRequest();
+    anfrage.open("POST", "/api/eingang?name=" + encodeURIComponent(datei.name));
+    anfrage.setRequestHeader("X-Sapmdq-Token", TOKEN);
+    anfrage.setRequestHeader("Content-Type", "application/octet-stream");
+    anfrage.upload.addEventListener("progress", (ereignis) => {
+      if (ereignis.lengthComputable) aufFortschritt(ereignis.loaded / ereignis.total);
+    });
+    anfrage.addEventListener("load", () => {
+      let daten = {};
+      try { daten = JSON.parse(anfrage.responseText); } catch (fehler) { daten = {}; }
+      if (anfrage.status >= 200 && anfrage.status < 300) erfuellen(daten);
+      else ablehnen(new Error(fehlertext(daten, anfrage.status)));
+    });
+    anfrage.addEventListener("error", () =>
+      ablehnen(new Error(t("Die Übertragung wurde abgebrochen."))));
+    anfrage.send(datei);
+  });
+}
+
+/** Prüft eine Datei, bevor sie durch die Leitung geht.
+ *
+ * Der Server prüft dasselbe noch einmal - er muss, denn er darf dem Browser
+ * nicht glauben. Hier steht es, damit eine 600-MB-Datei nicht erst nach der
+ * Übertragung abgewiesen wird.
+ */
+function uploadEinwand(datei) {
+  const punkt = datei.name.lastIndexOf(".");
+  const endung = punkt > 0 ? datei.name.slice(punkt).toLowerCase() : "";
+  if (!(EINGANG.endungen || []).includes(endung)) {
+    return t("Diese Dateiendung wird nicht gelesen. Möglich sind {endungen}.",
+      { endungen: (EINGANG.endungen || []).join(", ") });
+  }
+  if (EINGANG.hoechstgroesse && datei.size > EINGANG.hoechstgroesse) {
+    return t("Die Datei ist größer als {groesse}.",
+      { groesse: dateigroesse(EINGANG.hoechstgroesse) });
+  }
+  if (!datei.size) return t("Die Datei ist leer.");
+  return "";
+}
+
+async function hochladen(dateien) {
+  const liste = Array.from(dateien || []);
+  if (!liste.length) return;
+  let angekommen = 0;
+  // Nacheinander: zehn gleichzeitige Uploads teilen sich dieselbe Leitung
+  // und machen aus zehn Balken zehn zähe Balken.
+  for (const datei of liste) {
+    const zeile = uploadZeile(datei.name);
+    const einwand = uploadEinwand(datei);
+    if (einwand) {
+      zeile.fehler(einwand);
+      continue;
+    }
+    try {
+      await dateiSenden(datei, zeile.fortschritt);
+      zeile.fertig();
+      angekommen += 1;
+    } catch (fehler) {
+      zeile.fehler(fehler.message);
+    }
+  }
+  await zeigeEingang();
+  await projektAuffrischen();
+  if (angekommen) {
+    melden(t("{n} Datei(en) übernommen. Mit 'Prüfung starten' wird die "
+      + "Lieferung geprüft.", { n: angekommen }), "erfolg");
+  }
+}
+
+/** Holt die Projektangaben neu - die Fußzeile zählt die Eingangsdateien. */
+async function projektAuffrischen() {
+  try {
+    Z.projekt = await hole("/api/projekt");
+    projektzeileSchreiben();
+  } catch (fehler) {
+    // Die Zahl in der Fußzeile ist es nicht wert, die Ansicht zu stören.
+  }
+}
+
+function eingangBedienung() {
+  const ablage = $("#eg-ablage");
+  const auswahl = $("#eg-auswahl");
+
+  ablage.addEventListener("click", () => auswahl.click());
+  ablage.addEventListener("keydown", (ereignis) => {
+    if (ereignis.key === "Enter" || ereignis.key === " ") {
+      ereignis.preventDefault();
+      auswahl.click();
+    }
+  });
+  auswahl.addEventListener("change", async () => {
+    const dateien = Array.from(auswahl.files || []);
+    auswahl.value = "";  // dieselbe Datei soll erneut wählbar sein
+    await hochladen(dateien);
+  });
+
+  for (const art of ["dragenter", "dragover"]) {
+    ablage.addEventListener(art, (ereignis) => {
+      ereignis.preventDefault();
+      ablage.classList.add("bereit");
+    });
+  }
+  for (const art of ["dragleave", "drop"]) {
+    ablage.addEventListener(art, () => ablage.classList.remove("bereit"));
+  }
+  ablage.addEventListener("drop", (ereignis) => {
+    ereignis.preventDefault();
+    hochladen((ereignis.dataTransfer || {}).files);
+  });
+  // Ein Fehlgriff daneben darf den Browser nicht dazu bringen, die Datei
+  // selbst anzuzeigen und die Oberfläche zu verlassen.
+  for (const art of ["dragover", "drop"]) {
+    document.addEventListener(art, (ereignis) => {
+      if (!ablage.contains(ereignis.target)) ereignis.preventDefault();
+    });
+  }
 }
 
 /* -------------------------------------------------------------- Lieferung */
@@ -1692,7 +1923,7 @@ function baueFolien() {
   folien.push(folie("Nächste Schritte", () => {
     const schritte = [];
     if (jeGrad.critical) {
-      schritte.push(t("{n} kritische Befunde zürst klären - sie betreffen "
+      schritte.push(t("{n} kritische Befunde zuerst klären - sie betreffen "
         + "Zahlungsverkehr, Steuer oder Bilanz.", { n: zahl(jeGrad.critical) }));
     }
     if (dublettenDaten && dublettenDaten.anzahl_cluster) {
@@ -1880,6 +2111,11 @@ function spracheWechseln(sprache) {
   spracheSetzen(sprache);
   statischeTexteUebersetzen();
   projektzeileSchreiben();
+  // Die Überschrift steht im Markup als "Lagebild" und wird von der
+  // Rückübersetzung genau dorthin zurückgesetzt. Sie gehört aber zur
+  // gewählten Ansicht - sonst steht nach jedem Sprachwechsel "Lagebild"
+  // über der Liste der Befunde.
+  $("#kopf-titel").textContent = t(ANSICHTEN[Z.ansicht].titel);
   // Die Auswahllisten tragen übersetzte Beschriftungen und werden aus den
   // Daten aufgebaut - sie müssen mit.
   fuelleBefundfilter();
@@ -1909,6 +2145,7 @@ const ANSICHTEN = {
   dubletten: { titel: "Dubletten", zeichnen: zeigeDubletten },
   abdeckung: { titel: "Abdeckung", zeichnen: zeigeAbdeckung },
   coverage: { titel: "Prüfumfang", zeichnen: zeigeCoverage },
+  eingang: { titel: "Eingang", zeichnen: zeigeEingang },
   lieferung: { titel: "Lieferung", zeichnen: zeigeLieferung },
   ausnahmen: { titel: "Ausnahmen", zeichnen: zeigeAusnahmen },
   laeufe: { titel: "Läufe", zeichnen: zeigeLaeufe },
@@ -2100,6 +2337,8 @@ async function starten() {
 
   $("#ab-suche").addEventListener("input", zeichneAbdeckungstabellen);
   $("#ab-nur-fehlend").addEventListener("change", zeichneAbdeckungstabellen);
+
+  eingangBedienung();
 
   $("#c-suche").addEventListener("input", zeichneRegeln);
   $("#c-nur-entfallen").addEventListener("change", zeichneRegeln);

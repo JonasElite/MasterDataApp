@@ -299,7 +299,7 @@ def _build_demand_list(
     """Erstellt die priorisierte Nachforderungsliste (FA-304).
 
     Die Liste beantwortet die Frage des Kunden "was bringt es mir, wenn ich
-    noch etwas liefere". Sie wird gierig aufgebaut: zürst die Tabelle, die
+    noch etwas liefere". Sie wird gierig aufgebaut: zuerst die Tabelle, die
     allein die meisten Regeln freischaltet, dann - unter der Annahme, dass
     diese geliefert wird - die nächste. So entsteht die Aussage "diese vier
     Tabellen schalten 26 weitere Prüfungen frei" statt vier Einzelzahlen,

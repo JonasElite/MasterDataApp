@@ -118,7 +118,7 @@ processes:
     schwerpunkte:
       - Abstimmkonten - vorhanden, im Buchungskreis angelegt, richtige Kontoart
       - Kontenfindung im Materialstamm - Bewertungsklasse gegen Materialart über die Kontenkategorie-Referenz
-      - Bestandsbewertung - Wert, Menge und Preis müssen züinander passen
+      - Bestandsbewertung - Wert, Menge und Preis müssen zueinander passen
       - Verwaiste Nebenbuchsätze ohne allgemeine Daten
     grenzen: >
       Buchungen, Belege und Salden sind nicht im Umfang. Das Werkzeug zeigt,

@@ -11,6 +11,7 @@ die ASCII-Form eine bewusste Entscheidung und keine Nachlaessigkeit.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import pytest
 import yaml
@@ -33,6 +34,8 @@ _ERLAUBT = re.compile(
     r"|[A-Za-z]*(?:aktuell|manuell|eventuell|individuell|virtuell|visuell)[A-Za-z]*"
     r"|[A-Za-z]*(?:steuer|dauer|neue|genau|bequem|aue|euer|eue)[A-Za-z]*"
     r"|[A-Za-z]*(?:value|parquet|daemon|does|response)[A-Za-z]*"
+    # Fugen: das "ue"/"oe" gehoert zu zwei Wortteilen und ist kein Umlaut.
+    r"|zuerst|zueinander|[A-Za-z]*skontoertr[A-Za-z]*"
     r")$",
     re.IGNORECASE,
 )
@@ -177,3 +180,46 @@ def test_auswahlwerte_passen_zu_den_datenwerten():
             assert stand.value in werte or stand.value == "offen", stand.value
     assert DeltaState.UNCHANGED.value in werte
     assert DeltaState.NEW.value in werte
+
+
+# ------------------------------------------------- Was zu viel umgestellt wurde
+
+#: Woerter, die bei der Umstellung entstanden sind, weil "ue"/"oe" dort eine
+#: Wortfuge war und kein Umlaut: aus "zuerst" wurde "zuerst", aus
+#: "Skontoertraegen" wurde "Skontoertraegen". Eine Regel dafuer gibt es nicht -
+#: nur die Beobachtung, dass es genau an Fugen passiert. Der Test haelt die
+#: gefundenen Faelle fest, damit sie nicht ein zweites Mal einziehen.
+_FEHLKONVERTIERT = (
+    "zürst",
+    "züinander",
+    "Skontörtr",
+    "mässe man",
+    "parqüt",
+    "trü",
+    "nü ",
+)
+
+#: Verzeichnisse mit deutschem Text. Die Beispieldaten sind bewusst nicht dabei:
+#: dort ist die ASCII-Schreibweise eines Namens der Prueffall selbst.
+_TEXTQUELLEN = ("src", "rules", "docs", "tools", "tests")
+
+
+def _textdateien():
+    wurzel = Path(__file__).resolve().parent.parent
+    for verzeichnis in _TEXTQUELLEN:
+        for pfad in (wurzel / verzeichnis).rglob("*"):
+            if pfad.suffix not in (".py", ".js", ".md", ".html", ".yaml", ".css"):
+                continue
+            if pfad.resolve() != Path(__file__).resolve():  # die Liste selbst
+                yield pfad
+
+
+def test_keine_wortfuge_zu_einem_umlaut_verschmolzen():
+    treffer = []
+    for pfad in _textdateien():
+        inhalt = pfad.read_text(encoding="utf-8")
+        for zeile, text in enumerate(inhalt.splitlines(), start=1):
+            for wort in _FEHLKONVERTIERT:
+                if wort in text:
+                    treffer.append(f"{pfad.name}:{zeile}: {wort.strip()}")
+    assert not treffer, "Wortfuge faelschlich zu einem Umlaut:\n  " + "\n  ".join(treffer)

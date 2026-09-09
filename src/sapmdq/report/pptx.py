@@ -56,7 +56,7 @@ def write_presentation(result: RunResult, target: Path) -> Path | None:
         f"Lauf {result.run_id} | Quellsystem {result.config.project.source_system}"
     )
 
-    # ---------------------------------------------- Aussagekraft zürst
+    # ---------------------------------------------- Aussagekraft zuerst
     slide = presentation.slides.add_slide(bullet_layout)
     slide.shapes.title.text = "Aussagekraft dieses Ergebnisses"
     frame = slide.placeholders[1].text_frame

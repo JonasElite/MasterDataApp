@@ -94,7 +94,9 @@ das Merkmal dieser Sitzung; ohne es antwortet der Server nicht. Zum Beenden
 1. Exporte nach `testprojekt/data/input` legen (CSV, TXT aus SE16N, XLSX oder
    Parquet). Welche Tabellen und Felder gebraucht werden und wie der Export
    eingestellt sein sollte, steht in
-   [datenanforderung.md](datenanforderung.md).
+   [datenanforderung.md](datenanforderung.md). Wer die Oberfläche offen hat,
+   kann die Dateien auch dort unter *Eingang* auswählen oder hineinziehen -
+   sie landen im selben Verzeichnis und verlassen den Rechner nicht.
 2. `sapmdq validate -c testprojekt/projekt.yaml` - ist die Lieferung
    verwertbar? Der Befehl führt noch keine fachlichen Regeln aus.
 3. `sapmdq coverage -c testprojekt/projekt.yaml` - was lässt sich damit

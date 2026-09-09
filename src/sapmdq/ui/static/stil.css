@@ -431,6 +431,42 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .buehne-fuss .titel { font-size: 13px; color: var(--text-leise); margin-right: auto;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ------------------------------------------------------------- Eingang */
+
+.karte-kopf { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+.karte-kopf h2 { margin-bottom: 12px; }
+
+.versteckt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+.ablage {
+  border: 1.5px dashed var(--rand);
+  border-radius: var(--radius);
+  background: var(--flaeche-2);
+  padding: 26px 18px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .12s, background .12s;
+}
+.ablage:hover, .ablage:focus-visible { border-color: var(--akzent); }
+.ablage.bereit { border-color: var(--akzent); background: var(--akzent-leise); }
+.ablage-zeichen {
+  width: 34px; height: 34px; margin: 0 auto 10px; border-radius: 50%;
+  background: var(--akzent-leise); color: var(--akzent);
+  font-size: 20px; line-height: 34px; font-weight: 600;
+}
+.ablage-text { margin: 0 0 4px; font-weight: 600; }
+
+.uploads { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.uploads:empty { display: none; }
+.upload { display: grid; grid-template-columns: 1fr 74px; gap: 4px 12px; align-items: center; font-size: 13px; }
+.upload-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-stand { text-align: right; color: var(--text-leise); font-variant-numeric: tabular-nums; }
+.upload .fortschrittsleiste { grid-column: 1 / -1; margin: 0; }
+.upload.fehler .upload-stand { color: var(--critical); }
+.upload.fehler .fortschrittsleiste > span { background: var(--critical); }
+.upload.fertig .upload-stand { color: var(--gut); }
+.upload.fertig .fortschrittsleiste > span { background: var(--gut); }
+
 /* Gedruckt wird jede Folie auf eine eigene Seite - so entsteht aus dem
    Praesentationsmodus ohne Umweg ein PDF zum Weitergeben. */
 @media print {

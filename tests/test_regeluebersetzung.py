@@ -105,7 +105,7 @@ def test_uebersetzungen_veraendern_die_katalogversion_nicht():
 def test_uebersetzung_ueberlebt_die_projektkonfiguration():
     """with_overrides baut die Regel Feld für Feld neu auf.
 
-    Genau dabei ging die Übersetzung zürst verloren: der Katalog trug sie,
+    Genau dabei ging die Übersetzung zuerst verloren: der Katalog trug sie,
     der Lauf mit Projektkonfiguration nicht mehr. Der Test hält fest, dass
     jedes Feld die Kopie überlebt.
     """

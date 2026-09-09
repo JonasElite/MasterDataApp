@@ -54,6 +54,7 @@ als Parameter in die Abfrage und nicht in ihren Text.
 | Befunde | filterbare Liste mit Detailansicht, Regelbeschreibung und Handlungsempfehlung |
 | Dubletten | Cluster mit Gegenüberstellung der Stammsätze (FA-501 bis FA-505) |
 | Abdeckung | welche Geschäftsprozesse und SAP-Tabellen das Werkzeug überhaupt abdeckt und was je Prozess geprüft wird |
+| Eingang | die Dateien, aus denen der nächste Lauf liest - mit Hochladen aus dem Browser und Entfernen |
 | Prüfumfang | Coverage-Grad je Bereich, Nachforderungsliste nach Wirkung, alle Regeln mit Begründung für entfallene (FA-3xx) |
 | Lieferung | Urteil über die Verwertbarkeit, Dateien mit Hash und Stichtag, Tabellen, Ergebnisse der Lieferungsprüfungen (FA-2xx) |
 | Ausnahmen | alle hinterlegten Ausnahmen mit Geltungsbereich, Begründung und Ablauf (FA-602) |
@@ -257,6 +258,48 @@ sonst passte der ausgelieferte Bericht nicht mehr zu ihr. Damit die Pflege
 trotzdem sichtbar ist, legt die Oberfläche den heutigen Stand über die
 Anzeige und kennzeichnet ihn: eine Ausnahme erscheint als *vorgemerkt*, ein
 geänderter Stand mit einem Stern und dem Vermerk, was im Bericht steht.
+
+## Eingang
+
+Die Dateien für einen Lauf müssen im Eingangsverzeichnis liegen. Wer sie dort
+über den Dateimanager ablegt, braucht diese Ansicht nicht; wer die Oberfläche
+schon offen hat, spart sich den Weg: *Eingang* nimmt Dateien per Auswahl oder
+per Ziehen-und-Ablegen entgegen und zeigt anschließend, was im Verzeichnis
+liegt.
+
+Je Datei steht dort, ob der nächste Lauf sie liest. Eine Datei mit einer nicht
+gelesenen Endung oder unter einem Ausschlussmuster erscheint als *nein* - sie
+verschwindet nicht stillschweigend, sonst suchte man später vergeblich nach
+ihr.
+
+**Das ist die einzige Stelle, an der die Oberfläche schreibt.** Entsprechend
+eng ist sie gefasst:
+
+- Der Dateiname wird nicht bereinigt, sondern geprüft und im Zweifel
+  abgewiesen. Pfadanteile, Trennzeichen, Steuerzeichen, führende Punkte, unter
+  Windows reservierte Namen und alles über 120 Zeichen kommen nicht durch. Der
+  aufgelöste Zielpfad wird ein zweites Mal gegen das Eingangsverzeichnis
+  gehalten.
+- Erlaubt sind die Endungen, die die Ingestion auch liest (`.csv`, `.txt`,
+  `.tsv`, `.dat`, `.xlsx`, `.xlsm`, `.xls`, `.parquet`) sowie `.yaml`/`.yml`
+  für den Begleitzettel. Beide Listen stammen aus derselben Konstante; sie
+  können nicht auseinanderlaufen.
+- Geschrieben wird zunächst in eine Teildatei und erst am Ende umbenannt. Ein
+  abgebrochener Upload hinterlässt damit nichts, was ein Lauf für eine
+  vollständige Lieferung halten könnte.
+- Die Datei wird blockweise geschrieben und nie ganz in den Speicher gelesen.
+  Bei 512 MB ist Schluss; darüber ist der Weg über das Dateisystem der
+  ehrlichere.
+- Der Aufruf braucht dasselbe Sitzungsmerkmal wie jeder andere. Die Datei
+  verlässt den Rechner nicht: der Browser reicht sie an das Werkzeug weiter,
+  das auf demselben Rechner läuft (DS-02).
+
+Der Dateiname kann selbst eine Personen- oder Kundenangabe sein. Er steht
+deshalb nicht im Protokoll auf Info-Ebene; dort steht nur, dass eine Datei
+angekommen ist, und wieviele Bytes es waren.
+
+Was hochgeladen wurde, wirkt sich erst mit dem nächsten Lauf aus - *Prüfung
+starten* liest das Verzeichnis neu.
 
 ## Läufe starten
 

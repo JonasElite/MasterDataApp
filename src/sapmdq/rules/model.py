@@ -38,7 +38,7 @@ class Severity(str, Enum):
 
     @property
     def rank(self) -> int:
-        """Sortierrang - kritisch zürst."""
+        """Sortierrang - kritisch zuerst."""
         return {"critical": 0, "high": 1, "medium": 2, "low": 3}[self.value]
 
     @classmethod

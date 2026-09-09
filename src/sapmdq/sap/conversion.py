@@ -23,7 +23,7 @@ HIGH_DATES: tuple[str, ...] = ("99991231", "9999-12-31", "31.12.9999")
 HIGH_DATE_VALUE = date(9999, 12, 31)
 
 #: Datumsformate, die beim Einlesen erkannt werden. Die Reihenfolge ist
-#: bewusst gewählt: das SAP-interne Format zürst, dann ISO, dann die
+#: bewusst gewählt: das SAP-interne Format zuerst, dann ISO, dann die
 #: deutschen Schreibweisen.
 DATE_FORMATS: tuple[str, ...] = ("%Y%m%d", "%Y-%m-%d", "%d.%m.%Y", "%Y/%m/%d", "%d/%m/%Y")
 

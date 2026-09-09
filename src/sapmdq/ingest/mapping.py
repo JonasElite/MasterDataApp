@@ -153,6 +153,12 @@ def assign_table(
     )
 
 
+#: Endungen, die als Lieferdatei gelesen werden. Die Oberfläche nimmt beim
+#: Hochladen dieselbe Liste - sonst läge eine Datei im Eingang, die kein Lauf
+#: jemals anfasst.
+KNOWN_SUFFIXES = {".csv", ".txt", ".tsv", ".dat", ".xlsx", ".xlsm", ".xls", ".parquet"}
+
+
 def collect_input_files(input_dir: Path, ignore_patterns: Sequence[str]) -> list[Path]:
     """Sammelt die Eingangsdateien in stabiler Reihenfolge.
 
@@ -162,12 +168,11 @@ def collect_input_files(input_dir: Path, ignore_patterns: Sequence[str]) -> list
     """
     if not input_dir.is_dir():
         return []
-    known_suffixes = {".csv", ".txt", ".tsv", ".dat", ".xlsx", ".xlsm", ".xls", ".parquet"}
     files: list[Path] = []
     for path in sorted(input_dir.rglob("*")):
         if not path.is_file():
             continue
-        if path.suffix.lower() not in known_suffixes:
+        if path.suffix.lower() not in KNOWN_SUFFIXES:
             continue
         if any(fnmatch.fnmatch(path.name, pattern) for pattern in ignore_patterns):
             continue

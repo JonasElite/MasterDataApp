@@ -37,6 +37,7 @@ const EN = {
   "Befunde": "Findings",
   "Dubletten": "Duplicates",
   "Prüfumfang": "Scope",
+  "Eingang": "Inbox",
   "Lieferung": "Delivery",
   "Ausnahmen": "Exceptions",
   "Läufe": "Runs",
@@ -337,7 +338,7 @@ const EN = {
   "Beispiel": "Example",
   "über einen harten Schlüssel nachgewiesen": "proven by a hard key",
   "Namensähnlichkeit {n} von 100": "name similarity {n} out of 100",
-  "{n} kritische Befunde zürst klären - sie betreffen Zahlungsverkehr, Steuer oder Bilanz.":
+  "{n} kritische Befunde zuerst klären - sie betreffen Zahlungsverkehr, Steuer oder Bilanz.":
     "Address the {n} critical findings first - they affect payments, tax or the balance sheet.",
   "{n} Dublettencluster sichten und je Cluster den führenden Stammsatz bestimmen.":
     "Review the {n} duplicate clusters and determine the leading master record for each.",
@@ -565,7 +566,7 @@ const EN = {
     "Reconciliation accounts - present, created in the company code, correct account type",
   "Kontenfindung im Materialstamm - Bewertungsklasse gegen Materialart über die Kontenkategorie-Referenz":
     "Account determination in the material master - valuation class against material type via the account category reference",
-  "Bestandsbewertung - Wert, Menge und Preis müssen züinander passen":
+  "Bestandsbewertung - Wert, Menge und Preis müssen zueinander passen":
     "Inventory valuation - value, quantity and price must match",
   "Verwaiste Nebenbuchsätze ohne allgemeine Daten":
     "Orphaned sub-ledger records without general data",
@@ -659,6 +660,52 @@ const EN = {
   "laeuft": "running",
   "fertig": "finished",
   "fehler": "failed",
+
+  // ------------------------------------------------------------------ Eingang
+  "Die Dateien, aus denen der nächste Lauf liest. Sie bleiben auf diesem Rechner: der Browser schickt sie an das Werkzeug, das hier läuft, und dieses legt sie in das Eingangsverzeichnis.":
+    "The files the next run reads from. They stay on this machine: the browser hands them to the tool running here, and it places them in the input directory.",
+  "Dateien hierher ziehen oder auswählen": "Drop files here or choose them",
+  "Dateien auswählen oder hierher ziehen": "Choose files or drop them here",
+  "Dateien auswählen": "Choose files",
+  "Im Eingangsverzeichnis": "In the input directory",
+  "{endungen} - bis {groesse} je Datei": "{endungen} - up to {groesse} per file",
+  "Noch keine Datei im Eingang.": "No file in the inbox yet.",
+  "Abgelegt": "Added",
+  "Wird gelesen": "Read by the run",
+  "Diese Datei wird beim Lauf übergangen - die Endung gehört nicht zu den gelesenen oder ein Ausschlussmuster greift.":
+    "This file is skipped by the run - its extension is not among those read, or an ignore pattern applies.",
+  "{name} aus dem Eingangsverzeichnis löschen?": "Delete {name} from the input directory?",
+  "{name} entfernt.": "{name} removed.",
+  "Fehler": "Error",
+  "{n} Datei(en) übernommen. Mit 'Prüfung starten' wird die Lieferung geprüft.":
+    "{n} file(s) accepted. Use 'Start check' to run the analysis.",
+  "Diese Dateiendung wird nicht gelesen. Möglich sind {endungen}.":
+    "This file extension is not read. Possible are {endungen}.",
+  "Die Datei ist größer als {groesse}.": "The file is larger than {groesse}.",
+  "Die Datei ist leer.": "The file is empty.",
+  "Die Übertragung wurde abgebrochen.": "The transfer was interrupted.",
+
+  // Meldungen des Servers beim Hochladen. Sie kommen als Vorlage mit Werten
+  // zurück, damit sie hier übersetzbar bleiben.
+  "Es wurde kein Dateiname übergeben.": "No file name was supplied.",
+  "Der Dateiname ist zu lang (höchstens 120 Zeichen).":
+    "The file name is too long (120 characters at most).",
+  "Der Dateiname enthält einen Pfad: {name}": "The file name contains a path: {name}",
+  "Der Dateiname enthält unzulässige Zeichen: {name}":
+    "The file name contains characters that are not allowed: {name}",
+  "Ein Dateiname darf nicht mit einem Punkt beginnen.":
+    "A file name must not start with a dot.",
+  "Der Dateiname ist ein reservierter Name: {name}":
+    "The file name is a reserved name: {name}",
+  "Diese Dateiendung wird nicht gelesen: {name}. Möglich sind {endungen}.":
+    "This file extension is not read: {name}. Possible are {endungen}.",
+  "Der Dateiname führt aus dem Eingangsverzeichnis: {name}":
+    "The file name leads out of the input directory: {name}",
+  "Diese Datei liegt nicht im Eingang: {name}": "This file is not in the inbox: {name}",
+  "Die Datei ist größer als {n} MB. Bitte legen Sie sie direkt in das Eingangsverzeichnis.":
+    "The file is larger than {n} MB. Please place it in the input directory directly.",
+  "Die Datei ließ sich nicht schreiben: {fehler}": "The file could not be written: {fehler}",
+
 };
 
 /** Aktuelle Sprache. */

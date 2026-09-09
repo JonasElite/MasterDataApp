@@ -502,7 +502,7 @@ def execute_duplicate_rule(
             f"Der Vergleich wurde nach {len(pairs)} Treffern abgebrochen "
             f"(Grenze dedup.max_pairs_per_rule = {config.max_pairs_per_rule}). "
             "Das Ergebnis dieser Regel ist unvollständig; bei derart vielen "
-            "Treffern ist zürst die Datenlage zu klären."
+            "Treffern ist zuerst die Datenlage zu klären."
         )
         hinweise.append(hinweis)
         logger.warning("%s: %s", rule.id, hinweis)

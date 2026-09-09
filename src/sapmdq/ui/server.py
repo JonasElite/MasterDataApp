@@ -46,8 +46,12 @@ CONTENT_TYPES = {
     ".ico": "image/x-icon",
 }
 
-#: Höchstgröße eines Anfragekörpers.
+#: Höchstgröße eines Anfragekörpers. Gilt nicht für den Upload: eine
+#: Lieferdatei wird blockweise geschrieben, nicht als Ganzes gelesen.
 MAX_BODY = 256 * 1024
+
+#: Blockgröße beim Entgegennehmen einer Datei.
+BLOCKGROESSE = 256 * 1024
 
 
 class UiServer(ThreadingHTTPServer):
@@ -106,6 +110,19 @@ class UiHandler(BaseHTTPRequestHandler):
     def _fehler(self, meldung: str, status: int = 400) -> None:
         self._json({"fehler": meldung}, status)
 
+    def _fehler_melden(self, fehler: api.ApiFehler) -> None:
+        """Gibt einen Fehler weiter - mit Vorlage, wenn er eine trägt.
+
+        Die Oberfläche zeigt Meldungen in der gewählten Sprache. Ein fertig
+        gesetzter deutscher Satz ließe sich dort nicht mehr übersetzen, ein
+        Muster mit Werten schon.
+        """
+        koerper: dict[str, Any] = {"fehler": fehler.meldung}
+        if fehler.vorlage:
+            koerper["fehler_vorlage"] = fehler.vorlage
+            koerper["fehler_werte"] = fehler.werte
+        self._json(koerper, fehler.status)
+
     def _koerper(self) -> dict[str, Any]:
         laenge = int(self.headers.get("Content-Length") or 0)
         if laenge <= 0:
@@ -152,9 +169,65 @@ class UiHandler(BaseHTTPRequestHandler):
             self._fehler("Sitzungsmerkmal fehlt oder ist falsch.", 403)
             return
         try:
+            if zerlegt.path == "/api/eingang":
+                # Eine Lieferdatei ist kein JSON-Körper: sie wird blockweise
+                # geschrieben und nie ganz in den Speicher gelesen.
+                self._json(self._hochladen(werte))
+                return
             self._api_post(zerlegt.path, self._koerper())
         except api.ApiFehler as fehler:
-            self._fehler(fehler.meldung, fehler.status)
+            self._fehler_melden(fehler)
+
+    # ------------------------------------------------------------- Hochladen
+    def _hochladen(self, werte: dict[str, list[str]]) -> dict[str, Any]:
+        """Nimmt eine Datei entgegen und legt sie in das Eingangsverzeichnis.
+
+        Der Körper ist die Datei selbst, der Name steht im Abfrageteil. Ein
+        mehrteiliges Formular wäre der übliche Weg, brauchte aber einen
+        Zerleger von Hand - und der ist an genau dieser Stelle, wo ein
+        fremder Name über den Schreibort entscheidet, das größere Risiko.
+
+        Geschrieben wird zunächst neben das Ziel und erst am Ende umbenannt.
+        Ein abgebrochener Upload hinterlässt damit keine halbe Datei, die
+        ein Lauf für eine vollständige Lieferung hält.
+        """
+        ziel = api.eingangsziel(self.server.state, (werte.get("name") or [""])[0])
+        laenge = int(self.headers.get("Content-Length") or 0)
+        if laenge <= 0:
+            raise api.uebersetzbar("Die Datei ist leer.")
+        if laenge > api.MAX_UPLOAD:
+            self.close_connection = True
+            raise api.uebersetzbar(
+                "Die Datei ist größer als {n} MB. Bitte legen Sie sie direkt "
+                "in das Eingangsverzeichnis.",
+                413,
+                n=api.MAX_UPLOAD // (1024 * 1024),
+            )
+
+        teil = ziel.with_name(f".{ziel.name}.teil")
+        gelesen = 0
+        try:
+            with teil.open("wb") as datei:
+                while gelesen < laenge:
+                    block = self.rfile.read(min(BLOCKGROESSE, laenge - gelesen))
+                    if not block:
+                        raise api.uebersetzbar("Die Übertragung wurde abgebrochen.")
+                    datei.write(block)
+                    gelesen += len(block)
+            teil.replace(ziel)
+        except api.ApiFehler:
+            teil.unlink(missing_ok=True)
+            raise
+        except OSError as fehler:
+            teil.unlink(missing_ok=True)
+            raise api.uebersetzbar(
+                "Die Datei ließ sich nicht schreiben: {fehler}", 500, fehler=fehler
+            ) from None
+
+        # Der Dateiname kann ein Kundenname sein - er gehört nicht in das
+        # Protokoll auf Info-Ebene (DS-07). Gezählt wird trotzdem.
+        logger.info("Eingangsdatei empfangen (%d Bytes)", gelesen)
+        return {"gespeichert": ziel.name, "groesse": gelesen}
 
     # ----------------------------------------------------------- API-Verteiler
     def _api_get(self, pfad: str, werte: dict[str, list[str]]) -> None:
@@ -173,6 +246,8 @@ class UiHandler(BaseHTTPRequestHandler):
                 self._json(api.befunde(state, teile[1], werte))
             elif len(teile) == 4 and teile[0] == "laeufe" and teile[2] == "befunde":
                 self._json(api.befund(state, teile[1], teile[3]))
+            elif teile == ["eingang"]:
+                self._json(api.eingang(state))
             elif teile == ["ausnahmen"]:
                 self._json(api.ausnahmen(state))
             elif teile == ["fortschritt"]:
@@ -182,7 +257,7 @@ class UiHandler(BaseHTTPRequestHandler):
             else:
                 self._fehler("Unbekannter Aufruf.", 404)
         except api.ApiFehler as fehler:
-            self._fehler(fehler.meldung, fehler.status)
+            self._fehler_melden(fehler)
         except Exception as fehler:  # pragma: no cover - unerwarteter Fehler
             logger.exception("Fehler bei %s", pfad)
             self._fehler(f"Unerwarteter Fehler: {fehler}", 500)
@@ -192,6 +267,7 @@ class UiHandler(BaseHTTPRequestHandler):
         verteiler: dict[str, Callable[..., Any]] = {
             "/api/ausnahmen": api.ausnahme_setzen,
             "/api/ausnahmen/entfernen": api.ausnahme_entfernen,
+            "/api/eingang/entfernen": api.eingang_entfernen,
             "/api/status": api.status_setzen,
             "/api/lauf/starten": api.lauf_starten,
         }
@@ -202,7 +278,7 @@ class UiHandler(BaseHTTPRequestHandler):
         try:
             self._json(funktion(state, daten))
         except api.ApiFehler as fehler:
-            self._fehler(fehler.meldung, fehler.status)
+            self._fehler_melden(fehler)
         except Exception as fehler:  # pragma: no cover - unerwarteter Fehler
             logger.exception("Fehler bei %s", pfad)
             self._fehler(f"Unerwarteter Fehler: {fehler}", 500)
