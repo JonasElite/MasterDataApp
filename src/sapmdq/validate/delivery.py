@@ -79,7 +79,14 @@ class DeliveryCheck:
     check_id: str
     requirement: str
     severity: Severity
+    #: Fertige Meldung auf Deutsch. Sie steht so im Bericht.
     message: str
+    #: Dieselbe Meldung als Vorlage mit Platzhaltern, dazu die eingesetzten
+    #: Werte. Damit kann die Oberflaeche die Meldung in einer anderen Sprache
+    #: neu bilden, statt den deutschen Satz anzuzeigen. Der Bericht bleibt
+    #: deutsch - er wird nicht umgeschaltet, sondern als Ganzes ausgeliefert.
+    message_template: str = ""
+    message_params: dict[str, object] = field(default_factory=dict)
     table: str | None = None
     file: str | None = None
     details: dict[str, object] = field(default_factory=dict)
@@ -87,6 +94,26 @@ class DeliveryCheck:
     @property
     def blocking(self) -> bool:
         return self.severity is Severity.ERROR
+
+
+def meldung(vorlage: str, **werte: object) -> dict[str, object]:
+    """Baut die drei Meldungsfelder einer Pruefung aus einer Vorlage.
+
+    Aufruf::
+
+        DeliveryCheck(..., **meldung("{tabelle}: {ist} Saetze wie gemeldet.",
+                                     tabelle=table, ist=actual))
+
+    Die Vorlage ist der deutsche Satz mit Platzhaltern und zugleich der
+    Schluessel, unter dem die Oberflaeche die englische Fassung nachschlaegt.
+    Beides an einer Stelle zu halten ist der Grund fuer diesen Umweg: ein
+    getrennt gefuehrter Schluessel laeuft mit der Zeit aus dem Text heraus.
+    """
+    return {
+        "message": vorlage.format(**werte),
+        "message_template": vorlage,
+        "message_params": dict(werte),
+    }
 
 
 @dataclass
@@ -164,10 +191,11 @@ def _check_row_counts(
                     requirement="Satzanzahlabgleich",
                     severity=Severity.WARNING,
                     table=table,
-                    message=(
-                        f"Fuer {table} ist keine Satzanzahl gemeldet. Es wurden "
-                        f"{entry.row_count_before_filter} Saetze gelesen; ob die Lieferung "
-                        "vollstaendig ist, laesst sich nicht pruefen."
+                    **meldung(
+                        "Fuer {tabelle} ist keine Satzanzahl gemeldet. Es wurden "
+                        "{gelesen} Saetze gelesen; ob die Lieferung vollstaendig ist, "
+                        "laesst sich nicht pruefen.",
+                        tabelle=table, gelesen=entry.row_count_before_filter,
                     ),
                     details={"gelesen": entry.row_count_before_filter},
                 )
@@ -184,7 +212,8 @@ def _check_row_counts(
                     requirement="Satzanzahlabgleich",
                     severity=Severity.INFO,
                     table=table,
-                    message=f"{table}: {actual} Saetze wie gemeldet.",
+                    **meldung("{tabelle}: {gelesen} Saetze wie gemeldet.",
+                              tabelle=table, gelesen=actual),
                     details={"gemeldet": expected, "gelesen": actual},
                 )
             )
@@ -195,10 +224,12 @@ def _check_row_counts(
                     requirement="Satzanzahlabgleich",
                     severity=Severity.ERROR,
                     table=table,
-                    message=(
-                        f"{table}: {actual} Saetze gelesen, aber {expected} gemeldet "
-                        f"(Abweichung {difference:+d}). Die Lieferung ist unvollstaendig "
-                        "oder die Meldung falsch."
+                    **meldung(
+                        "{tabelle}: {gelesen} Saetze gelesen, aber {gemeldet} gemeldet "
+                        "(Abweichung {abweichung}). Die Lieferung ist unvollstaendig "
+                        "oder die Meldung falsch.",
+                        tabelle=table, gelesen=actual, gemeldet=expected,
+                        abweichung=f"{difference:+d}",
                     ),
                     details={"gemeldet": expected, "gelesen": actual, "abweichung": difference},
                 )
@@ -221,11 +252,14 @@ def _check_parse_errors(report: DeliveryReport, ingestion: IngestionResult, conf
                     severity=severity,
                     file=source.relative_name,
                     table=source.table,
-                    message=(
-                        f"{source.relative_name}: {source.rejected_rows} von {total} Zeilen "
-                        f"({ratio:.1%}) sind strukturell defekt und wurden nicht gelesen. "
-                        "Haeufigste Ursache: ein nicht maskiertes Trennzeichen in einem "
-                        "Freitextfeld. " + "; ".join(source.reject_samples[:3])
+                    **meldung(
+                        "{datei}: {abgewiesen} von {gesamt} Zeilen ({anteil}) sind "
+                        "strukturell defekt und wurden nicht gelesen. Haeufigste Ursache: "
+                        "ein nicht maskiertes Trennzeichen in einem Freitextfeld. "
+                        "{beispiele}",
+                        datei=source.relative_name, abgewiesen=source.rejected_rows,
+                        gesamt=total, anteil=f"{ratio:.1%}",
+                        beispiele="; ".join(source.reject_samples[:3]),
                     ),
                     details={"abgewiesen": source.rejected_rows, "gesamt": total},
                 )
@@ -238,9 +272,10 @@ def _check_parse_errors(report: DeliveryReport, ingestion: IngestionResult, conf
                     severity=Severity.WARNING,
                     file=source.relative_name,
                     table=source.table,
-                    message=(
-                        f"{source.relative_name} endet ohne Zeilenumbruch. Der Export "
-                        "koennte an der letzten Zeile abgebrochen worden sein."
+                    **meldung(
+                        "{datei} endet ohne Zeilenumbruch. Der Export koennte an der "
+                        "letzten Zeile abgebrochen worden sein.",
+                        datei=source.relative_name,
                     ),
                 )
             )
@@ -254,10 +289,10 @@ def _check_parse_errors(report: DeliveryReport, ingestion: IngestionResult, conf
                     requirement="Truncation-Erkennung",
                     severity=Severity.WARNING,
                     table=table,
-                    message=(
-                        f"{table} enthaelt genau {entry.row_count_before_filter} Saetze. "
-                        "Das ist eine typische Exportgrenze - bitte pruefen, ob der "
-                        "Export abgeschnitten wurde."
+                    **meldung(
+                        "{tabelle} enthaelt genau {saetze} Saetze. Das ist eine typische "
+                        "Exportgrenze - bitte pruefen, ob der Export abgeschnitten wurde.",
+                        tabelle=table, saetze=entry.row_count_before_filter,
                     ),
                     details={"saetze": entry.row_count_before_filter},
                 )
@@ -314,10 +349,11 @@ def _check_field_truncation(
                         requirement="Truncation-Erkennung",
                         severity=Severity.WARNING,
                         table=table,
-                        message=(
-                            f"{table}.{column}: laengster Wert hat {max_length} Zeichen, "
-                            f"das Feld ist laut DDIC {declared} Zeichen lang. Die Spalte "
-                            "wurde vermutlich falsch zugeordnet oder enthaelt Fremdinhalte."
+                        **meldung(
+                            "{tabelle}.{spalte}: laengster Wert hat {laenge} Zeichen, das "
+                            "Feld ist laut DDIC {ddic} Zeichen lang. Die Spalte wurde "
+                            "vermutlich falsch zugeordnet oder enthaelt Fremdinhalte.",
+                            tabelle=table, spalte=column, laenge=max_length, ddic=declared,
                         ),
                         details={"max_laenge": max_length, "ddic_laenge": declared},
                     )
@@ -364,12 +400,15 @@ def _check_field_truncation(
                         requirement="Truncation-Erkennung",
                         severity=Severity.WARNING,
                         table=table,
-                        message=(
-                            f"{table}.{column}: {at_max} von {non_null} Werten ({share:.1%}) "
-                            f"sind genau {max_length} Zeichen lang, waehrend auf den "
-                            f"{TRUNCATION_COMPARISON_WIDTH} Laengen darunter zusammen nur "
-                            f"{below} Werte liegen. Dieser Aufstau auf der Grenze deutet auf "
-                            "beim Export abgeschnittene Feldinhalte hin."
+                        **meldung(
+                            "{tabelle}.{spalte}: {treffer} von {gesamt} Werten ({anteil}) "
+                            "sind genau {laenge} Zeichen lang, waehrend auf den {breite} "
+                            "Laengen darunter zusammen nur {darunter} Werte liegen. Dieser "
+                            "Aufstau auf der Grenze deutet auf beim Export abgeschnittene "
+                            "Feldinhalte hin.",
+                            tabelle=table, spalte=column, treffer=at_max, gesamt=non_null,
+                            anteil=f"{share:.1%}", laenge=max_length,
+                            breite=TRUNCATION_COMPARISON_WIDTH, darunter=below,
                         ),
                         details={
                             "werte_auf_maximallaenge": at_max,
@@ -416,11 +455,12 @@ def _check_partial_columns(report: DeliveryReport, ingestion: IngestionResult) -
                 requirement="Truncation-Erkennung",
                 severity=Severity.WARNING,
                 table=table,
-                message=(
-                    f"{table} wurde in {len(sources)} Dateien mit unterschiedlichen Spalten "
-                    f"geliefert ({detail}). Die fehlenden Spalten werden mit NULL aufgefuellt; "
-                    "Vollstaendigkeitsregeln melden fuer diese Saetze deshalb moeglicherweise "
-                    "Luecken, die im Quellsystem gepflegt sind."
+                **meldung(
+                    "{tabelle} wurde in {anzahl} Dateien mit unterschiedlichen Spalten "
+                    "geliefert ({luecken}). Die fehlenden Spalten werden mit NULL "
+                    "aufgefuellt; Vollstaendigkeitsregeln melden fuer diese Saetze deshalb "
+                    "moeglicherweise Luecken, die im Quellsystem gepflegt sind.",
+                    tabelle=table, anzahl=len(sources), luecken=detail,
                 ),
                 details={"luecken": gaps},
             )
@@ -473,11 +513,13 @@ def _check_duplicate_keys(
                 requirement="Verwertbarkeit",
                 severity=Severity.ERROR,
                 table=table,
-                message=(
-                    f"{table}: {affected} Schluesselwert(e) kommen mehrfach vor "
-                    f"({extra} ueberzaehlige Saetze). Der Schluessel "
-                    f"{'+'.join(key_columns)} ist im Quellsystem eindeutig - die Lieferung "
-                    f"enthaelt Ueberschneidungen. Beispiele: {sample}."
+                **meldung(
+                    "{tabelle}: {betroffen} Schluesselwert(e) kommen mehrfach vor "
+                    "({ueberzaehlig} ueberzaehlige Saetze). Der Schluessel {schluessel} ist "
+                    "im Quellsystem eindeutig - die Lieferung enthaelt Ueberschneidungen. "
+                    "Beispiele: {beispiele}.",
+                    tabelle=table, betroffen=affected, ueberzaehlig=extra,
+                    schluessel="+".join(key_columns), beispiele=sample,
                 ),
                 details={
                     "betroffene_schluessel": affected,
@@ -512,9 +554,10 @@ def _check_clients(
                     requirement="Mandantenpruefung",
                     severity=Severity.WARNING,
                     table=table,
-                    message=(
-                        f"{table} enthaelt kein Mandantenfeld. Ob die Lieferung genau "
-                        "einen Mandanten umfasst, laesst sich nicht pruefen."
+                    **meldung(
+                        "{tabelle} enthaelt kein Mandantenfeld. Ob die Lieferung genau "
+                        "einen Mandanten umfasst, laesst sich nicht pruefen.",
+                        tabelle=table,
                     ),
                 )
             )
@@ -531,11 +574,12 @@ def _check_clients(
                     requirement="Mandantenpruefung",
                     severity=Severity.ERROR,
                     table=table,
-                    message=(
-                        f"{table} enthaelt mehrere Mandanten ({', '.join(entry.clients)}), "
-                        "ohne dass ein Mandantenfilter konfiguriert ist. Auswertungen ueber "
-                        "vermischte Mandanten sind nicht belastbar. Bitte "
-                        "delivery.expected_clients setzen."
+                    **meldung(
+                        "{tabelle} enthaelt mehrere Mandanten ({mandanten}), ohne dass ein "
+                        "Mandantenfilter konfiguriert ist. Auswertungen ueber vermischte "
+                        "Mandanten sind nicht belastbar. Bitte delivery.expected_clients "
+                        "setzen.",
+                        tabelle=table, mandanten=", ".join(entry.clients),
                     ),
                     details={"mandanten": entry.clients},
                 )
@@ -547,10 +591,11 @@ def _check_clients(
                     requirement="Mandantenpruefung",
                     severity=Severity.ERROR,
                     table=table,
-                    message=(
-                        f"{table} enthaelt die Mandanten {', '.join(entry.clients)}, erwartet "
-                        f"wurde {', '.join(sorted(expected))}. Nach der Filterung bliebe die "
-                        "Tabelle leer."
+                    **meldung(
+                        "{tabelle} enthaelt die Mandanten {mandanten}, erwartet wurde "
+                        "{erwartet}. Nach der Filterung bliebe die Tabelle leer.",
+                        tabelle=table, mandanten=", ".join(entry.clients),
+                        erwartet=", ".join(sorted(expected)),
                     ),
                     details={"mandanten": entry.clients, "erwartet": sorted(expected)},
                 )
@@ -562,9 +607,11 @@ def _check_clients(
                 check_id="FA-203",
                 requirement="Mandantenpruefung",
                 severity=Severity.INFO,
-                message=(
-                    f"Die Lieferung enthielt die Mandanten {', '.join(sorted(all_clients))}; "
-                    f"verarbeitet wurde {', '.join(sorted(expected))}."
+                **meldung(
+                    "Die Lieferung enthielt die Mandanten {geliefert}; verarbeitet wurde "
+                    "{verarbeitet}.",
+                    geliefert=", ".join(sorted(all_clients)),
+                    verarbeitet=", ".join(sorted(expected)),
                 ),
                 details={"geliefert": sorted(all_clients), "verarbeitet": sorted(expected)},
             )
@@ -583,10 +630,11 @@ def _check_extraction_dates(report: DeliveryReport, ingestion: IngestionResult) 
                 check_id="FA-204",
                 requirement="Extraktionsstichtag",
                 severity=Severity.WARNING,
-                message=(
-                    f"Fuer {len(undocumented)} Datei(en) ist kein Extraktionsstichtag "
-                    f"dokumentiert ({names}). Ersatzweise wird der Zeitstempel der Datei "
-                    "verwendet; er sagt nichts ueber den fachlichen Stichtag aus (A-04)."
+                **meldung(
+                    "Fuer {anzahl} Datei(en) ist kein Extraktionsstichtag dokumentiert "
+                    "({dateien}). Ersatzweise wird der Zeitstempel der Datei verwendet; er "
+                    "sagt nichts ueber den fachlichen Stichtag aus (A-04).",
+                    anzahl=len(undocumented), dateien=names,
                 ),
                 details={"dateien": sorted(s.relative_name for s in undocumented)},
             )
@@ -599,11 +647,11 @@ def _check_extraction_dates(report: DeliveryReport, ingestion: IngestionResult) 
                 check_id="FA-204",
                 requirement="Extraktionsstichtag",
                 severity=Severity.WARNING,
-                message=(
-                    "Die Dateien wurden zu unterschiedlichen Stichtagen extrahiert ("
-                    + ", ".join(sorted(str(d) for d in dates))
-                    + "). Konsistenzpruefungen ueber Tabellen hinweg koennen dadurch "
-                    "Scheinbefunde erzeugen."
+                **meldung(
+                    "Die Dateien wurden zu unterschiedlichen Stichtagen extrahiert "
+                    "({stichtage}). Konsistenzpruefungen ueber Tabellen hinweg koennen "
+                    "dadurch Scheinbefunde erzeugen.",
+                    stichtage=", ".join(sorted(str(d) for d in dates)),
                 ),
                 details={"stichtage": sorted(str(d) for d in dates)},
             )
@@ -623,9 +671,10 @@ def _check_files(report: DeliveryReport, ingestion: IngestionResult, config: Pro
                     requirement="Dateihash",
                     severity=Severity.WARNING,
                     file=source.relative_name,
-                    message=(
-                        f"{source.relative_name} ist inhaltsgleich mit {duplicate} "
-                        "(identischer SHA-256). Die Saetze wurden doppelt eingelesen."
+                    **meldung(
+                        "{datei} ist inhaltsgleich mit {andere} (identischer SHA-256). "
+                        "Die Saetze wurden doppelt eingelesen.",
+                        datei=source.relative_name, andere=duplicate,
                     ),
                     details={"sha256": source.sha256, "gleich_wie": duplicate},
                 )
@@ -640,7 +689,7 @@ def _check_files(report: DeliveryReport, ingestion: IngestionResult, config: Pro
                     requirement="Verwertbarkeit",
                     severity=Severity.WARNING,
                     file=source.relative_name,
-                    message=f"{source.relative_name} ist leer.",
+                    **meldung("{datei} ist leer.", datei=source.relative_name),
                 )
             )
 
@@ -651,10 +700,11 @@ def _check_files(report: DeliveryReport, ingestion: IngestionResult, config: Pro
                 requirement="Datei-zu-Tabelle-Zuordnung",
                 severity=Severity.WARNING,
                 file=source.relative_name,
-                message=(
-                    f"{source.relative_name} wurde keiner Tabelle zugeordnet und bleibt "
-                    "unberuecksichtigt. "
-                    + (" ".join(source.notes) if source.notes else "")
+                **meldung(
+                    "{datei} wurde keiner Tabelle zugeordnet und bleibt "
+                    "unberuecksichtigt. {hinweis}",
+                    datei=source.relative_name,
+                    hinweis=" ".join(source.notes) if source.notes else "",
                 ),
                 details={"spalten": list(source.header_mapping) or []},
             )
@@ -675,10 +725,10 @@ def _check_table_usability(
                     requirement="Verwertbarkeit",
                     severity=Severity.ERROR,
                     table=table,
-                    message=(
-                        f"{table} fehlen die Schluesselfelder "
-                        f"{', '.join(entry.missing_key_fields)}. Ohne Schluessel laesst sich "
-                        "kein Befund einem Stammsatz zuordnen."
+                    **meldung(
+                        "{tabelle} fehlen die Schluesselfelder {felder}. Ohne Schluessel "
+                        "laesst sich kein Befund einem Stammsatz zuordnen.",
+                        tabelle=table, felder=", ".join(entry.missing_key_fields),
                     ),
                     details={"fehlende_schluessel": entry.missing_key_fields},
                 )
@@ -686,6 +736,8 @@ def _check_table_usability(
 
         if entry.row_count == 0:
             severity = Severity.ERROR if entry.row_count_before_filter > 0 else Severity.WARNING
+            # Die Begruendung ist ein eigener uebersetzbarer Satz: sie wird in
+            # die Meldung eingesetzt, ist aber fuer sich genommen vollstaendig.
             reason = (
                 "Alle Saetze wurden vom Mandanten- bzw. Buchungskreisfilter entfernt."
                 if entry.row_count_before_filter > 0
@@ -697,7 +749,8 @@ def _check_table_usability(
                     requirement="Verwertbarkeit",
                     severity=severity,
                     table=table,
-                    message=f"{table} enthaelt keine Saetze. {reason}",
+                    **meldung("{tabelle} enthaelt keine Saetze. {grund}",
+                              tabelle=table, grund=reason),
                     details={"vor_filter": entry.row_count_before_filter},
                 )
             )
@@ -709,9 +762,11 @@ def _check_table_usability(
                     requirement="Datei-zu-Tabelle-Zuordnung",
                     severity=Severity.WARNING,
                     table=table,
-                    message=(
-                        f"{table} ist in den Tabellenmetadaten nicht beschrieben. Die Spalten "
-                        "werden als Text uebernommen; typabhaengige Pruefungen entfallen."
+                    **meldung(
+                        "{tabelle} ist in den Tabellenmetadaten nicht beschrieben. Die "
+                        "Spalten werden als Text uebernommen; typabhaengige Pruefungen "
+                        "entfallen.",
+                        tabelle=table,
                     ),
                 )
             )
@@ -722,10 +777,11 @@ def _check_table_usability(
                     requirement="Header-Mapping",
                     severity=Severity.INFO,
                     table=table,
-                    message=(
-                        f"{table}: {len(entry.unknown_columns)} Spalte(n) ohne bekannten "
-                        f"Feldnamen ({', '.join(entry.unknown_columns[:8])}). Sie werden "
-                        "unveraendert uebernommen."
+                    **meldung(
+                        "{tabelle}: {anzahl} Spalte(n) ohne bekannten Feldnamen "
+                        "({spalten}). Sie werden unveraendert uebernommen.",
+                        tabelle=table, anzahl=len(entry.unknown_columns),
+                        spalten=", ".join(entry.unknown_columns[:8]),
                     ),
                     details={"spalten": entry.unknown_columns},
                 )
@@ -740,9 +796,8 @@ def _check_table_usability(
                     check_id="FA-206",
                     requirement="Verwertbarkeit",
                     severity=Severity.ERROR,
-                    message=(
-                        "Es fehlen als Pflicht vereinbarte Tabellen: " + ", ".join(missing)
-                    ),
+                    **meldung("Es fehlen als Pflicht vereinbarte Tabellen: {tabellen}",
+                              tabellen=", ".join(missing)),
                     details={"fehlend": missing},
                 )
             )

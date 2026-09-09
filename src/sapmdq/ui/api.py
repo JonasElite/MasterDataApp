@@ -372,6 +372,7 @@ def dubletten(state: UiState, lauf_id: str) -> dict[str, Any]:
             "begruendung": detail.get("begruendung", []),
             "namensfeld": detail.get("namensfeld", ""),
             "verglichene_felder": detail.get("verglichene_felder", []),
+            "exakte_schluessel": detail.get("exakte_schluessel", []),
             "mitglieder": detail.get("mitglieder", []),
         }
         _ueberlagern(eintrag, speicher, liste)

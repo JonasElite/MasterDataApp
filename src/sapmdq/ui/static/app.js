@@ -14,18 +14,28 @@ const TOKEN = new URLSearchParams(location.search).get("token") || "";
 
 /* ------------------------------------------------------------- Bausteine */
 
+/** Baut ein Element.
+ *
+ * Alles, was sichtbar wird - Text, Titel, Platzhalter, Beschriftung - laeuft
+ * durch ``t()``. Damit hat die Uebersetzung genau eine Stelle statt zweihundert
+ * Aufrufstellen. Unbekannte Texte gehen unveraendert durch, weshalb Regelnamen,
+ * Objektschluessel und Feldinhalte unangetastet bleiben.
+ */
+const UEBERSETZTE_ATTRIBUTE = new Set(["title", "placeholder", "aria-label", "alt"]);
+
 function el(tag, attrs, kinder) {
   const knoten = document.createElement(tag);
   for (const [name, wert] of Object.entries(attrs || {})) {
     if (wert === null || wert === undefined || wert === false) continue;
-    if (name === "text") knoten.textContent = String(wert);
+    if (name === "text") knoten.textContent = t(wert);
     else if (name === "class") knoten.className = wert;
     else if (name.startsWith("on")) knoten.addEventListener(name.slice(2), wert);
+    else if (UEBERSETZTE_ATTRIBUTE.has(name)) knoten.setAttribute(name, t(wert));
     else knoten.setAttribute(name, wert === true ? "" : String(wert));
   }
   for (const kind of [].concat(kinder || [])) {
     if (kind === null || kind === undefined || kind === false) continue;
-    knoten.append(typeof kind === "object" ? kind : document.createTextNode(String(kind)));
+    knoten.append(typeof kind === "object" ? kind : document.createTextNode(t(kind)));
   }
   return knoten;
 }
@@ -48,18 +58,27 @@ const $ = (auswahl) => document.querySelector(auswahl);
 const zahl = (wert) =>
   wert === null || wert === undefined || Number.isNaN(Number(wert))
     ? "-"
-    : Number(wert).toLocaleString("de-DE");
+    : Number(wert).toLocaleString(gebietsschema());
+
+/** Dezimalzahl in der Schreibweise der gewaehlten Sprache. */
+const dezimal = (wert, stellen) =>
+  wert === null || wert === undefined || Number.isNaN(Number(wert))
+    ? "-"
+    : Number(wert).toLocaleString(gebietsschema(), {
+        minimumFractionDigits: stellen === undefined ? 1 : stellen,
+        maximumFractionDigits: stellen === undefined ? 1 : stellen,
+      });
 
 const prozent = (anteil, stellen) =>
   anteil === null || anteil === undefined
     ? "-"
-    : (Number(anteil) * 100).toFixed(stellen === undefined ? 0 : stellen).replace(".", ",") + " %";
+    : dezimal(Number(anteil) * 100, stellen === undefined ? 0 : stellen) + " %";
 
 function zeitpunkt(iso) {
   if (!iso) return "-";
   const wert = new Date(iso);
   if (Number.isNaN(wert.getTime())) return iso;
-  return wert.toLocaleString("de-DE", {
+  return wert.toLocaleString(gebietsschema(), {
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit",
   });
@@ -67,7 +86,7 @@ function zeitpunkt(iso) {
 
 function dauer(sekunden) {
   const s = Number(sekunden || 0);
-  if (s < 60) return s.toFixed(1).replace(".", ",") + " s";
+  if (s < 60) return dezimal(s) + " s";
   if (s < 3600) return Math.floor(s / 60) + " min " + Math.round(s % 60) + " s";
   return Math.floor(s / 3600) + " h " + Math.round((s % 3600) / 60) + " min";
 }
@@ -81,7 +100,8 @@ const BEREICHE = {
   cross: "Uebergreifend",
   delivery: "Lieferung",
 };
-const bereichName = (schluessel) => BEREICHE[schluessel] || schluessel || "-";
+const bereichName = (schluessel) =>
+  BEREICHE[schluessel] ? t(BEREICHE[schluessel]) : (schluessel || "-");
 
 const SCHWEREGRADE = ["critical", "high", "medium", "low", "info"];
 
@@ -103,7 +123,10 @@ async function hole(pfad, werte) {
   }
   const antwort = await fetch(url, { headers: { "X-Sapmdq-Token": TOKEN } });
   const daten = await antwort.json().catch(() => ({ fehler: "Antwort nicht lesbar." }));
-  if (!antwort.ok) throw new Error(daten.fehler || "Aufruf fehlgeschlagen (" + antwort.status + ").");
+  if (!antwort.ok) {
+    throw new Error(daten.fehler
+      || t("Aufruf fehlgeschlagen ({status}).", { status: antwort.status }));
+  }
   return daten;
 }
 
@@ -114,7 +137,10 @@ async function sende(pfad, daten) {
     body: JSON.stringify(daten || {}),
   });
   const ergebnis = await antwort.json().catch(() => ({ fehler: "Antwort nicht lesbar." }));
-  if (!antwort.ok) throw new Error(ergebnis.fehler || "Aufruf fehlgeschlagen (" + antwort.status + ").");
+  if (!antwort.ok) {
+    throw new Error(ergebnis.fehler
+      || t("Aufruf fehlgeschlagen ({status}).", { status: antwort.status }));
+  }
   return ergebnis;
 }
 
@@ -219,7 +245,8 @@ function saeulen(eintraege, einstellungen) {
     if (eintrag.farbe) balken.style.background = eintrag.farbe;
 
     const anteil = opt.anteile && summe
-      ? el("span", { class: "saeule-anteil", text: " " + Math.round((eintrag.wert / summe) * 100) + " %" })
+      ? el("span", { class: "saeule-anteil",
+          text: " " + Math.round((eintrag.wert / summe) * 100) + " %" })
       : null;
 
     return el("div", {
@@ -270,9 +297,13 @@ function trend(neu, behoben) {
   if (!neu && !behoben) return el("span", { class: "trend gleich", text: "unveraendert" });
   const klasse = netto < 0 ? "besser" : netto > 0 ? "schlechter" : "gleich";
   const zeichen = netto < 0 ? "\u2193 " : netto > 0 ? "\u2191 " : "";
-  return el("span", { class: "trend " + klasse, title:
-      zahl(behoben) + " behoben, " + zahl(neu) + " neu hinzugekommen" }, [
-    zeichen + zahl(Math.abs(netto)) + (netto === 0 ? " netto" : netto < 0 ? " weniger" : " mehr"),
+  return el("span", {
+    class: "trend " + klasse,
+    title: t("{behoben} behoben, {neu} neu hinzugekommen",
+             { behoben: zahl(behoben), neu: zahl(neu) }),
+  }, [
+    zeichen + t(netto === 0 ? "{n} netto" : netto < 0 ? "{n} weniger" : "{n} mehr",
+                { n: zahl(Math.abs(netto)) }),
   ]);
 }
 
@@ -302,6 +333,128 @@ function kachel(titel, wert, zusatz, klasse) {
 const farbeSchweregrad = (grad) =>
   "var(--" + (SCHWEREGRADE.includes(grad) ? grad : "low") + ")";
 
+/* ---------------------------------------------------------------- Prosa
+ *
+ * Vorbehalt, Einordnung und Dublettenbegruendung stehen in lauf.json als
+ * fertige deutsche Saetze. Angezeigt werden sie hier trotzdem nicht von dort,
+ * sondern aus den Zahlen neu gebildet - sonst bliebe die englische Fassung an
+ * genau den Stellen deutsch, auf die es ankommt.
+ *
+ * Der Wortlaut folgt dem des Berichts (``rules/capability.py``,
+ * ``report/score.py``, ``findings/delta.py``). Wer die Management-Summary
+ * neben dem Bildschirm liegen hat, soll denselben Satz lesen.
+ */
+
+/** Regeln des angezeigten Laufs, nach ID. Grundlage der Uebersetzung. */
+let REGELN = {};
+
+function regelIndexAufbauen(lauf) {
+  REGELN = {};
+  for (const regel of ((lauf || {}).coverage || {}).regeln || []) {
+    REGELN[regel.id] = regel;
+  }
+}
+
+/** Die Bezeichnung einer Regel, uebersetzt wenn moeglich.
+ *
+ * In der Befunddatei steht der deutsche Name, wie er zur Laufzeit galt. Fuer
+ * die Anzeige wird er ueber die Regel-ID nachgeschlagen - der gespeicherte
+ * Name bleibt der Rueckfall, etwa wenn eine Regel seither entfallen ist.
+ */
+function regelName(ruleId, gespeichert) {
+  const regel = REGELN[ruleId];
+  return (regel && regelText(regel, "name")) || gespeichert || ruleId;
+}
+
+/** Regeltext in der gewaehlten Sprache.
+ *
+ * Der Katalog ist auf Deutsch geschrieben; die Uebersetzungen stehen in
+ * ``rules/i18n/<sprache>.yaml`` und kommen ueber lauf.json mit. Fehlt eine,
+ * erscheint der deutsche Wortlaut - lesbar, wenn auch nicht schoen.
+ */
+function regelText(regel, feld) {
+  if (!regel) return "";
+  const uebersetzt = ((regel.uebersetzungen || {})[SPRACHE] || {})[feld];
+  if (uebersetzt) return uebersetzt;
+  return regel[{ name: "name", description: "beschreibung", remediation: "empfehlung" }[feld]] || "";
+}
+
+/** Vorbehalt zum Pruefumfang (FA-305). */
+function vorbehaltPruefumfang(coverage) {
+  const gesamt = coverage.regeln_gesamt || 0;
+  const ausfuehrbar = coverage.ausfuehrbar || 0;
+  const entfallen = coverage.entfallen || 0;
+  if (!gesamt) {
+    return t("Es waren keine Regeln aktiv. Die Lieferung wurde nicht fachlich geprueft.");
+  }
+  if (!entfallen) {
+    return t("Alle {n} aktiven Regeln waren ausfuehrbar. Die Aussage stuetzt sich auf "
+      + "den vollstaendigen Regelkatalog.", { n: gesamt });
+  }
+  return t("Von {gesamt} aktiven Regeln waren {ausfuehrbar} ausfuehrbar ({anteil}). "
+    + "{entfallen} Regeln konnten nicht laufen, weil Tabellen oder Felder fehlen "
+    + "(vor allem {tabellen}). Die Aussage dieses Berichts gilt ausschliesslich fuer "
+    + "die ausgefuehrten Pruefungen; zu den entfallenen Pruefungen ist keine Aussage "
+    + "moeglich - weder positiv noch negativ.", {
+      gesamt: gesamt,
+      ausfuehrbar: ausfuehrbar,
+      anteil: prozent(coverage.anteil),
+      entfallen: entfallen,
+      tabellen: (coverage.blockierende_tabellen || []).join(", "),
+    });
+}
+
+/** Vorbehalt zum Punktwert eines Bereichs. */
+function vorbehaltBereich(bereich) {
+  if (bereich.score === null || bereich.score === undefined) {
+    return t("Fuer {bereich} war keine Regel ausfuehrbar. Es liegt keine Aussage zur "
+      + "Datenqualitaet vor - weder eine gute noch eine schlechte.",
+      { bereich: bereichName(bereich.bereich) });
+  }
+  if ((bereich.regeln_ausfuehrbar || 0) < (bereich.regeln_gesamt || 0)) {
+    const anteil = bereich.regeln_gesamt
+      ? bereich.regeln_ausfuehrbar / bereich.regeln_gesamt : 0;
+    return t("Der Wert stuetzt sich auf {a} von {b} Regeln ({anteil}). Er ist nur mit "
+      + "Laeufen vergleichbar, die denselben Umfang hatten.", {
+        a: bereich.regeln_ausfuehrbar,
+        b: bereich.regeln_gesamt,
+        anteil: prozent(anteil),
+      });
+  }
+  return t("Alle Regeln dieses Bereichs waren ausfuehrbar.");
+}
+
+/** Warum ein Cluster als Dublette gilt. */
+function dublettenBegruendung(cluster) {
+  if (cluster.art === "exakt") {
+    const mitglieder = cluster.mitglieder || [];
+    const teile = [];
+    for (const feld of cluster.exakte_schluessel || []) {
+      const werte = mitglieder.map((m) => (m.felder || {})[feld] || "");
+      // Genannt wird nur der Schluessel, den alle Mitglieder wirklich teilen.
+      // Ein Cluster kann ueber mehrere gebildet worden sein.
+      if (werte.length > 1 && werte[0] && werte.every((wert) => wert === werte[0])) {
+        teile.push(t("gleiche {feld}: {wert}", { feld: feld, wert: werte[0] }));
+      }
+    }
+    return teile.length ? teile.join("; ") : t("uebereinstimmender harter Schluessel");
+  }
+  return t("Name sehr aehnlich ({n} von 100)", { n: Math.round(cluster.score || 0) });
+}
+
+/** Die Zusammenfassung eines Laufvergleichs (FA-605). */
+function vergleichsZeile(daten) {
+  const netto = (daten.neu || 0) - (daten.behoben || 0);
+  return t("{behoben} Befunde behoben, {neu} neu hinzugekommen, {unveraendert} unveraendert.", {
+      behoben: zahl(daten.behoben),
+      neu: zahl(daten.neu),
+      unveraendert: zahl(daten.unveraendert),
+    }) + " " + (netto === 0
+      ? t("In Summe unveraendert.")
+      : t(netto < 0 ? "In Summe {n} Befunde weniger." : "In Summe {n} Befunde mehr.",
+          { n: zahl(Math.abs(netto)) }));
+}
+
 /* ------------------------------------------------------------- Lagebild */
 
 function zeigeLagebild() {
@@ -323,21 +476,22 @@ function zeigeLagebild() {
   // ------------------------------------------------------------ Kennzahl
   const score = bewertung.gesamt;
   $("#lb-score").textContent = score === null || score === undefined
-    ? "-" : String(score).replace(".", ",");
+    ? "-" : dezimal(score);
   const note = einordnung(score);
   setzen($("#lb-einordnung"), [
     el("span", { class: "merkmal hero-einordnung " + note.klasse, text: note.text }),
   ]);
   $("#lb-score-zusatz").textContent =
-    "von 100 Punkten, aus " + zahl(lauf.saetze_verarbeitet) + " geprueften Saetzen.";
+    t("von 100 Punkten, aus {n} geprueften Saetzen.",
+      { n: zahl(lauf.saetze_verarbeitet) });
 
   // ------------------------------------------------------- Pruefumfang
   setzen($("#lb-ring"), [ring(
     coverage.anteil || 0,
     prozent(coverage.anteil),
-    (coverage.ausfuehrbar || 0) + " von " + (coverage.regeln_gesamt || 0),
+    t("{a} von {b}", { a: coverage.ausfuehrbar || 0, b: coverage.regeln_gesamt || 0 }),
   )]);
-  $("#lb-ring-text").textContent = coverage.vorbehalt || "";
+  $("#lb-ring-text").textContent = vorbehaltPruefumfang(coverage);
 
   // ---------------------------------------------------------- Ampelzeile
   const felder = [
@@ -367,8 +521,8 @@ function zeigeLagebild() {
       name: grad,
       wert: jeGrad[grad],
       farbe: "var(--" + grad + ")",
-      titel: zahl(jeGrad[grad]) + " Befunde mit Schweregrad " + grad
-             + " - klicken, um die Liste darauf einzuschraenken",
+      titel: t("{n} Befunde mit Schweregrad {grad} - klicken, um die Liste "
+               + "darauf einzuschraenken", { n: zahl(jeGrad[grad]), grad: grad }),
       aufKlick: () => {
         zuAnsicht("befunde");
         $("#b-schweregrad").value = grad;
@@ -385,8 +539,8 @@ function zeigeLagebild() {
       .map(([schluessel, wert]) => ({
         name: bereichName(schluessel),
         wert: wert,
-        titel: zahl(wert) + " Befunde in " + bereichName(schluessel)
-               + " - klicken, um die Liste darauf einzuschraenken",
+        titel: t("{n} Befunde in {bereich} - klicken, um die Liste darauf "
+                 + "einzuschraenken", { n: zahl(wert), bereich: bereichName(schluessel) }),
         aufKlick: () => {
           zuAnsicht("befunde");
           $("#b-bereich").value = schluessel;
@@ -405,9 +559,10 @@ function zeigeLagebild() {
     .slice(0, 8);
   setzen($("#lb-regeln"), [saeulen(
     haeufigste.map((eintrag) => ({
-      name: eintrag.name,
+      name: regelName(eintrag.id, eintrag.name),
       wert: eintrag.befunde,
-      titel: eintrag.id + ": " + eintrag.name + " - " + zahl(eintrag.befunde) + " Befunde",
+      titel: eintrag.id + ": " + eintrag.name + " - "
+             + t("{n} Befunde", { n: zahl(eintrag.befunde) }),
       aufKlick: () => zuAnsicht("befunde", { regel: eintrag.id }),
     })),
     { leer: "Keine Befunde.", langeNamen: true },
@@ -423,8 +578,8 @@ function zeigeLagebild() {
     offen.map((kandidat) => ({
       name: kandidat.tabelle,
       wert: kandidat.kumuliert || kandidat.zusaetzliche_pruefungen || 0,
-      titel: kandidat.tabelle + " (" + kandidat.bedeutung + "): schaltet "
-             + zahl(kandidat.kumuliert) + " weitere Pruefungen frei",
+      titel: kandidat.tabelle + " (" + kandidat.bedeutung + "): "
+             + t("schaltet {n} weitere Pruefungen frei", { n: zahl(kandidat.kumuliert) }),
     })),
     { leer: "Die Lieferung ist vollstaendig - es fehlt nichts." },
   )]);
@@ -432,16 +587,34 @@ function zeigeLagebild() {
   // ----------------------------------------------------------- Bewertung
   setzen($("#lb-bewertung"), [tabelle([
     { titel: "Bereich", zelle: (z) => bereichName(z.bereich) },
-    { titel: "Punkte", zahl: true, zelle: (z) => z.score === null ? "-" : String(z.score).replace(".", ",") },
+    { titel: "Punkte", zahl: true, zelle: (z) => z.score === null ? "-" : dezimal(z.score) },
     { titel: "Einordnung", zelle: (z) => {
+        // Wortlaut aus einordnung(): dasselbe Wort wie im Bericht, aber in
+        // der gewaehlten Sprache. z.einordnung waere immer deutsch.
         const n = einordnung(z.score);
-        return merkmal(z.einordnung || n.text, n.klasse);
+        return merkmal(n.text, n.klasse);
       } },
     { titel: "Befunde", zahl: true, zelle: (z) => zahl(z.befunde) },
     { titel: "Saetze", zahl: true, zelle: (z) => zahl(z.gepruefte_saetze) },
     { titel: "Regeln", zahl: true, zelle: (z) => z.regeln_ausfuehrbar + " / " + z.regeln_gesamt },
-    { titel: "Vorbehalt", zelle: (z) => z.vorbehalt || "" },
+    { titel: "Vorbehalt", zelle: (z) => vorbehaltBereich(z) },
   ], bewertung.bereiche || [])]);
+}
+
+/** Eine Meldung der Lieferungspruefung in der gewaehlten Sprache.
+ *
+ * Auch die eingesetzten Werte laufen durch ``t()``. Die meisten sind Zahlen
+ * oder Tabellennamen und gehen unveraendert durch; einige sind aber ganze
+ * Saetze - etwa die Begruendung, warum eine Tabelle leer ist. Sie blieben
+ * sonst mitten in einem englischen Satz deutsch.
+ */
+function pruefmeldung(pruefung) {
+  if (!pruefung.meldung_vorlage) return pruefung.meldung || "";
+  const werte = {};
+  for (const [name, wert] of Object.entries(pruefung.meldung_werte || {})) {
+    werte[name] = typeof wert === "string" ? t(wert) : wert;
+  }
+  return t(pruefung.meldung_vorlage, werte);
 }
 
 /* -------------------------------------------------------------- Lieferung */
@@ -486,8 +659,8 @@ function zeigeLieferung() {
     { titel: "Pruefung", fest: true, zelle: (z) => z.id },
     { titel: "Gewicht", zelle: (z) => schweregradMerkmal(z.gewicht) },
     { titel: "Gegenstand", zelle: (z) => z.gegenstand },
-    { titel: "Anforderung", zelle: (z) => z.anforderung },
-    { titel: "Meldung", zelle: (z) => z.meldung },
+    { titel: "Anforderung", zelle: (z) => t(z.anforderung) },
+    { titel: "Meldung", zelle: (z) => pruefmeldung(z) },
   ], lieferung.pruefungen || [])]);
 }
 
@@ -496,13 +669,13 @@ function zeigeLieferung() {
 function zeigeCoverage() {
   const coverage = (Z.lauf || {}).coverage || {};
 
-  $("#c-vorbehalt").textContent = coverage.vorbehalt || "Keine Angaben zum Pruefumfang.";
+  $("#c-vorbehalt").textContent = vorbehaltPruefumfang(coverage);
   $("#c-anteil").firstElementChild.style.width = Math.round((coverage.anteil || 0) * 100) + "%";
 
   setzen($("#c-bereiche"), Object.entries(coverage.je_bereich || {}).map(([bereich, werte]) =>
     kachel(bereichName(bereich),
       prozent(werte.gesamt ? werte.ausfuehrbar / werte.gesamt : 0),
-      werte.ausfuehrbar + " von " + werte.gesamt + " Regeln")));
+      t("{a} von {b} Regeln", { a: werte.ausfuehrbar, b: werte.gesamt }))));
 
   setzen($("#c-nachforderung"), [tabelle([
     { titel: "Tabelle", fest: true, zelle: (z) => z.tabelle },
@@ -528,14 +701,15 @@ function zeichneRegeln() {
   const regeln = (coverage.regeln || []).filter((regel) => {
     if (nurEntfallen && regel.ausfuehrbar) return false;
     if (!suche) return true;
-    return (regel.id + " " + regel.name + " " + regel.beschreibung).toLowerCase().includes(suche);
+    return (regel.id + " " + regelText(regel, "name") + " "
+            + regelText(regel, "description")).toLowerCase().includes(suche);
   });
 
   setzen($("#c-regeln"), [tabelle([
     { titel: "Regel", fest: true, zelle: (z) => z.id },
-    { titel: "Bezeichnung", zelle: (z) => z.name },
+    { titel: "Bezeichnung", zelle: (z) => regelText(z, "name") },
     { titel: "Bereich", zelle: (z) => bereichName(z.bereich) },
-    { titel: "Kategorie", zelle: (z) => z.kategorie_text },
+    { titel: "Kategorie", zelle: (z) => t(z.kategorie_text) },
     { titel: "Grad", zelle: (z) => schweregradMerkmal(z.schweregrad) },
     { titel: "Anforderung", fest: true, zelle: (z) => z.anforderung },
     { titel: "Ausfuehrbar", zelle: (z) => z.ausfuehrbar
@@ -548,23 +722,24 @@ function zeichneRegeln() {
 function zeigeRegel(regel) {
   $("#d-titel").textContent = regel.id;
   setzen($("#d-inhalt"), [
-    el("h3", { text: regel.name }),
+    el("h3", { text: regelText(regel, "name") }),
     el("dl", { class: "paar" }, [
       el("dt", { text: "Bereich" }), el("dd", { text: bereichName(regel.bereich) }),
       el("dt", { text: "Kategorie" }), el("dd", { text: regel.kategorie_text }),
       el("dt", { text: "Schweregrad" }), el("dd", {}, [schweregradMerkmal(regel.schweregrad)]),
       el("dt", { text: "Anforderung" }), el("dd", { text: regel.anforderung }),
       el("dt", { text: "Regelversion" }), el("dd", { class: "fest", text: regel.version }),
-      el("dt", { text: "Ausfuehrbar" }), el("dd", { text: regel.ausfuehrbar ? "ja" : "nein - " + regel.grund }),
+      el("dt", { text: "Ausfuehrbar" }),
+      el("dd", { text: regel.ausfuehrbar ? t("ja") : t("nein") + " - " + regel.grund }),
     ]),
     el("div", { class: "abschnitt" }, [
       el("h3", { text: "Was geprueft wird" }),
-      el("p", { text: regel.beschreibung }),
+      el("p", { text: regelText(regel, "description") }),
     ]),
-    regel.empfehlung
+    regelText(regel, "remediation")
       ? el("div", { class: "abschnitt" }, [
           el("h3", { text: "Handlungsempfehlung" }),
-          el("p", { text: regel.empfehlung }),
+          el("p", { text: regelText(regel, "remediation") }),
         ])
       : null,
   ]);
@@ -626,16 +801,19 @@ async function zeigeBefunde() {
     Z.befunde.seiten = daten.seiten;
     Z.befunde.seite = daten.seite;
 
-    $("#b-anzahl").textContent = zahl(daten.gesamt) + " Befunde"
-      + (Z.befunde.regel ? " - eingeschraenkt auf Regel " + Z.befunde.regel : "");
-    $("#b-seite").textContent = "Seite " + daten.seite + " von " + daten.seiten;
+    $("#b-anzahl").textContent = t("{n} Befunde", { n: zahl(daten.gesamt) })
+      + (Z.befunde.regel
+          ? t(" - eingeschraenkt auf Regel {regel}", { regel: Z.befunde.regel })
+          : "");
+    $("#b-seite").textContent =
+      t("Seite {a} von {b}", { a: daten.seite, b: daten.seiten });
     $("#b-zurueck").disabled = daten.seite <= 1;
     $("#b-weiter").disabled = daten.seite >= daten.seiten;
 
     setzen($("#b-tabelle"), [tabelle([
       { titel: "Grad", zelle: (z) => schweregradMerkmal(z.schweregrad) },
       { titel: "Regel", fest: true, zelle: (z) => z.rule_id },
-      { titel: "Bezeichnung", zelle: (z) => z.rule_name },
+      { titel: "Bezeichnung", zelle: (z) => regelName(z.rule_id, z.rule_name) },
       { titel: "Bereich", zelle: (z) => bereichName(z.bereich) },
       { titel: "Objekt", fest: true, zelle: (z) => z.schluessel },
       { titel: "Mandant", fest: true, zelle: (z) => z.mandant },
@@ -675,12 +853,13 @@ async function oeffneBefund(findingId) {
   const regel = befund.regel || {};
 
   setzen($("#d-inhalt"), [
-    el("h3", { text: befund.rule_name }),
+    el("h3", { text: regelName(befund.rule_id, befund.rule_name) }),
     el("dl", { class: "paar" }, [
       el("dt", { text: "Schweregrad" }), el("dd", {}, [schweregradMerkmal(befund.schweregrad)]),
       el("dt", { text: "Kategorie" }), el("dd", { text: befund.kategorie }),
       el("dt", { text: "Anforderung" }), el("dd", { text: befund.anforderung }),
-      el("dt", { text: "Bereich" }), el("dd", { text: bereichName(befund.bereich) + " / " + befund.objektart }),
+      el("dt", { text: "Bereich" }),
+      el("dd", { text: bereichName(befund.bereich) + " / " + befund.objektart }),
       el("dt", { text: "Objekt" }), el("dd", { class: "fest", text: befund.schluessel }),
       el("dt", { text: "Mandant" }), el("dd", { class: "fest", text: befund.mandant || "-" }),
       befund.buchungskreis ? el("dt", { text: "Buchungskreis" }) : null,
@@ -689,8 +868,8 @@ async function oeffneBefund(findingId) {
       el("dt", { text: "Vergleich" }), el("dd", { text: befund.vergleich || "-" }),
       befund.status_im_bericht ? el("dt", { text: "Stand im Bericht" }) : null,
       befund.status_im_bericht
-        ? el("dd", { text: befund.status_im_bericht + " - der gepflegte Stand ist neuer und "
-            + "wird beim naechsten Lauf uebernommen." })
+        ? el("dd", { text: t(befund.status_im_bericht) + " - "
+            + t("der gepflegte Stand ist neuer und wird beim naechsten Lauf uebernommen.") })
         : null,
       el("dt", { text: "Regelversion" }), el("dd", { class: "fest", text: befund.rule_version }),
       el("dt", { text: "Befundkennung" }), el("dd", { class: "fest", text: befund.finding_id }),
@@ -706,12 +885,13 @@ async function oeffneBefund(findingId) {
         ])
       : null,
 
-    regel.beschreibung
+    regelText(regel, "description")
       ? el("div", { class: "abschnitt" }, [
           el("h3", { text: "Was geprueft wird" }),
-          el("p", { text: regel.beschreibung }),
-          regel.empfehlung ? el("h3", { text: "Handlungsempfehlung" }) : null,
-          regel.empfehlung ? el("p", { text: regel.empfehlung }) : null,
+          el("p", { text: regelText(regel, "description") }),
+          regelText(regel, "remediation") ? el("h3", { text: "Handlungsempfehlung" }) : null,
+          regelText(regel, "remediation")
+            ? el("p", { text: regelText(regel, "remediation") }) : null,
         ])
       : null,
 
@@ -729,7 +909,8 @@ async function oeffneBefund(findingId) {
             onclick: async () => {
               try {
                 const ergebnis = await sende("/api/ausnahmen/entfernen", { finding_id: befund.finding_id });
-                melden(ergebnis.entfernt + " Ausnahme(n) entfernt. Wirksam ab dem naechsten Lauf.", "erfolg");
+                melden(t("{n} Ausnahme(n) entfernt. Wirksam ab dem naechsten Lauf.",
+                         { n: ergebnis.entfernt }), "erfolg");
                 oeffneBefund(findingId);
               } catch (fehler) { melden(fehler.message, "fehler"); }
             },
@@ -820,7 +1001,9 @@ function ausnahmeFormular(befund, findingId) {
             ereignis.target.disabled = true;
             try {
               const ergebnis = await sende("/api/ausnahmen", daten);
-              melden("Ausnahme aufgenommen (" + ergebnis.geltungsbereich + "). " + ergebnis.hinweis, "erfolg");
+              melden(t("Ausnahme aufgenommen ({bereich}).",
+                       { bereich: ergebnis.geltungsbereich })
+                     + " " + ergebnis.hinweis, "erfolg");
               schliesseBlende();
             } catch (fehler) {
               melden(fehler.message, "fehler");
@@ -863,11 +1046,12 @@ async function zeigeDubletten() {
     // Ein Farbton: verglichen werden Mengen, nicht Zugehoerigkeiten. Der
     // Schweregrad steht als Wort in der Beschriftung und an jedem Cluster.
     (daten.je_regel || []).map((gruppe) => ({
-      name: gruppe.id + " \u2013 " + gruppe.name,
+      name: gruppe.id + " \u2013 " + regelName(gruppe.id, gruppe.name),
       wert: gruppe.saetze,
-      titel: gruppe.id + ": " + gruppe.cluster + " Cluster mit zusammen "
-             + zahl(gruppe.saetze) + " Saetzen, Nachweis " + gruppe.art
-             + ", Schweregrad " + gruppe.schweregrad,
+      titel: gruppe.id + ": "
+             + t("{c} Cluster mit zusammen {s} Saetzen, Nachweis {art}, Schweregrad {grad}",
+                 { c: gruppe.cluster, s: zahl(gruppe.saetze),
+                   art: t(gruppe.art), grad: gruppe.schweregrad }),
     })),
     { leer: "Keine Dubletten gefunden.", langeNamen: true },
   )]);
@@ -891,8 +1075,9 @@ function zeichneCluster() {
   });
 
   $("#d-anzahl").textContent = gefiltert.length === (daten.cluster || []).length
-    ? zahl(gefiltert.length) + " Cluster"
-    : zahl(gefiltert.length) + " von " + zahl((daten.cluster || []).length) + " Clustern";
+    ? t("{n} Cluster", { n: zahl(gefiltert.length) })
+    : t("{n} von {gesamt} Clustern",
+        { n: zahl(gefiltert.length), gesamt: zahl((daten.cluster || []).length) });
 
   setzen($("#d-cluster"), gefiltert.length
     ? gefiltert.map((cluster) => clusterKarte(cluster))
@@ -919,12 +1104,13 @@ function clusterKarte(cluster) {
     schweregradMerkmal(cluster.schweregrad),
     el("span", { class: "fest leise", text: cluster.rule_id }),
     el("span", { class: "cluster-titel", text: kurzname(cluster) }),
-    merkmal(cluster.anzahl_saetze + " Saetze", "leise"),
+    el("span", { class: "leise", text: regelName(cluster.rule_id, cluster.rule_name) }),
+    merkmal(t("{n} Saetze", { n: cluster.anzahl_saetze }), "leise"),
     // Der Nachweis ist die wichtigste Angabe: ein harter Schluessel ist ein
     // Beweis, eine Namensaehnlichkeit ein begruendeter Verdacht.
     cluster.art === "exakt"
       ? merkmal("harter Schluessel", "critical")
-      : merkmal("Aehnlichkeit " + Math.round(cluster.score || 0), "medium"),
+      : merkmal(t("Aehnlichkeit {n}", { n: Math.round(cluster.score || 0) }), "medium"),
     cluster.ausnahme || cluster.ausnahme_vorgemerkt
       ? merkmal(cluster.ausnahme ? "Ausnahme" : "Ausnahme vorgemerkt", "leise")
       : null,
@@ -1017,12 +1203,13 @@ function clusterInhalt(cluster) {
       el("table", {}, [el("thead", {}, [kopfzeile]), koerper]),
     ]),
     el("p", { class: "hinweis-zeile" }, [
-      (cluster.begruendung || []).join("; ") || "",
+      dublettenBegruendung(cluster),
+      "  \u2013  ",
       cluster.art === "unscharf"
-        ? "  \u2013  Ein unscharfer Treffer ist ein begruendeter Verdacht, kein Nachweis. "
-          + "Berechtigte Mehrfachanlagen - etwa je Werk - gehoeren als Ausnahme vermerkt."
-        : "  \u2013  Ein harter Schluessel ist ein Nachweis: dieselbe Nummer kann nicht "
-          + "zwei Partnern gehoeren.",
+        ? t("Ein unscharfer Treffer ist ein begruendeter Verdacht, kein Nachweis. "
+            + "Berechtigte Mehrfachanlagen - etwa je Werk - gehoeren als Ausnahme vermerkt.")
+        : t("Ein harter Schluessel ist ein Nachweis: dieselbe Nummer kann nicht zwei "
+            + "Partnern gehoeren."),
     ]),
     el("div", { class: "fuss-knopf" }, [
       el("button", {
@@ -1045,7 +1232,7 @@ async function zeigeAusnahmen() {
     return;
   }
   $("#a-datei").textContent = daten.datei
-    ? "Gefuehrt in " + daten.datei
+    ? t("Gefuehrt in {datei}", { datei: daten.datei })
     : "In der Projektkonfiguration ist keine Ausnahmeliste hinterlegt.";
 
   setzen($("#a-liste"), [tabelle([
@@ -1065,7 +1252,7 @@ async function zeigeAusnahmen() {
             const ergebnis = await sende("/api/ausnahmen/entfernen", {
               finding_id: z.finding_id, regel: z.regel, schluessel: z.schluessel,
             });
-            melden(ergebnis.entfernt + " Ausnahme(n) entfernt.", "erfolg");
+            melden(t("{n} Ausnahme(n) entfernt.", { n: ergebnis.entfernt }), "erfolg");
             zeigeAusnahmen();
           } catch (fehler) { melden(fehler.message, "fehler"); }
         },
@@ -1085,11 +1272,13 @@ function zeigeLaeufe() {
     { titel: "Kritisch", zahl: true, zelle: (z) => zahl(((z.je_schweregrad || {}).critical) || 0) },
     { titel: "Umfang", zahl: true, zelle: (z) => z.unvollstaendig ? "-" : prozent(z.coverage) },
     { titel: "Punkte", zahl: true, zelle: (z) =>
-        z.score === null || z.score === undefined ? "-" : String(z.score).replace(".", ",") },
+        z.score === null || z.score === undefined ? "-" : dezimal(z.score) },
     { titel: "Katalog", fest: true, zelle: (z) => (z.katalog || "").split("+")[0] },
     { titel: "Zustand", zelle: (z) => z.unvollstaendig
         ? merkmal("unvollstaendig", "high")
-        : (z.regelfehler ? merkmal(z.regelfehler + " Regelfehler", "critical") : merkmal("vollstaendig", "gut")) },
+        : (z.regelfehler
+            ? merkmal(t("{n} Regelfehler", { n: z.regelfehler }), "critical")
+            : merkmal("vollstaendig", "gut")) },
   ], Z.laeufe, (zeile) => {
     if (zeile.unvollstaendig) {
       melden("Zu diesem Lauf gibt es keine Zusammenfassung. Er wurde vermutlich abgebrochen.", "warnung");
@@ -1106,7 +1295,8 @@ function zeigeLaeufe() {
     const vorher = auswahl.value;
     setzen(auswahl, vergleichbar.map((lauf) => el("option", {
       value: lauf.lauf_id,
-      text: lauf.lauf_id + (lauf.unvollstaendig ? "" : " (" + zahl(lauf.befunde) + " Befunde)"),
+      text: lauf.lauf_id + (lauf.unvollstaendig
+        ? "" : " (" + t("{n} Befunde", { n: zahl(lauf.befunde) }) + ")"),
     })));
     if (vorher && vergleichbar.some((lauf) => lauf.lauf_id === vorher)) auswahl.value = vorher;
   }
@@ -1131,17 +1321,19 @@ async function vergleichen() {
 
   setzen($("#v-ergebnis"), [
     el("div", { class: "kacheln" }, [
-      kachel("Behoben", zahl(daten.behoben), "seit " + daten.vorher, "gut"),
-      kachel("Neu", zahl(daten.neu), "in " + daten.jetzt, daten.neu ? "warnung" : "gut"),
+      kachel("Behoben", zahl(daten.behoben),
+        t("seit {lauf}", { lauf: daten.vorher }), "gut"),
+      kachel("Neu", zahl(daten.neu),
+        t("in {lauf}", { lauf: daten.jetzt }), daten.neu ? "warnung" : "gut"),
       kachel("Unveraendert", zahl(daten.unveraendert), ""),
       kachel("Anerkannte Ausnahmen", zahl(daten.anerkannte_ausnahmen), "nicht behoben, nur anerkannt"),
     ]),
-    el("p", { text: daten.zusammenfassung }),
+    el("p", { text: vergleichsZeile(daten) }),
     el("div", {}, (daten.warnungen || []).map((warnung) =>
       el("div", { class: "meldung warnung", text: warnung }))),
     tabelle([
       { titel: "Regel", fest: true, zelle: (z) => z.id },
-      { titel: "Bezeichnung", zelle: (z) => z.name },
+      { titel: "Bezeichnung", zelle: (z) => regelName(z.id, z.name) },
       { titel: "Grad", zelle: (z) => schweregradMerkmal(z.schweregrad) },
       { titel: "Vorher", zahl: true, zelle: (z) => zahl(z.vorher) },
       { titel: "Jetzt", zahl: true, zelle: (z) => zahl(z.jetzt) },
@@ -1186,9 +1378,11 @@ function baueFolien() {
     el("p", { class: "unterzeile", text: "Analyse der Stammdatenqualitaet" }),
     el("h2", { text: projekt.kunde || projekt.name || "Stammdatenpruefung" }),
     el("p", { class: "aussage", text:
-      "Quellsystem " + (projekt.quellsystem || "unbekannt")
-      + " \u2013 " + zahl(lauf.saetze_verarbeitet) + " Stammsaetze"
-      + " \u2013 Stand " + zeitpunkt(lauf.erstellt_am) }),
+      t("Quellsystem {system} \u2013 {n} Stammsaetze \u2013 Stand {stand}", {
+        system: projekt.quellsystem || t("unbekannt"),
+        n: zahl(lauf.saetze_verarbeitet),
+        stand: zeitpunkt(lauf.erstellt_am),
+      }) }),
     projekt.analyst ? el("p", { class: "unterzeile", text: projekt.analyst }) : null,
   ])));
 
@@ -1196,10 +1390,12 @@ function baueFolien() {
   folien.push(folie("Was geprueft wurde", () => el("div", {}, [
     el("h2", { text: "Was geprueft wurde" }),
     el("p", { class: "aussage", text:
-      (lieferung.dateien || []).length + " Dateien mit zusammen "
-      + zahl(lauf.saetze_verarbeitet) + " Saetzen aus "
-      + (lieferung.tabellen || []).length + " Tabellen. Jede Datei ist ueber "
-      + "ihre Pruefsumme im Bericht nachweisbar." }),
+      t("{dateien} Dateien mit zusammen {saetze} Saetzen aus {tabellen} Tabellen. "
+        + "Jede Datei ist ueber ihre Pruefsumme im Bericht nachweisbar.", {
+          dateien: (lieferung.dateien || []).length,
+          saetze: zahl(lauf.saetze_verarbeitet),
+          tabellen: (lieferung.tabellen || []).length,
+        }) }),
     saeulen(
       (lieferung.tabellen || [])
         .slice().sort((a, b) => b.saetze - a.saetze).slice(0, 9)
@@ -1221,8 +1417,8 @@ function baueFolien() {
     el("h2", { text: "Worueber eine Aussage moeglich ist" }),
     el("div", { class: "nebeneinander" }, [
       ring(coverage.anteil || 0, prozent(coverage.anteil),
-        (coverage.ausfuehrbar || 0) + " von " + (coverage.regeln_gesamt || 0)),
-      el("p", { class: "aussage", text: coverage.vorbehalt || "" }),
+        t("{a} von {b}", { a: coverage.ausfuehrbar || 0, b: coverage.regeln_gesamt || 0 })),
+      el("p", { class: "aussage", text: vorbehaltPruefumfang(coverage) }),
     ]),
   ])));
 
@@ -1232,7 +1428,7 @@ function baueFolien() {
     el("p", { class: "unterzeile", text: "Datenqualitaet insgesamt" }),
     el("div", { class: "gross", text:
       bewertung.gesamt === null || bewertung.gesamt === undefined
-        ? "-" : String(bewertung.gesamt).replace(".", ",") }),
+        ? "-" : dezimal(bewertung.gesamt) }),
     el("p", { class: "unterzeile" }, [
       "von 100 Punkten \u2013 ",
       el("span", { class: "merkmal " + note.klasse, text: note.text }),
@@ -1270,7 +1466,10 @@ function baueFolien() {
       (lauf.regellauf || [])
         .filter((eintrag) => eintrag.befunde > 0)
         .sort((a, b) => b.befunde - a.befunde).slice(0, 8)
-        .map((eintrag) => ({ name: eintrag.name, wert: eintrag.befunde })),
+        .map((eintrag) => ({
+          name: regelName(eintrag.id, eintrag.name),
+          wert: eintrag.befunde,
+        })),
       { leer: "Keine Befunde." },
     ),
   ])));
@@ -1283,16 +1482,19 @@ function baueFolien() {
     folien.push(folie("Mehrfach angelegte Stammsaetze", () => el("div", {}, [
       el("h2", { text: "Mehrfach angelegte Stammsaetze" }),
       el("p", { class: "aussage", text:
-        zahl(dublettenDaten.anzahl_cluster) + " Cluster mit zusammen "
-        + zahl(dublettenDaten.betroffene_saetze) + " Stammsaetzen. Bleibt je "
-        + "Cluster ein fuehrender Satz stehen, entfallen "
-        + zahl(dublettenDaten.einsparung) + " Saetze." }),
+        t("{cluster} Cluster mit zusammen {saetze} Stammsaetzen. Bleibt je Cluster "
+          + "ein fuehrender Satz stehen, entfallen {einsparung} Saetze.", {
+            cluster: zahl(dublettenDaten.anzahl_cluster),
+            saetze: zahl(dublettenDaten.betroffene_saetze),
+            einsparung: zahl(dublettenDaten.einsparung),
+          }) }),
       beispiel ? el("div", { class: "karte ohne-abstand" }, [
         el("p", { class: "unterzeile abstand-unten", text:
-          "Beispiel \u2013 " + beispiel.rule_id + ", "
+          t("Beispiel") + " \u2013 " + beispiel.rule_id + ", "
           + (beispiel.art === "exakt"
-              ? "ueber einen harten Schluessel nachgewiesen"
-              : "Namensaehnlichkeit " + Math.round(beispiel.score || 0) + " von 100") }),
+              ? t("ueber einen harten Schluessel nachgewiesen")
+              : t("Namensaehnlichkeit {n} von 100",
+                  { n: Math.round(beispiel.score || 0) })) }),
       ].concat(clusterInhalt(beispiel).slice(0, 2))) : null,
     ])));
   }
@@ -1322,17 +1524,19 @@ function baueFolien() {
   folien.push(folie("Naechste Schritte", () => {
     const schritte = [];
     if (jeGrad.critical) {
-      schritte.push(zahl(jeGrad.critical) + " kritische Befunde zuerst klaeren - "
-        + "sie betreffen Zahlungsverkehr, Steuer oder Bilanz.");
+      schritte.push(t("{n} kritische Befunde zuerst klaeren - sie betreffen "
+        + "Zahlungsverkehr, Steuer oder Bilanz.", { n: zahl(jeGrad.critical) }));
     }
     if (dublettenDaten && dublettenDaten.anzahl_cluster) {
-      schritte.push(zahl(dublettenDaten.anzahl_cluster) + " Dublettencluster sichten "
-        + "und je Cluster den fuehrenden Stammsatz bestimmen.");
+      schritte.push(t("{n} Dublettencluster sichten und je Cluster den fuehrenden "
+        + "Stammsatz bestimmen.", { n: zahl(dublettenDaten.anzahl_cluster) }));
     }
     if (offen.length) {
-      schritte.push("Fehlende Tabellen nachfordern (" + offen.slice(0, 3)
-        .map((k) => k.tabelle).join(", ") + "), um den Pruefumfang von "
-        + prozent(coverage.anteil) + " anzuheben.");
+      schritte.push(t("Fehlende Tabellen nachfordern ({tabellen}), um den "
+        + "Pruefumfang von {anteil} anzuheben.", {
+          tabellen: offen.slice(0, 3).map((k) => k.tabelle).join(", "),
+          anteil: prozent(coverage.anteil),
+        }));
     }
     schritte.push("Berechtigte Faelle als Ausnahme mit Begruendung vermerken, "
       + "damit sie im Folgelauf nicht erneut als Befund erscheinen.");
@@ -1371,7 +1575,7 @@ function folieZeichnen() {
   const aktuell = P.folien[P.index];
   if (!aktuell) return;
   setzen($("#folie"), [aktuell.aufbau()]);
-  $("#folie-titel").textContent = aktuell.titel;
+  $("#folie-titel").textContent = t(aktuell.titel);
   $("#folie-zaehler").textContent = (P.index + 1) + " / " + P.folien.length;
   $("#folie-zurueck").disabled = P.index === 0;
   $("#folie-vor").disabled = P.index === P.folien.length - 1;
@@ -1422,9 +1626,10 @@ function fortschrittVerfolgen() {
     const laeuft = stand.status === "laeuft";
     $("#p-status").textContent = {
       bereit: "Kein Lauf gestartet.",
-      laeuft: "Der Lauf arbeitet seit " + zeitpunkt(stand.begonnen_am) + " ...",
-      fertig: "Fertig: " + stand.meldung,
-      fehler: "Abgebrochen: " + stand.meldung,
+      laeuft: t("Der Lauf arbeitet seit {beginn} ...",
+                { beginn: zeitpunkt(stand.begonnen_am) }),
+      fertig: t("Fertig:") + " " + stand.meldung,
+      fehler: t("Abgebrochen:") + " " + stand.meldung,
     }[stand.status] || stand.status;
     $("#p-status").className = laeuft ? "blinken" : "";
 
@@ -1433,14 +1638,15 @@ function fortschrittVerfolgen() {
     protokoll.textContent = (stand.zeilen || []).join("\n");
     if (amEnde) protokoll.scrollTop = protokoll.scrollHeight;
 
-    $("#kopf-status").textContent = laeuft ? "Lauf arbeitet ..." : "";
+    $("#kopf-status").textContent = laeuft ? t("Lauf arbeitet ...") : "";
 
     if (!laeuft) {
       clearInterval(Z.fortschrittUhr);
       Z.fortschrittUhr = null;
       $("#lauf-starten").disabled = false;
       if (stand.status === "fertig") {
-        melden("Lauf " + stand.lauf_id + " abgeschlossen: " + stand.meldung, "erfolg");
+        melden(t("Lauf {lauf} abgeschlossen:", { lauf: stand.lauf_id })
+               + " " + stand.meldung, "erfolg");
         await ladeLaeufe(stand.lauf_id);
       } else if (stand.status === "fehler") {
         melden(stand.meldung, "fehler");
@@ -1449,6 +1655,82 @@ function fortschrittVerfolgen() {
   };
   schritt();
   Z.fortschrittUhr = setInterval(schritt, 1500);
+}
+
+/* --------------------------------------------------------------- Sprache
+ *
+ * Die festen Texte stehen als Deutsch im Markup. Beim ersten Lauf wird der
+ * urspruengliche Wortlaut je Element gemerkt; jede Umschaltung setzt ihn neu
+ * uebersetzt. So steht kein Text doppelt in der Datei, und wer das Markup
+ * liest, sieht denselben Satz wie der Benutzer.
+ */
+
+const UEBERSETZBARE_ATTRIBUTE = ["title", "placeholder", "aria-label"];
+
+function statischeTexteMerken() {
+  // Nur Elemente, deren gesamter Inhalt ein einziger Textknoten ist. Alles
+  // andere wird ohnehin von der Oberflaeche selbst gefuellt.
+  //
+  // Der Wortlaut wird auf einfache Leerzeichen gebracht: im Markup stehen
+  // laengere Saetze umbrochen und eingerueckt, im Woerterbuch stehen sie in
+  // einer Zeile. Ohne diese Angleichung faende kein einziger Absatz seine
+  // Uebersetzung.
+  const auswahl = "h1, h2, h3, p, label, button, option, span, code, dt, "
+                + "div.hero-titel, div.ring-unter, div.ampel-titel";
+  for (const knoten of document.querySelectorAll(auswahl)) {
+    if (knoten.childNodes.length === 1 && knoten.firstChild.nodeType === Node.TEXT_NODE) {
+      const wortlaut = knoten.textContent.split(/\s+/).join(" ").trim();
+      if (wortlaut) {
+        knoten.dataset.quelltext = wortlaut;
+        // Auch im Deutschen den geglaetteten Wortlaut setzen, damit die
+        // Anzeige vor und nach einer Umschaltung dieselbe ist.
+        knoten.textContent = wortlaut;
+      }
+    }
+  }
+  for (const attribut of UEBERSETZBARE_ATTRIBUTE) {
+    for (const knoten of document.querySelectorAll("[" + attribut + "]")) {
+      knoten.dataset["quelle" + attribut.replace(/-/g, "")] = knoten.getAttribute(attribut);
+    }
+  }
+}
+
+function statischeTexteUebersetzen() {
+  for (const knoten of document.querySelectorAll("[data-quelltext]")) {
+    knoten.textContent = t(knoten.dataset.quelltext);
+  }
+  for (const attribut of UEBERSETZBARE_ATTRIBUTE) {
+    const merker = "quelle" + attribut.replace(/-/g, "");
+    for (const knoten of document.querySelectorAll("[data-" + merker.toLowerCase() + "]")) {
+      knoten.setAttribute(attribut, t(knoten.dataset[merker]));
+    }
+  }
+  document.title = (Z.projekt ? Z.projekt.name + " - " : "") + t("Stammdatenpruefung");
+}
+
+/** Zeichnet die Oberflaeche in der gewaehlten Sprache neu. */
+function spracheWechseln(sprache) {
+  spracheSetzen(sprache);
+  statischeTexteUebersetzen();
+  // Die Auswahllisten tragen uebersetzte Beschriftungen und werden aus den
+  // Daten aufgebaut - sie muessen mit.
+  fuelleBefundfilter();
+  if (Z.lauf) kopfzeileSchreiben();
+  if (Z.laeufe.length) laufAuswahlFuellen();
+  meldungenLeeren();
+  ANSICHTEN[Z.ansicht].zeichnen();
+  if (!$("#buehne").hidden) {
+    P.folien = baueFolien();
+    P.index = Math.min(P.index, Math.max(P.folien.length - 1, 0));
+    folieZeichnen();
+  }
+}
+
+function spracheAuswahlFuellen() {
+  const auswahl = $("#sprache");
+  setzen(auswahl, Object.entries(SPRACHEN).map(([kuerzel, name]) =>
+    el("option", { value: kuerzel, text: name })));
+  auswahl.value = SPRACHE;
 }
 
 /* ------------------------------------------------------------- Navigation */
@@ -1476,7 +1758,7 @@ function zuAnsicht(name, zusatz) {
   for (const abschnitt of document.querySelectorAll(".ansicht")) {
     abschnitt.hidden = abschnitt.id !== "ansicht-" + name;
   }
-  $("#kopf-titel").textContent = ANSICHTEN[name].titel;
+  $("#kopf-titel").textContent = t(ANSICHTEN[name].titel);
   ANSICHTEN[name].zeichnen();
   window.scrollTo(0, 0);
 }
@@ -1487,11 +1769,36 @@ function schliesseBlende() {
 
 /* ------------------------------------------------------------------ Laden */
 
+/** Die Zeile unter der Ueberschrift: welcher Lauf gerade angezeigt wird. */
+function kopfzeileSchreiben() {
+  const lauf = Z.lauf;
+  if (!lauf) return;
+  $("#kopf-unter").textContent =
+    t("Lauf {lauf} vom {stand} - Katalog {katalog} - Werkzeug {version}", {
+      lauf: lauf.lauf_id,
+      stand: zeitpunkt(lauf.erstellt_am),
+      katalog: (lauf.regelkatalog || {}).version,
+      version: lauf.werkzeug_version,
+    });
+}
+
+/** Fuellt die Auswahlliste der Laeufe. */
+function laufAuswahlFuellen() {
+  const auswahl = $("#lauf-auswahl");
+  const gewaehlt = auswahl.value || Z.laufId;
+  setzen(auswahl, Z.laeufe.map((lauf) => el("option", {
+    value: lauf.lauf_id,
+    text: lauf.lauf_id + (lauf.unvollstaendig ? " (" + t("unvollstaendig") + ")" : ""),
+  })));
+  if (gewaehlt) auswahl.value = gewaehlt;
+}
+
 async function waehleLauf(laufId) {
   Z.laufId = laufId;
   Z.lauf = null;
   if (!laufId) {
-    $("#kopf-unter").textContent = "Es liegt noch kein Lauf vor. Die Pruefung laesst sich links starten.";
+    $("#kopf-unter").textContent =
+      t("Es liegt noch kein Lauf vor. Die Pruefung laesst sich links starten.");
     ANSICHTEN[Z.ansicht].zeichnen();
     return;
   }
@@ -1501,11 +1808,8 @@ async function waehleLauf(laufId) {
     melden(fehler.message, "fehler");
     return;
   }
-  const lauf = Z.lauf;
-  $("#kopf-unter").textContent =
-    "Lauf " + lauf.lauf_id + " vom " + zeitpunkt(lauf.erstellt_am)
-    + " - Katalog " + (lauf.regelkatalog || {}).version
-    + " - Werkzeug " + lauf.werkzeug_version;
+  kopfzeileSchreiben();
+  regelIndexAufbauen(Z.lauf);
   fuelleBefundfilter();
   dublettenDaten = null;
   Z.befunde.seite = 1;
@@ -1515,11 +1819,8 @@ async function waehleLauf(laufId) {
 async function ladeLaeufe(bevorzugt) {
   const daten = await hole("/api/laeufe");
   Z.laeufe = daten.laeufe || [];
+  laufAuswahlFuellen();
   const auswahl = $("#lauf-auswahl");
-  setzen(auswahl, Z.laeufe.map((lauf) => el("option", {
-    value: lauf.lauf_id,
-    text: lauf.lauf_id + (lauf.unvollstaendig ? " (unvollstaendig)" : ""),
-  })));
   const brauchbar = Z.laeufe.filter((lauf) => !lauf.unvollstaendig);
   const ziel = (bevorzugt && Z.laeufe.some((lauf) => lauf.lauf_id === bevorzugt))
     ? bevorzugt
@@ -1530,6 +1831,9 @@ async function ladeLaeufe(bevorzugt) {
 
 async function starten() {
   if (!TOKEN) {
+    statischeTexteMerken();
+    spracheSetzen(SPRACHE);
+    statischeTexteUebersetzen();
     $("#anmeldung").hidden = false;
     return;
   }
@@ -1537,17 +1841,29 @@ async function starten() {
   try {
     Z.projekt = await hole("/api/projekt");
   } catch (fehler) {
+    statischeTexteMerken();
+    spracheSetzen(SPRACHE);
+    statischeTexteUebersetzen();
     $("#anmeldung").hidden = false;
     return;
   }
 
   $("#rahmen").hidden = false;
+  statischeTexteMerken();
+  spracheSetzen(SPRACHE);
+  statischeTexteUebersetzen();
+  spracheAuswahlFuellen();
+  $("#sprache").addEventListener("change", (ereignis) => spracheWechseln(ereignis.target.value));
+
   const projekt = Z.projekt;
-  document.title = projekt.name + " - Stammdatenpruefung";
+  document.title = projekt.name + " - " + t("Stammdatenpruefung");
+  // Die Anmeldeseite ist ausserhalb des Rahmens und wurde oben nicht erfasst.
   $("#projekt-fuss").textContent =
-    projekt.name + (projekt.kunde ? " / " + projekt.kunde : "")
-    + " - Quellsystem " + (projekt.quellsystem || "unbekannt")
-    + " - " + projekt.eingangsdateien.length + " Datei(en) im Eingang";
+    projekt.name + (projekt.kunde ? " / " + projekt.kunde : "") + " - "
+    + t("Quellsystem {system} - {n} Datei(en) im Eingang", {
+        system: projekt.quellsystem || t("unbekannt"),
+        n: projekt.eingangsdateien.length,
+      });
 
   // Bedienelemente
   for (const knopf of document.querySelectorAll(".nav")) {
@@ -1598,7 +1914,8 @@ async function starten() {
     const aufklappen = $("#d-alle-auf").dataset.zustand !== "auf";
     for (const karte of karten) if (karte.aufklappen) karte.aufklappen(aufklappen);
     $("#d-alle-auf").dataset.zustand = aufklappen ? "auf" : "zu";
-    $("#d-alle-auf").textContent = aufklappen ? "Alle zuklappen" : "Alle aufklappen";
+    $("#d-alle-auf").textContent = t(aufklappen ? "Alle zuklappen" : "Alle aufklappen");
+    $("#d-alle-auf").dataset.quelltext = aufklappen ? "Alle zuklappen" : "Alle aufklappen";
   });
 
   $("#c-suche").addEventListener("input", zeichneRegeln);
@@ -1631,8 +1948,9 @@ async function starten() {
     fortschrittVerfolgen();
   }
   if (!Z.laufId) {
-    melden("Es liegt noch kein Lauf vor. Mit 'Pruefung starten' wird die Lieferung "
-      + "aus " + projekt.eingangsverzeichnis + " geprueft.", "hinweis");
+    melden(t("Es liegt noch kein Lauf vor. Mit 'Pruefung starten' wird die "
+      + "Lieferung aus {pfad} geprueft.", { pfad: projekt.eingangsverzeichnis }),
+      "hinweis");
   }
 }
 

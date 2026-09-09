@@ -38,6 +38,8 @@
     </nav>
 
     <div class="seitenleiste-fuss">
+      <label class="feldchen" for="sprache">Sprache</label>
+      <select id="sprache" aria-label="Sprache"></select>
       <label class="feldchen" for="lauf-auswahl">Angezeigter Lauf</label>
       <select id="lauf-auswahl" aria-label="Angezeigten Lauf waehlen"></select>
       <button id="praesentation" class="knopf">Praesentation</button>
@@ -49,7 +51,7 @@
   <main>
     <header class="kopf">
       <div>
-        <h1 id="kopf-titel">Uebersicht</h1>
+        <h1 id="kopf-titel">Lagebild</h1>
         <p id="kopf-unter" class="leise"></p>
       </div>
       <div id="kopf-status" class="kopf-status"></div>
@@ -289,6 +291,7 @@
   </div>
 </div>
 
+<script src="/texte.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

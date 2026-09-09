@@ -36,6 +36,9 @@ from sapmdq.util.hashing import sha256_text
 logger = get_logger("rules.catalog")
 
 #: Name der Datei mit den Katalogmetadaten.
+#: Unterverzeichnis mit den Uebersetzungen des Katalogs.
+I18N_DIR = "i18n"
+
 CATALOG_META = "catalog.yaml"
 
 
@@ -303,6 +306,12 @@ def load_catalog(
         for path in sorted(directory.rglob("*.y*ml")):
             if path.name == CATALOG_META:
                 continue
+            # Uebersetzungen sind keine Regeln. Sie gehen auch nicht in den
+            # Inhaltshash ein: eine korrigierte Formulierung darf die
+            # Katalogversion nicht veraendern, sonst saehe ein Vergleich
+            # zweier Laeufe nach einer Aenderung des Massstabs aus (FA-605).
+            if I18N_DIR in path.parts:
+                continue
             text = path.read_text(encoding="utf-8")
             contents.append(f"{path.name}\n{text}")
             for rule in _rules_from_file(path):
@@ -315,6 +324,12 @@ def load_catalog(
                 _validate_rule(rule, registry)
                 rules.append(rule)
 
+    uebersetzungen = _load_translations(directories)
+    for rule in rules:
+        for sprache, eintraege in uebersetzungen.items():
+            if rule.id in eintraege:
+                rule.translations[sprache] = eintraege[rule.id]
+
     catalog.content_hash = sha256_text("\n".join(contents))
     catalog.rules = _apply_config(rules, rule_config, catalog)
     # Stabile Reihenfolge fuer reproduzierbare Berichte (NFA-05).
@@ -325,6 +340,52 @@ def load_catalog(
         catalog.name, catalog.full_version, len(catalog.rules), len(catalog.disabled),
     )
     return catalog
+
+
+def _load_translations(directories: Sequence[Path]) -> dict[str, dict[str, dict[str, str]]]:
+    """Liest die Uebersetzungsdateien aus ``<Verzeichnis>/i18n/<sprache>.yaml``.
+
+    Aufbau je Datei::
+
+        rules:
+          VEN-COMP-001:
+            name: ...
+            description: ...
+            remediation: ...
+
+    Fehlt eine Datei oder ein Eintrag, bleibt es beim deutschen Wortlaut. Das
+    ist der stille, aber unschaedliche Fall - ein fehlender Satz ist besser als
+    ein Schluesselwort auf dem Bildschirm. Dass er auffaellt, stellt
+    ``tests/test_regeluebersetzung.py`` sicher.
+    """
+    ergebnis: dict[str, dict[str, dict[str, str]]] = {}
+    erlaubt = {"name", "description", "remediation"}
+    for directory in directories:
+        i18n = Path(directory) / I18N_DIR
+        if not i18n.is_dir():
+            continue
+        for pfad in sorted(i18n.glob("*.y*ml")):
+            sprache = pfad.stem.lower()
+            roh = yaml.safe_load(pfad.read_text(encoding="utf-8")) or {}
+            eintraege = roh.get("rules") or {}
+            if not isinstance(eintraege, Mapping):
+                raise ConfigError(f"{pfad}: 'rules' muss eine Zuordnung sein")
+            ziel = ergebnis.setdefault(sprache, {})
+            for rule_id, felder in eintraege.items():
+                if not isinstance(felder, Mapping):
+                    raise ConfigError(f"{pfad}: Eintrag '{rule_id}' muss eine Zuordnung sein")
+                unbekannt = set(felder) - erlaubt
+                if unbekannt:
+                    raise ConfigError(
+                        f"{pfad}: Eintrag '{rule_id}' kennt die Felder "
+                        f"{sorted(unbekannt)} nicht; erlaubt sind {sorted(erlaubt)}"
+                    )
+                ziel[str(rule_id)] = {
+                    schluessel: " ".join(str(wert).split())
+                    for schluessel, wert in felder.items()
+                    if str(wert).strip()
+                }
+    return ergebnis
 
 
 def _apply_config(

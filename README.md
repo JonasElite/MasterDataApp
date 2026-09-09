@@ -76,7 +76,9 @@ Dublettencluster mit Gegenueberstellung der betroffenen Stammsaetze, Lieferung,
 Pruefumfang und der Vergleich zweier Laeufe. Ausnahmen und Bearbeitungsstaende
 lassen sich per Klick pflegen, Laeufe von dort starten. Der Knopf
 *Praesentation* baut aus dem Lauf eine Folienabfolge fuer den Kundentermin,
-druckbar als PDF. Kein Server, keine zusaetzliche Abhaengigkeit, nichts aus dem Netz;
+druckbar als PDF. Die Oberflaeche laesst sich zwischen Deutsch und Englisch
+umschalten - einschliesslich der Regeltexte; die geschriebenen Berichte bleiben
+deutsch. Kein Server, keine zusaetzliche Abhaengigkeit, nichts aus dem Netz;
 gebunden wird nur an 127.0.0.1. Einzelheiten in
 [docs/oberflaeche.md](docs/oberflaeche.md), die Einrichtung Schritt fuer
 Schritt in [docs/installation.md](docs/installation.md).
@@ -239,7 +241,7 @@ ausserhalb des Werkzeugs und sind organisatorisch zu regeln; siehe
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest              # 375 Tests
+python -m pytest              # 390 Tests
 python -m pytest tests/test_akzeptanzkriterien.py -v   # Abnahmenachweis
 ```
 

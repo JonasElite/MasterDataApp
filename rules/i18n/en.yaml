@@ -1,0 +1,785 @@
+# Englische Fassung der Regeltexte.
+#
+# Diese Datei aendert nichts an der Pruefung: sie traegt nur den Wortlaut, den
+# die Oberflaeche anzeigt, wenn Englisch gewaehlt ist. Sie geht deshalb auch
+# nicht in den Inhaltshash des Katalogs ein - eine bessere Formulierung darf
+# die Katalogversion nicht veraendern.
+#
+# Fehlt ein Eintrag, erscheint der deutsche Wortlaut. Dass das auffaellt,
+# stellt tests/test_regeluebersetzung.py sicher.
+
+rules:
+
+  # ------------------------------------------------------------- Kreditoren
+  VEN-COMP-001:
+    name: Vendor without VAT registration number
+    description: >
+      Vendors based in an EU country need a VAT registration number for
+      intra-Community supplies of goods and services. Without it the tax
+      treatment cannot be evidenced and the input tax deduction is at risk.
+      Natural persons, one-time accounts and records flagged for deletion are
+      excluded.
+    remediation: >
+      Obtain the VAT registration number from the vendor, maintain it in field
+      STCEG and have it confirmed through the VIES check.
+  VEN-COMP-002:
+    name: Vendor without city or postal code
+    description: >
+      Without a complete address neither invoices can be delivered nor
+      duplicates reliably detected. The address is also a mandatory invoice
+      element for VAT purposes.
+    remediation: Obtain the address from the vendor and maintain it in LFA1.
+  VEN-COMP-003:
+    name: Vendor without street or without house number
+    description: >
+      A street entry without a digit normally carries no house number. Delivery
+      and address matching in duplicate detection both need the complete
+      street. Pure PO box addresses are excluded and assessed separately
+      (VEN-RISK-002).
+    remediation: Add the street with house number, or flag the record as a PO box address.
+  VEN-COMP-004:
+    name: Vendor without tax number and without VAT registration number
+    description: >
+      If a vendor carries neither a tax number nor a VAT registration number,
+      any tax identification is missing. This also concerns domestic vendors,
+      which need no VAT registration number but do need a tax number.
+    remediation: Obtain the tax identification from the vendor and maintain it.
+  VEN-COMP-005:
+    name: Vendor without company code data
+    description: >
+      A vendor without a company code view cannot be posted to. Such records
+      arise from an aborted creation and remain as dead entries - they burden
+      duplicate detection and the quality of master data maintenance.
+    remediation: >
+      Create the company code view, or flag the master record for deletion and
+      archive it.
+  VEN-COMP-006:
+    name: Company code data without reconciliation account
+    description: >
+      The reconciliation account links accounts payable to the general ledger.
+      Without it no posting is possible; the record is unusable.
+    remediation: Add the reconciliation account in line with the chart of accounts.
+  VEN-COMP-007:
+    name: Company code data without payment terms
+    description: >
+      Without payment terms the system draws a default value when posting, or
+      the due date is set by hand. Both lead to incorrect ageing analyses and
+      to forfeited cash discounts.
+    remediation: Maintain the agreed payment terms in field ZTERM.
+  VEN-COMP-008:
+    name: Payment method requires bank details, but none are maintained
+    description: >
+      If a payment method for bank transfer is maintained, bank details must
+      exist. Otherwise the payment run fails and the liability stays open
+      without anyone noticing.
+    remediation: Add the bank details, or switch the payment method to cheque.
+  VEN-CONS-001:
+    name: Company code data without general data
+    description: >
+      An LFB1 record without a matching LFA1 record is a data inconsistency
+      that cannot arise in a running system. It points to an incomplete
+      delivery or to a faulty migration.
+    remediation: >
+      First check whether LFA1 was delivered in full. If the finding remains,
+      there is a genuine inconsistency in the source system.
+  VEN-CONS-002:
+    name: Purchasing organization data without general data
+    description: >
+      An LFM1 record without a matching LFA1 record cannot arise in a running
+      system and points to an incomplete delivery or a faulty migration.
+    remediation: Check the delivery scope; otherwise clarify the inconsistency in the source system.
+  VEN-CONS-003:
+    name: Deletion flag set centrally but not in the company code
+    description: >
+      If a vendor is flagged for deletion centrally but not in the company
+      code, it remains postable there. The central flag suggests the record is
+      retired - it is not.
+    remediation: Apply the deletion flag in the company code as well, or withdraw it centrally.
+  VEN-CONS-004:
+    name: Central block set, company code not blocked
+    description: >
+      A central posting block without a block in the company code takes effect
+      only partly. The vendor can still be posted to, although the central
+      block suggests otherwise.
+    remediation: Apply the block in the company code as well, or lift the central block.
+  VEN-CONS-005:
+    name: Country of the VAT registration number differs from the vendor's country
+    description: >
+      A German address with an Austrian VAT registration number is possible -
+      through a foreign registration, for instance - but needs a reason. More
+      often it is a mix-up with another group company.
+    remediation: >
+      Check whether a foreign registration exists. If it does, whitelist it as
+      an exception; if it does not, correct the entry.
+  VEN-CONS-006:
+    name: Payment terms contradict between company code and purchasing
+    description: >
+      Company code and purchasing organization each carry payment terms. If
+      they differ, the document flow decides which one applies - the outcome is
+      unpredictable and leads to disputes over cash discounts.
+    remediation: Set the payment terms in both views to the agreed value.
+  VEN-CONS-007:
+    name: Flagged as a natural person, but the name carries a legal form
+    description: >
+      The "natural person" indicator drives the tax treatment and the handling
+      of personal data. If the name carries a legal form such as GmbH or AG,
+      the indicator is most likely set wrongly - with consequences for
+      withholding tax and reporting obligations.
+    remediation: >
+      Check and correct indicator STKZN; whitelist genuine sole traders as an
+      exception.
+  VEN-DUP-001:
+    name: Vendors with the same VAT registration number or tax number
+    description: >
+      A VAT registration number is assigned to exactly one company. If two
+      vendors carry the same one, they are the same partner - or there is a
+      maintenance error with tax consequences. Either way it must be clarified.
+    remediation: >
+      Determine the leading master record, block the others and flag them for
+      deletion. Transfer open items beforehand.
+  VEN-DUP-002:
+    name: Vendors with the same bank details
+    description: >
+      The same account with several vendors is either a duplicate or a payment
+      diversion risk. In group structures with a central treasury it can be
+      legitimate - then it belongs documented and marked as an exception.
+    remediation: >
+      Clarify where the bank details come from. Document and whitelist a
+      central treasury; otherwise clean up the duplicate.
+  VEN-DUP-003:
+    name: Vendors with a similar name at the same address
+    description: >
+      The fuzzy match finds duplicates that no hard key connects: spelling
+      variants, typing errors, differing legal form suffixes. Comparison
+      happens after normalising umlauts, legal forms and street abbreviations;
+      blocking is by country and postal code as well as by name prefix, so the
+      effort does not grow quadratically. A hit is a reasoned suspicion, not
+      proof. The score says how strong it is.
+    remediation: >
+      Review the cluster, determine the leading master record and retire the
+      others. Whitelist legitimate multiple records (one per plant, say) as an
+      exception.
+  VEN-EXT-001:
+    name: Vendor's VAT registration number is not valid according to VIES
+    description: >
+      The European Commission's confirmation service (VIES) checks whether a
+      VAT registration number is actually assigned and valid at the time of the
+      query. The format check (VEN-FMT-001) cannot do this: a formally correct
+      number may have expired or never been assigned. Only the country code and
+      the number are transmitted, no names and no addresses. Results are
+      cached so repeat runs do not burden the service again.
+    remediation: >
+      Request a valid VAT registration number from the vendor. Until then, do
+      not settle tax-exempt intra-Community transactions with this partner.
+  VEN-FMT-001:
+    name: VAT registration number with wrong structure or check digit
+    description: >
+      The country-specific structure of the VAT registration number is checked,
+      and for Germany, the Netherlands and Italy the check digit as well. A
+      formally wrong number is rejected in the EC Sales List and jeopardises
+      the exemption of intra-Community supplies.
+    remediation: >
+      Obtain and correct the number with the vendor. Final evidence comes from
+      the VIES check once it has been approved.
+  VEN-FMT-002:
+    name: Postal code does not match the country
+    description: >
+      The postal code is checked against the pattern of the country maintained
+      in the master record. Deviations point to a wrong country assignment or
+      to an entry copied into the wrong field. Countries without a stored
+      pattern are skipped rather than producing spurious findings.
+    remediation: Reconcile postal code and country against the original address.
+  VEN-FMT-003:
+    name: IBAN with wrong structure, length or check digit
+    description: >
+      The IBAN is checked to ISO 13616: structure, country-specific length and
+      the check digit by the modulo 97 method. A wrong IBAN leads to rejection
+      in the payment run or - worse - to payment to the wrong recipient.
+    remediation: Correct the IBAN using an original document from the vendor.
+  VEN-FMT-004:
+    name: IBAN country differs from the bank country
+    description: >
+      The first two characters of the IBAN name the country of the account
+      holding institution. If they differ from the bank country maintained, one
+      of the two entries is wrong - with immediate effect on payment method
+      determination.
+    remediation: Reconcile bank country and IBAN and correct the wrong entry.
+  VEN-FMT-005:
+    name: IBAN contains a different bank key than the master record
+    description: >
+      For countries with a known IBAN structure the bank key can be derived
+      from the IBAN. If it differs from field BANKL, one of the two entries was
+      changed later without updating the other.
+    remediation: Reconcile bank key and IBAN against an original document.
+  VEN-FMT-006:
+    name: Name consists only of a placeholder
+    description: >
+      Entries such as "unknown", "TEST" or a run of identical characters
+      satisfy the system's mandatory field check but carry no information. They
+      prevent any duplicate detection and any delivery.
+    remediation: Maintain the full company name or delete the record.
+  VEN-LC-001:
+    name: Deletion flag set, but the record is still in the data
+    description: >
+      A deletion flag is the first step of archiving, not its conclusion. If it
+      remains for a long time, the archiving run was never carried out. These
+      records burden analyses and duplicate detection.
+    remediation: Trigger the archiving run for flagged vendors.
+  VEN-LC-002:
+    name: Vendor blocked permanently
+    description: >
+      A block is meant as a temporary measure. If it has been in place for
+      years, the business relationship has effectively ended and the master
+      record should be flagged for deletion.
+    remediation: Lift the block or flag the master record for deletion.
+  VEN-LC-003:
+    name: Vendor unchanged for a long time and never modified
+    description: >
+      The master record was created long ago and has never been touched in the
+      change history since. Combined with no block and no deletion flag, this
+      is the classic finding of a dead entry. The statement rests on the change
+      history, not on transaction data - a posting without a master data change
+      stays invisible.
+    remediation: Review the business relationship and retire the master record if it has ended.
+  VEN-LC-004:
+    name: Vendor flagged for deletion shortly after creation
+    description: >
+      A master record flagged again a few days after its creation was either a
+      mistaken entry or a duplicate. Both point to a gap in the creation
+      process and are worth a root cause analysis.
+    remediation: Review the creation process; introduce a duplicate check before creation.
+  VEN-REF-001:
+    name: Reconciliation account does not exist in the company code
+    description: >
+      The reconciliation account maintained in the vendor must exist as a G/L
+      account in the company code. If it is missing, every posting to this
+      vendor fails.
+    remediation: Create the G/L account or correct the reconciliation account in the vendor.
+  VEN-REF-002:
+    name: Reconciliation account is not a vendor reconciliation account
+    description: >
+      A G/L account becomes the reconciliation account of an account type
+      through its account type indicator. If it does not read "K" for vendors,
+      the assignment is wrong even though the account exists.
+    remediation: Replace the reconciliation account with a vendor reconciliation account.
+  VEN-REF-003:
+    name: Payment terms are not defined in Customizing
+    description: >
+      If a vendor refers to payment terms missing from T052, the due date
+      cannot be determined. Such references arise when Customizing is
+      dismantled without adjusting the master data.
+    remediation: Create the payment terms in Customizing or replace them in the vendor.
+  VEN-REF-004:
+    name: Payment method is not defined for the vendor's country
+    description: >
+      Field ZWELS holds the permitted payment methods as a character string,
+      one character per method. Each of them must be stored in T042Z for the
+      country, otherwise the payment run skips it silently.
+    remediation: Add the payment method in Customizing or remove it from the vendor.
+  VEN-REF-005:
+    name: Account group is not defined in Customizing
+    description: >
+      The account group drives field selection and number range. A reference to
+      a non-existent account group renders every mandatory field check of the
+      system ineffective.
+    remediation: Check the account group in Customizing and assign the master record.
+  VEN-REF-006:
+    name: Country key is not defined in Customizing
+    description: >
+      An unknown country key breaks tax determination, address validation and
+      the foreign trade statistics report.
+    remediation: Correct the country key against T005.
+  VEN-REF-007:
+    name: Company code does not exist
+    description: >
+      Company code data for a company code that does not exist are orphaned
+      records. They typically arise during restructuring.
+    remediation: Clean up the orphaned company code records.
+  VEN-REF-008:
+    name: Bank details refer to an unknown bank
+    description: >
+      Bank country and bank key must exist in the bank master. If the entry is
+      missing, the payment run cannot resolve the bank data.
+    remediation: Create the bank in the bank master or correct the bank details.
+  VEN-REF-009:
+    name: Purchasing organization does not exist
+    description: >
+      Purchasing organization data for a purchasing organization that does not
+      exist are orphaned and disturb the analysis of the vendor master.
+    remediation: Clean up the orphaned records.
+  VEN-REF-010:
+    name: Order currency is not a valid currency key
+    description: >
+      The currency maintained in the purchasing organization view must exist in
+      the currency table, otherwise price determination fails.
+    remediation: Correct the currency key.
+  VEN-RISK-001:
+    name: Vendor bank details match an employee's bank details
+    description: >
+      If a vendor's account matches that of an employee, it may be a legitimate
+      travel expense reimbursement through a vendor account - or a payment
+      diversion risk. The rule runs only if the HR master was delivered
+      explicitly.
+    remediation: >
+      Clarify and document the constellation with internal audit. Whitelist
+      justified cases as a reasoned exception.
+  VEN-RISK-002:
+    name: Vendor with a PO box address only
+    description: >
+      An address naming only a PO box leaves the partner's place of business
+      open. For the VAT invoice address it is in many cases not sufficient, and
+      for due diligence under anti-money-laundering rules it is unusable.
+    remediation: Obtain a physical address from the vendor and maintain it.
+  VEN-RISK-003:
+    name: Vendor bank details changed recently
+    description: >
+      Changing bank details is the most common entry point for payment
+      diversion through forged supplier letters. Recently changed bank details
+      belong confirmed through an independent channel before the next payment
+      run.
+    remediation: >
+      Confirm the change through an independently obtained contact for the
+      vendor (call back a known number, not the one given in the letter).
+  VEN-RISK-004:
+    name: Vendor created and bank details changed by the same user
+    description: >
+      If the same user creates a vendor and later changes its bank details,
+      segregation of duties is missing. This is one of the classic audit
+      findings on the internal control system.
+    remediation: >
+      Review the authorisation concept and enforce segregation of duties
+      between master data creation and bank data maintenance.
+  VEN-RISK-005:
+    name: One-time account with fixed bank details
+    description: >
+      A one-time account collects one-off business partners; the payment data
+      are entered per document. Fixed bank details remove this control:
+      payments to varying recipients then run unnoticed into a fixed account.
+    remediation: Remove the bank details from the one-time account and enter them per document.
+  VEN-RISK-006:
+    name: Vendor flagged for deletion without a payment block
+    description: >
+      A vendor flagged for deletion remains included in the payment run without
+      a payment block. The flag alone prevents no payment.
+    remediation: Set a payment block until archiving is complete.
+
+  # -------------------------------------------------------------- Debitoren
+  CUS-COMP-001:
+    name: Customer without VAT registration number
+    description: >
+      For tax-exempt intra-Community supplies the recipient's VAT registration
+      number is mandatory. Without it the exemption cannot be evidenced and VAT
+      will, in case of doubt, be assessed retrospectively.
+    remediation: >
+      Obtain the VAT registration number from the customer, maintain it and
+      have it confirmed through VIES.
+  CUS-COMP-002:
+    name: Customer without city or postal code
+    description: >
+      Without a complete address neither invoicing nor tax determination via
+      the recipient's country is reliable.
+    remediation: Obtain the address from the customer and maintain it.
+  CUS-COMP-003:
+    name: Customer without company code data
+    description: >
+      A customer without a company code view cannot be invoiced. Such records
+      usually stem from aborted creations.
+    remediation: Create the company code view or retire the record.
+  CUS-COMP-004:
+    name: Company code data without reconciliation account
+    description: >
+      Without a reconciliation account the customer cannot be posted to; the
+      receivable finds no way into the general ledger.
+    remediation: Add the reconciliation account in line with the chart of accounts.
+  CUS-COMP-005:
+    name: Company code data without payment terms
+    description: >
+      Without payment terms the due date of the receivable is undetermined.
+      That distorts the ageing report and liquidity planning.
+    remediation: Maintain the agreed payment terms.
+  CUS-CONS-001:
+    name: Company code data without general data
+    description: >
+      A KNB1 record without a KNA1 record is an inconsistency that cannot arise
+      in a running system and points to an incomplete delivery.
+    remediation: Check the delivery scope; otherwise clarify the inconsistency in the source system.
+  CUS-CONS-002:
+    name: Sales area data without general data
+    description: A KNVV record without a KNA1 record cannot arise in a running system.
+    remediation: Check the delivery scope; otherwise clarify the inconsistency in the source system.
+  CUS-CONS-003:
+    name: Deletion flag set centrally but not in the company code
+    description: >
+      The centrally flagged customer remains postable in the company code. The
+      flag creates a false impression of retirement.
+    remediation: Apply the deletion flag in the company code as well, or withdraw it centrally.
+  CUS-CONS-004:
+    name: Country of the VAT registration number differs from the customer's country
+    description: >
+      If the country code of the VAT registration number differs from the
+      customer's country, tax determination is ambiguous. In chain transactions
+      this can be correct, but then it must be documented.
+    remediation: Document the tax assessment or correct the entry.
+  CUS-CONS-005:
+    name: Sales block set, but the company code is open
+    description: >
+      A customer blocked in sales without a posting block can still be posted
+      to. The block then works only against new orders, not against open
+      transactions.
+    remediation: Review the blocking concept and align the blocks with each other.
+  CUS-DUP-001:
+    name: Customers with the same VAT registration number
+    description: >
+      Two customers with the same VAT registration number are the same
+      customer. Beyond the duplicate this has immediate consequences for the
+      credit limit and the EC Sales List: the limit is split across two
+      accounts and therefore does not take effect.
+    remediation: >
+      Determine the leading master record, merge the credit limit and retire the
+      remaining accounts.
+  CUS-DUP-002:
+    name: Customers with a similar name at the same address
+    description: >
+      Duplicates in the customer master split the payment history across
+      several accounts. Dunning and the credit limit then rest on an incomplete
+      picture.
+    remediation: >
+      Review the cluster, determine the leading master record and retire the
+      others.
+  CUS-EXT-001:
+    name: Customer's VAT registration number is not valid according to VIES
+    description: >
+      Tax-exempt intra-Community supplies require the qualified confirmation of
+      the recipient's VAT registration number. An unconfirmed number removes
+      the exemption - the finding therefore weighs more heavily for a customer
+      than for a vendor. Only the country code and the number are transmitted.
+    remediation: >
+      Obtain and document the qualified confirmation. Until then do not settle
+      any tax-exempt intra-Community supply.
+  CUS-FMT-001:
+    name: VAT registration number with wrong structure or check digit
+    description: >
+      A formally wrong VAT registration number of the recipient removes the
+      exemption of the intra-Community supply. The finding therefore weighs
+      more heavily for a customer than for a vendor.
+    remediation: Obtain and correct the number with the customer and confirm it through VIES.
+  CUS-FMT-002:
+    name: Postal code does not match the country
+    description: >
+      For a customer the address drives tax determination. A postal code that
+      does not match the country points to a wrong country assignment.
+    remediation: Reconcile postal code and country against the original address.
+  CUS-FMT-003:
+    name: Customer's IBAN is invalid
+    description: >
+      The customer's bank details are needed for direct debit. A wrong IBAN
+      leads to the direct debit being returned, with a fee charged.
+    remediation: Correct the IBAN using the SEPA mandate.
+  CUS-LC-001:
+    name: Deletion flag set, but the record is still in the data
+    description: >
+      The deletion flag is the first step of archiving. If it remains for a long
+      time, archiving never happened.
+    remediation: Trigger the archiving run.
+  CUS-REF-001:
+    name: Reconciliation account does not exist in the company code
+    description: >
+      The customer's reconciliation account must exist as a G/L account in the
+      company code, otherwise every posting fails.
+    remediation: Create the G/L account or correct the reconciliation account.
+  CUS-REF-002:
+    name: Payment terms are not defined in Customizing
+    description: >
+      A reference to non-existent payment terms makes the due date calculation
+      impossible.
+    remediation: Create the payment terms or replace them in the customer.
+  CUS-REF-003:
+    name: Account group is not defined in Customizing
+    description: >
+      An unknown account group disables field selection and with it the
+      system's mandatory field check.
+    remediation: Check the account group and assign the master record.
+  CUS-REF-004:
+    name: Country key is not defined in Customizing
+    description: An unknown country key breaks tax determination and address validation.
+    remediation: Correct the country key against T005.
+  CUS-REF-005:
+    name: Sales organization does not exist
+    description: Sales area data for a non-existent sales organization are orphaned.
+    remediation: Clean up the orphaned records.
+  CUS-RISK-001:
+    name: Customer with a PO box address only
+    description: >
+      For the invoice address and for due diligence obligations a PO box is
+      generally not sufficient.
+    remediation: Obtain and maintain a physical address.
+
+  # ---------------------------------------------------------------- Material
+  MAT-COMP-001:
+    name: Material without short text
+    description: >
+      Without a material short text the material cannot be named in purchase
+      orders, delivery notes and invoices. It is also the most important clue
+      for duplicate detection in the material master.
+    remediation: Add the short text in the maintenance language.
+  MAT-COMP-002:
+    name: Material without material group
+    description: >
+      The material group drives account determination in purchasing and is the
+      basis of every procurement analysis. Without it purchase orders post to
+      the collective account and spend analysis is worthless.
+    remediation: Maintain the material group according to the material group key.
+  MAT-COMP-003:
+    name: Material without base unit of measure
+    description: >
+      The base unit of measure is the reference for stock, valuation and all
+      quantity conversions. Without it the material cannot be moved.
+    remediation: Maintain the base unit of measure.
+  MAT-COMP-004:
+    name: Material without plant data
+    description: >
+      A material without a plant view can be procured, stored or produced
+      nowhere. It is either a mistaken entry or an incompletely created new
+      material.
+    remediation: Create the plant view or flag the material for deletion.
+  MAT-COMP-005:
+    name: Valuation record without valuation class
+    description: >
+      The valuation class determines the stock account in the general ledger.
+      Without it automatic account determination finds no account and the goods
+      movement fails.
+    remediation: Maintain the valuation class according to the material type.
+  MAT-COMP-006:
+    name: Plant data without MRP type
+    description: >
+      Without an MRP type the material is not considered by requirements
+      planning. Requirements then arise only through manual purchase orders -
+      with corresponding shortages.
+    remediation: Determine and maintain the MRP type.
+  MAT-CONS-001:
+    name: Valuation class does not match the material type
+    description: >
+      Material type and valuation class are linked through the account category
+      reference: T134 names the reference of the material type, T025 that of
+      the valuation class. If they do not match, the goods movement posts to a
+      factually wrong stock account - the error only surfaces in the balance
+      sheet analysis. This is the relationship explicitly named in FA-403.
+    remediation: >
+      Change the valuation class to one matching the material type; repost
+      stock already posted where necessary.
+  MAT-CONS-002:
+    name: Plant data without general data
+    description: A MARC record without a MARA record is an inconsistency that cannot arise in a running system.
+    remediation: Check the delivery scope; otherwise clarify the inconsistency in the source system.
+  MAT-CONS-003:
+    name: Standard price control without a standard price
+    description: >
+      With price control "S" the system values stock at the standard price. If
+      that price is zero, the receipt is posted at zero value and the stock
+      value in the balance sheet is too low.
+    remediation: Calculate and set the standard price.
+  MAT-CONS-004:
+    name: Stock exists, but there is no valuation price
+    description: >
+      Valuated stock without a price yields a stock value of zero. That is
+      either a wrong valuation or a sign of an aborted price maintenance run.
+    remediation: Maintain the price and correct the stock value.
+  MAT-CONS-005:
+    name: Stock value does not match quantity and price
+    description: >
+      The stock value must follow from quantity, price and price unit. If it
+      deviates, either the price was changed later without revaluing the stock,
+      or there is an inconsistency in material valuation. The tolerance is
+      configurable because small rounding differences are normal.
+    remediation: Review material valuation and correct the stock value.
+  MAT-CONS-006:
+    name: Deletion flag set client-wide but not in the plant
+    description: >
+      A material flagged client-wide remains available for planning in the
+      plant. The flag then does not take effect as intended.
+    remediation: Apply the deletion flag in the plant as well.
+  MAT-DUP-001:
+    name: Materials with an identical or very similar short text
+    description: >
+      Materials created twice fragment stock and requirements: both numbers are
+      planned separately, both build safety stock, and purchasing loses the
+      bundling of its quantities. The short text is compared after
+      normalisation; blocking is by material group and name prefix. For
+      technical materials with systematic descriptions short texts naturally
+      lie close together ("screw M6x20" against "screw M6x25"). The threshold
+      therefore needs adjusting per project.
+    remediation: >
+      Review the cluster on its merits. For genuine duplicates determine the
+      leading material, repost stock and retire the duplicate material.
+  MAT-DUP-002:
+    name: Materials with the same EAN
+    description: >
+      The EAN identifies an article uniquely worldwide. Two materials with the
+      same EAN are the same article - or one of the two EANs is wrong.
+      Otherwise chance decides which material is hit when scanning at goods
+      receipt.
+    remediation: Review the EAN assignment and clean up the duplicate record.
+  MAT-FMT-001:
+    name: EAN with wrong length or check digit
+    description: >
+      The EAN is checked by the GS1 modulo 10 method. A wrong EAN leads to
+      wrong material assignments when scanning at goods receipt and, in retail,
+      to till differences.
+    remediation: Correct the EAN against the manufacturer's specification.
+  MAT-FMT-002:
+    name: Material short text is a placeholder
+    description: >
+      Short texts such as "TEST", "xxx" or "still open" satisfy the mandatory
+      field check but do not name the material. They render duplicate detection
+      in the material master ineffective.
+    remediation: Add a meaningful short text.
+  MAT-LC-001:
+    name: Deletion flag set, but the material is still in the data
+    description: >
+      A material flagged for deletion that was never archived burdens analyses
+      and duplicate detection. If it still carries stock, the flag is
+      questionable on its merits.
+    remediation: Trigger the archiving run for flagged materials.
+  MAT-LC-002:
+    name: Material flagged for deletion, but carrying stock
+    description: >
+      A material with stock cannot be archived. The flag remains in place
+      without effect and the stock goes unmanaged.
+    remediation: Reduce the stock or withdraw the deletion flag.
+  MAT-LC-003:
+    name: Material unchanged for a long time and without stock
+    description: >
+      A material that has neither been changed nor carried stock for years is a
+      candidate for retirement. The statement rests on the change date in the
+      master record, not on transaction data - those are explicitly out of
+      scope (chapter 2.3).
+    remediation: Take an assortment decision and retire the material.
+  MAT-REF-001:
+    name: Material type is not defined in Customizing
+    description: >
+      The material type drives view selection, number range and account
+      determination. A reference to an unknown material type renders this
+      control ineffective.
+    remediation: Check and correct the material type.
+  MAT-REF-002:
+    name: Material group is not defined in Customizing
+    description: >
+      An unknown material group breaks account determination in purchasing and
+      distorts every spend analysis.
+    remediation: Check and correct the material group.
+  MAT-REF-003:
+    name: Base unit of measure is not defined in Customizing
+    description: An unknown unit of measure makes every quantity conversion impossible.
+    remediation: Correct the unit of measure.
+  MAT-REF-004:
+    name: Plant does not exist
+    description: >
+      Plant data for a non-existent plant are orphaned and disturb every stock
+      analysis.
+    remediation: Clean up the orphaned plant records.
+  MAT-REF-005:
+    name: Valuation class is not defined in Customizing
+    description: An unknown valuation class finds no stock account; the goods movement fails.
+    remediation: Correct the valuation class.
+
+  # ------------------------------------------------------- Geschaeftspartner
+  BP-COMP-001:
+    name: Business partner without a name
+    description: >
+      Depending on the partner category the name sits either in the
+      organisation fields or in first and last name. If neither is filled, the
+      partner cannot be identified.
+    remediation: Maintain the business partner's name.
+  BP-COMP-002:
+    name: Business partner without an address
+    description: >
+      A business partner without an address assignment can neither be supplied
+      nor written to. In S/4HANA the address is linked to central address
+      management through BUT020.
+    remediation: Create the address and assign it to the business partner.
+  BP-COMP-003:
+    name: Business partner without a role
+    description: >
+      Only the role makes a business partner usable - as a supplier, as a
+      customer or in both functions. Without a role it is an empty shell from
+      an aborted creation.
+    remediation: Assign the required role or delete the partner.
+  BP-FMT-001:
+    name: Business partner's IBAN is invalid
+    description: >
+      The business partner's bank details are checked to ISO 13616. A wrong
+      IBAN leads to rejection in the payment run.
+    remediation: Correct the IBAN using an original document.
+  BP-CONS-001:
+    name: Partner category does not match the name fields that are filled
+    description: >
+      An organisation carries its name in the organisation fields, a natural
+      person in first and last name. If it is the other way round, the form of
+      address, the mail merge fields and the data protection classification are
+      all wrong.
+    remediation: Correct the partner category or the name fields.
+  BP-CONS-002:
+    name: Validity period is inverted
+    description: >
+      If the start of validity lies after its end, the record is valid at no
+      point in time. Such periods arise from manual date maintenance.
+    remediation: Correct the validity period.
+  BP-CONS-003:
+    name: Business partner deleted, but roles still active
+    description: >
+      A business partner marked for deletion with roles that remain valid stays
+      usable in the corresponding processes. The deletion mark then has no
+      effect.
+    remediation: Limit the roles or withdraw the deletion mark.
+  BP-RISK-001:
+    name: Business partner's bank details match an employee's bank details
+    description: >
+      As with a vendor: the match may be legitimate but deserves a documented
+      explanation. The rule runs only if the HR master was delivered
+      explicitly.
+    remediation: Clarify and document the constellation with internal audit.
+  BP-LC-001:
+    name: Business partner blocked or deleted and still in the data
+    description: >
+      Blocked business partners and those marked for deletion that were never
+      archived burden analyses and duplicate detection.
+    remediation: Trigger archiving.
+
+  # ----------------------------------------------------------- Uebergreifend
+  X-REF-001:
+    name: Address reference points to a non-existent address
+    description: >
+      The vendor refers to central address management through ADRNR. If the
+      reference points nowhere, the complete address cannot be resolved - the
+      fields in LFA1 are then only a copy of unknown age.
+    remediation: Recreate the address in central address management and link it.
+  X-FMT-001:
+    name: BIC in the bank master is invalid
+    description: >
+      The BIC is checked to ISO 9362: eight or eleven characters, bank code,
+      country code, location code and optional branch code. A wrong BIC leads
+      to rejection of foreign payments.
+    remediation: Correct the BIC against the SWIFT directory.
+  X-CONS-001:
+    name: Link between vendor and customer is one-sided
+    description: >
+      If a partner is both customer and supplier, both master records refer to
+      each other. A one-sided reference prevents the netting of open items -
+      payment goes out although a receivable stands against it.
+    remediation: Add the reverse reference in the customer and activate netting.
+  X-RISK-001:
+    name: Vendor and customer share bank details
+    description: >
+      The same account with a vendor and a customer may indicate a partner in a
+      dual role - in which case netting should be set up. It may equally
+      conceal a payment diversion. Both deserve clarification.
+    remediation: >
+      Check whether a partner in a dual role exists; if so, set up netting.
+      Otherwise clarify where the bank details come from.
+  X-CONS-002:
+    name: Address in central address management differs from the master record
+    description: >
+      LFA1 keeps a copy of the address, the leading version sits in ADRC. If
+      city or postal code differ, it is unclear which address applies -
+      invoices and dunning letters then go to different addresses.
+    remediation: Reconcile the addresses and push the leading version through.

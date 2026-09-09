@@ -73,6 +73,10 @@ def _lieferung(result: RunResult) -> dict[str, Any]:
                 "gewicht": str(pruefung.severity),
                 "gegenstand": pruefung.table or pruefung.file or "Lieferung",
                 "meldung": pruefung.message,
+                # Vorlage und Werte getrennt, damit die Oberflaeche die
+                # Meldung in einer anderen Sprache neu bilden kann.
+                "meldung_vorlage": pruefung.message_template,
+                "meldung_werte": pruefung.message_params,
             }
             for pruefung in (result.delivery.checks if result.delivery else [])
         ],
@@ -93,6 +97,9 @@ def _coverage(result: RunResult) -> dict[str, Any]:
             for bereich, werte in result.coverage.coverage_by_area().items()
         },
         "fehlende_tabellen": result.coverage.missing_tables(),
+        # Die Tabellen, an denen die meisten Regeln haengen. Die Oberflaeche
+        # baut den Vorbehalt daraus in der gewaehlten Sprache neu auf.
+        "blockierende_tabellen": list(result.coverage.blocking_tables())[:5],
         "unvollstaendige_tabellen": {
             tabelle: list(felder)
             for tabelle, felder in result.coverage.incomplete_tables().items()
@@ -125,6 +132,10 @@ def _coverage(result: RunResult) -> dict[str, Any]:
                 "version": faehigkeit.rule.version,
                 "ausfuehrbar": faehigkeit.executable,
                 "grund": faehigkeit.reason,
+                # Uebersetzungen des Regeltextes, je Sprachkuerzel. Die
+                # Oberflaeche greift darauf zu; fehlt eine, bleibt es beim
+                # deutschen Wortlaut.
+                "uebersetzungen": faehigkeit.rule.translations,
             }
             for faehigkeit in sorted(
                 result.coverage.capabilities, key=lambda f: f.rule.id

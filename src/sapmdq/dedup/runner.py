@@ -313,6 +313,10 @@ def _clusters_to_findings(
             "art_des_treffers": cluster.match_type,
             "namensfeld": namensspalte or "",
             "verglichene_felder": verglichene_felder,
+            # Welche davon harte Schluessel sind. Die Oberflaeche kann die
+            # Begruendung damit selbst formulieren, statt den deutschen Satz
+            # aus dem Lauf anzuzeigen.
+            "exakte_schluessel": list(spec.exact_keys) if spec else [],
             "mitglieder": mitglieder,
             "begruendung": list(cluster.reasons),
         }

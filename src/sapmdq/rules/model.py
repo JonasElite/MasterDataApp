@@ -216,6 +216,11 @@ class Rule:
     company_code_column: str | None = None
     #: Handlungsempfehlung fuer den Data Owner.
     remediation: str = ""
+    #: Uebersetzungen je Sprachkuerzel, etwa
+    #: ``{"en": {"name": ..., "description": ..., "remediation": ...}}``.
+    #: Sie stehen in ``<Regelverzeichnis>/i18n/<sprache>.yaml`` und aendern
+    #: nichts an der Pruefung selbst.
+    translations: dict[str, dict[str, str]] = field(default_factory=dict)
     #: Parameter mit Vorgabewerten, je Projekt uebersteuerbar (FA-413).
     params: dict[str, Any] = field(default_factory=dict)
     enabled: bool = True
@@ -257,7 +262,14 @@ class Rule:
         params: Mapping[str, Any] | None = None,
         enabled: bool | None = None,
     ) -> "Rule":
-        """Erzeugt eine Kopie mit projektspezifischen Anpassungen (FA-413)."""
+        """Erzeugt eine Kopie mit projektspezifischen Anpassungen (FA-413).
+
+        Die Felder werden einzeln uebernommen und nicht ueber
+        ``dataclasses.replace`` kopiert, damit die Parameterpruefung oben
+        greift. Der Preis: ein neues Feld muss hier ergaenzt werden, sonst geht
+        es bei jedem Lauf mit Projektkonfiguration still verloren.
+        ``tests/test_rules.py`` haelt das fest.
+        """
         merged = dict(self.params)
         if params:
             unknown = set(params) - set(merged)
@@ -291,6 +303,7 @@ class Rule:
             duplicate=self.duplicate,
             source_file=self.source_file,
             requirement=self.requirement,
+            translations=dict(self.translations),
         )
 
 

@@ -97,6 +97,56 @@ Der Vorbehalt zum Pruefumfang steht bewusst **vor** dem Ergebnis. Eine
 Qualitaetszahl, die ohne ihn gezeigt wird, wird als vollstaendiges Urteil
 verstanden - und das ist sie nicht.
 
+## Sprache
+
+Oben links in der Seitenleiste laesst sich zwischen Deutsch und Englisch
+umschalten. Die Wahl bleibt im Browser gespeichert und gilt beim naechsten
+Start wieder; ohne gespeicherte Wahl richtet sie sich nach der Spracheinstellung
+des Browsers. Auch Zahlen- und Datumsformate folgen der Sprache.
+
+Uebersetzt ist alles, was auf dem Bildschirm erscheint - einschliesslich der
+Regelbezeichnungen und -beschreibungen, der Meldungen aus der
+Lieferungspruefung und der Praesentationsfolien.
+
+**Was deutsch bleibt:** die geschriebenen Berichte. Management-Summary,
+Excel-Mappe und CSV-Export werden beim Lauf erzeugt und liegen in einer
+Fassung vor; sie folgen nicht der Bildschirmsprache. Wer einem
+englischsprachigen Kunden etwas mitgeben will, nimmt bis auf Weiteres das PDF
+aus dem Praesentationsmodus.
+
+### Wie es gebaut ist
+
+Der deutsche Satz ist die Quelle und zugleich der Schluessel des Woerterbuchs
+in `ui/static/texte.js`. Fehlt eine Uebersetzung, erscheint der deutsche Satz -
+unschoen, aber lesbar; ein Schluesselwort wie `befunde.leer` waere fuer
+niemanden zu gebrauchen. Damit daraus keine stille Nachlaessigkeit wird,
+prueft `tests/test_ui_sprachen.py`, dass jeder verwendete Text eine englische
+Fassung hat, dass kein Schluessel doppelt vergeben ist und dass die
+Platzhalter beider Fassungen uebereinstimmen.
+
+Drei Dinge sind dabei nicht offensichtlich:
+
+* **Die Prosa wird neu gebildet, nicht uebersetzt.** Vorbehalt zum
+  Pruefumfang, Einordnung eines Punktwerts, Dublettenbegruendung und
+  Vergleichszeile stehen in `lauf.json` als fertige deutsche Saetze. Die
+  Oberflaeche zeigt sie nicht von dort, sondern setzt sie aus den Zahlen neu
+  zusammen - sonst bliebe die englische Fassung an genau den Stellen deutsch,
+  auf die es ankommt. Der Wortlaut folgt dem des Berichts.
+* **Die Regeltexte stehen in `rules/i18n/en.yaml`**, nach Regel-ID. Die Datei
+  aendert nichts an der Pruefung und geht auch nicht in den Inhaltshash des
+  Katalogs ein: eine bessere Formulierung darf die Katalogversion nicht
+  veraendern, sonst saehe ein Laufvergleich nach einer Aenderung des Massstabs
+  aus. `tests/test_regeluebersetzung.py` haelt fest, dass jede Regel
+  uebersetzt ist.
+* **Die Meldungen der Lieferungspruefung tragen Vorlage und Werte getrennt.**
+  `validate/delivery.py` liefert neben dem fertigen deutschen Satz auch die
+  Vorlage mit Platzhaltern; die Oberflaeche bildet daraus die englische
+  Fassung. Ein Test liest die Vorlagen aus dem Quelltext und haelt sie gegen
+  das Woerterbuch - eine neue Meldung faellt damit sofort auf.
+
+Eine weitere Sprache braucht: einen Eintrag in `SPRACHEN`, ein zweites
+Woerterbuch in `texte.js` und eine Datei `rules/i18n/<kuerzel>.yaml`.
+
 ## Farben
 
 Die vier Schweregrade sind eine Statusskala mit fest belegten Stufen, keine
