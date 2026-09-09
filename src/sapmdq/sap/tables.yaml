@@ -1,24 +1,24 @@
-# Metadaten der unterstuetzten SAP-Tabellen (DDIC-Auszug).
+# Metadaten der unterstützten SAP-Tabellen (DDIC-Auszug).
 #
 # Diese Datei ist Daten, kein Code: neue Tabellen und Felder werden hier
-# gepflegt, ohne den Anwendungskern zu aendern (NFA-08). Ein Projekt kann die
-# Angaben ueber `sap_tables_overlay` in der Projektkonfiguration ergaenzen
-# oder uebersteuern.
+# gepflegt, ohne den Anwendungskern zu ändern (NFA-08). Ein Projekt kann die
+# Angaben über `sap_tables_overlay` in der Projektkonfiguration ergänzen
+# oder übersteuern.
 #
 # Feldangaben (alle optional, Standard ist ein Zeichenfeld ohne Konvertierung):
 #   type    : char | numc | dats | tims | curr | quan | dec | int | flag | lang
-#   alpha   : Feldlaenge -> ALPHA-Konvertierung, fuehrende Nullen werden
+#   alpha   : Feldlänge -> ALPHA-Konvertierung, führende Nullen werden
 #             wiederhergestellt (FA-103)
-#   aliases : beschreibende Spaltenueberschriften aus SE16N/Excel (FA-105)
+#   aliases : beschreibende Spaltenüberschriften aus SE16N/Excel (FA-105)
 #   pii     : Feld mit Personenbezug -> Pseudonymisierung (DS-05), Redaction
 #
 # tier: must | should | could  -> Datenanforderung an den Kunden (Kapitel 8)
 
 MANDT_ALIASES: &mandt_aliases [Mandant, Client, "Mandantennummer"]
 
-# Feldlaengen laut DDIC. Sie werden gebraucht, um abgeschnittene Feldinhalte
+# Feldlängen laut DDIC. Sie werden gebraucht, um abgeschnittene Feldinhalte
 # zu erkennen (FA-202) und um Werte zu melden, die nicht ins Zielfeld passen.
-# Die Angabe gilt global fuer den Feldnamen; abweichende Laengen stehen als
+# Die Angabe gilt global für den Feldnamen; abweichende Längen stehen als
 # "length" direkt am Feld der jeweiligen Tabelle (etwa ADRC-NAME1 mit 40).
 field_lengths:
   NAME1: 35
@@ -645,7 +645,7 @@ tables:
     fields:
       MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
       BANKS: {aliases: [Bankland]}
-      # In BNKA ist BANKL der Bankschluessel; die Bankleitzahl steht in BNKLZ.
+      # In BNKA ist BANKL der Bankschlüssel; die Bankleitzahl steht in BNKLZ.
       BANKL: {aliases: ["Bankschluessel"]}
       BANKA: {aliases: [Bankname, "Name der Bank"]}
       PROVZ: {aliases: [Region]}
@@ -671,9 +671,9 @@ tables:
       BKONT: {aliases: [Kontrollschluessel]}
       IBAN: {pii: true, aliases: [IBAN]}
 
-  # -------------------------------------------------------- Aenderungsbelege
+  # -------------------------------------------------------- Änderungsbelege
   CDHDR:
-    description: Aenderungsbelege - Kopf
+    description: Änderungsbelege - Kopf
     object_area: cross
     tier: could
     key: [MANDANT, OBJECTCLAS, OBJECTID, CHANGENR]
@@ -689,7 +689,7 @@ tables:
       CHANGE_IND: {aliases: ["Art der Aenderung"]}
 
   CDPOS:
-    description: Aenderungsbelege - Positionen
+    description: Änderungsbelege - Positionen
     object_area: cross
     tier: could
     key: [MANDANT, OBJECTCLAS, OBJECTID, CHANGENR, TABNAME, TABKEY, FNAME, CHNGIND]
@@ -725,8 +725,8 @@ tables:
       EMFTX: {pii: true, aliases: ["Name des Zahlungsempfaengers"]}
 
   # ------------------------------------------------------------ Customizing
-  # Klein im Volumen, unkritisch in der Freigabe - schalten ueberproportional
-  # viele Referenzintegritaetspruefungen frei (Kapitel 8.2).
+  # Klein im Volumen, unkritisch in der Freigabe - schalten überproportional
+  # viele Referenzintegritätsprüfungen frei (Kapitel 8.2).
   T001:
     description: Buchungskreise
     object_area: customizing
@@ -745,7 +745,7 @@ tables:
       KKBER: {aliases: [Kreditkontrollbereich]}
 
   T005:
-    description: Laender
+    description: Länder
     object_area: customizing
     tier: should
     key: [MANDT, LAND1]
@@ -809,7 +809,7 @@ tables:
       TXTNR: {aliases: [Textnummer]}
 
   TBSL:
-    description: Buchungsschluessel
+    description: Buchungsschlüssel
     object_area: customizing
     tier: should
     key: [BSCHL]
@@ -869,7 +869,7 @@ tables:
       XCPDK: {type: flag, aliases: [CpD-Kontengruppe]}
 
   # Erweitertes Customizing - nicht in Kapitel 8.2 gefordert, schaltet aber
-  # weitere Referenzintegritaetspruefungen frei, sobald geliefert.
+  # weitere Referenzintegritätsprüfungen frei, sobald geliefert.
   T001W:
     description: Werke
     object_area: customizing
@@ -938,7 +938,7 @@ tables:
       ISOCODE: {aliases: [ISO-Code]}
 
   TCURC:
-    description: Waehrungen
+    description: Währungen
     object_area: customizing
     tier: could
     key: [MANDT, WAERS]

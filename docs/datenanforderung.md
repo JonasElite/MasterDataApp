@@ -1,11 +1,11 @@
 # Datenanforderung an den Kunden
 
 Dieses Dokument nennt, welche Tabellen gebraucht werden und was ihre Lieferung
-freischaltet. Die Zahlen sind aus dem Regelkatalog abgeleitet und gelten fuer
+freischaltet. Die Zahlen sind aus dem Regelkatalog abgeleitet und gelten für
 den mitgelieferten Katalog in der Fassung 1.0.0+dcf842eef904.
 
 Die Spalte "Regeln" nennt, an wievielen Regeln die Tabelle beteiligt ist. Eine
-Regel braucht haeufig mehrere Tabellen - die Zahlen addieren sich deshalb
+Regel braucht häufig mehrere Tabellen - die Zahlen addieren sich deshalb
 nicht.
 
 ## Lieferformat
@@ -13,13 +13,13 @@ nicht.
 - Bevorzugt **Parquet** oder **CSV mit UTF-8**, Semikolon oder Tabulator als
   Trennzeichen
 - **Technische Feldnamen** (DDIC) in der Kopfzeile. Beschreibende
-  Ueberschriften werden erkannt, technische sind aber eindeutig.
-- **Keine Excel-Zwischenverarbeitung.** Excel verwirft fuehrende Nullen und
-  wandelt Datumswerte eigenmaechtig um. Das Werkzeug stellt fuehrende Nullen
-  ueber die ALPHA-Konvertierung wieder her, ein bereits zerstoertes Datum
+  Überschriften werden erkannt, technische sind aber eindeutig.
+- **Keine Excel-Zwischenverarbeitung.** Excel verwirft führende Nullen und
+  wandelt Datumswerte eigenmächtig um. Das Werkzeug stellt führende Nullen
+  über die ALPHA-Konvertierung wieder her, ein bereits zerstörtes Datum
   jedoch nicht.
 - Je Datei sind **Tabellenname, Mandant, Extraktionszeitpunkt und Satzanzahl**
-  zu dokumentieren - am einfachsten ueber den Begleitzettel.
+  zu dokumentieren - am einfachsten über den Begleitzettel.
 
 ## Begleitzettel
 
@@ -37,14 +37,14 @@ tables:
   LFB1: {rows: 131002, file: LFB1.csv}
 ```
 
-Ohne die gemeldete Satzanzahl laesst sich nicht pruefen, ob die Lieferung
-vollstaendig ist. Das Werkzeug weist in diesem Fall darauf hin und arbeitet
-weiter - die Aussagekraft des Ergebnisses ist dann aber eingeschraenkt.
+Ohne die gemeldete Satzanzahl lässt sich nicht prüfen, ob die Lieferung
+vollständig ist. Das Werkzeug weist in diesem Fall darauf hin und arbeitet
+weiter - die Aussagekraft des Ergebnisses ist dann aber eingeschränkt.
 
 
 ## Muss
 
-Ohne diese Tabellen ist der jeweilige Objektbereich nicht pruefbar.
+Ohne diese Tabellen ist der jeweilige Objektbereich nicht prüfbar.
 
 | Tabelle | Inhalt | Regeln | Bereich |
 |---|---|---|---|
@@ -63,13 +63,13 @@ Ohne diese Tabellen ist der jeweilige Objektbereich nicht pruefbar.
 
 ## Soll - Customizing
 
-Klein im Volumen, unkritisch in der Freigabe. Sie schalten ueberproportional viele Referenzintegritaetspruefungen frei: ohne sie laesst sich nicht feststellen, ob ein Verweis ins Leere zeigt.
+Klein im Volumen, unkritisch in der Freigabe. Sie schalten überproportional viele Referenzintegritätsprüfungen frei: ohne sie lässt sich nicht feststellen, ob ein Verweis ins Leere zeigt.
 
 | Tabelle | Inhalt | Regeln | Bereich |
 |---|---|---|---|
 | MAKT | Materialkurztexte | 3 | material |
 | BUT100 | Business Partner - Rollen | 2 | business_partner |
-| T005 | Laender | 2 | customizing |
+| T005 | Länder | 2 | customizing |
 | T052 | Zahlungsbedingungen | 2 | customizing |
 | T001 | Buchungskreise | 1 | customizing |
 | T042Z | Zahlwege | 1 | customizing |
@@ -78,20 +78,20 @@ Klein im Volumen, unkritisch in der Freigabe. Sie schalten ueberproportional vie
 | T007A | Steuerkennzeichen | 0 | customizing |
 | T059P | Quellensteuerarten | 0 | customizing |
 | T059Z | Quellensteuerkennzeichen | 0 | customizing |
-| TBSL | Buchungsschluessel | 0 | customizing |
+| TBSL | Buchungsschlüssel | 0 | customizing |
 
 ## Kann
 
-Erweitern die Pruefung um Bereiche, die sonst entfallen.
+Erweitern die Prüfung um Bereiche, die sonst entfallen.
 
 | Tabelle | Inhalt | Regeln | Bereich |
 |---|---|---|---|
 | LFBK | Kreditorenstamm - Bankverbindungen | 9 | vendor |
-| CDHDR | Aenderungsbelege - Kopf | 4 | cross |
+| CDHDR | Änderungsbelege - Kopf | 4 | cross |
 | SKB1 | Sachkontenstamm - Buchungskreis | 3 | customizing |
 | ADRC | Zentrale Adressverwaltung | 2 | cross |
 | BNKA | Bankenstamm | 2 | cross |
-| CDPOS | Aenderungsbelege - Positionen | 2 | cross |
+| CDPOS | Änderungsbelege - Positionen | 2 | cross |
 | KNBK | Debitorenstamm - Bankverbindungen | 2 | customer |
 | PA0009 | Personalstamm - Bankverbindung (nur falls geliefert, FA-407) | 2 | cross |
 | T025 | Bewertungsklassen | 2 | customizing |
@@ -100,35 +100,35 @@ Erweitern die Pruefung um Bereiche, die sonst entfallen.
 | T006 | Mengeneinheiten | 1 | customizing |
 | T023 | Warengruppen | 1 | customizing |
 | T024E | Einkaufsorganisationen | 1 | customizing |
-| TCURC | Waehrungen | 1 | customizing |
+| TCURC | Währungen | 1 | customizing |
 | TVKO | Verkaufsorganisationen | 1 | customizing |
 
-## Was ohne welche Tabelle entfaellt
+## Was ohne welche Tabelle entfällt
 
-Das Werkzeug beantwortet diese Frage fuer die konkrete Lieferung selbst:
+Das Werkzeug beantwortet diese Frage für die konkrete Lieferung selbst:
 
 ```bash
 sapmdq coverage -c projekt.yaml
 ```
 
 Die Ausgabe nennt den Coverage-Grad je Objektbereich und eine nach Wirkung
-sortierte Nachforderungsliste. Sie beruecksichtigt Ueberschneidungen: die
-Spalte "Kumuliert" gilt unter der Annahme, dass die darueber genannten Punkte
+sortierte Nachforderungsliste. Sie berücksichtigt Überschneidungen: die
+Spalte "Kumuliert" gilt unter der Annahme, dass die darüber genannten Punkte
 ebenfalls geliefert werden.
 
 ## Personenbezug
 
-Kreditoren- und Debitorenstaemme enthalten regelmaessig personenbezogene Daten:
+Kreditoren- und Debitorenstämme enthalten regelmäßig personenbezogene Daten:
 Einzelunternehmer, Ansprechpartner, Bankverbindungen. Der Personalstamm
-(PA0009) ist ausschliesslich personenbezogen und wird nur fuer die Pruefung auf
+(PA0009) ist ausschließlich personenbezogen und wird nur für die Prüfung auf
 Mitarbeiterbankverbindungen gebraucht (VEN-RISK-001, BP-RISK-001).
 
-Vor der ersten Datenlieferung ist die vertragliche Grundlage zu klaeren
+Vor der ersten Datenlieferung ist die vertragliche Grundlage zu klären
 (Annahme A-05). Wird auf den Personalstamm verzichtet, entfallen die
-zugehoerigen Regeln und erscheinen im Coverage-Report - alles andere laeuft
-unveraendert.
+zugehörigen Regeln und erscheinen im Coverage-Report - alles andere läuft
+unverändert.
 
 ## Weitere bekannte Tabellen
 
 Diese Tabellen kann das Werkzeug lesen, ohne dass eine mitgelieferte Regel sie
-verwendet. Sie sind fuer kundeneigene Regeln nutzbar: ADR6, SKA1, T001K, T007A, T059P, T059Z, TBSL, TIBAN.
+verwendet. Sie sind für kundeneigene Regeln nutzbar: ADR6, SKA1, T001K, T007A, T059P, T059Z, TBSL, TIBAN.

@@ -1,13 +1,13 @@
 """Logging-Einrichtung mit Schutz vor Klartext-Personenbezug (DS-07).
 
-Grundsatz: Feldinhalte aus Stammdaten gehoeren nicht in Logdateien. Weil sich
-das nicht allein durch Disziplin sicherstellen laesst, filtert ein
+Grundsatz: Feldinhalte aus Stammdaten gehören nicht in Logdateien. Weil sich
+das nicht allein durch Disziplin sicherstellen lässt, filtert ein
 ``RedactingFilter`` jede Logzeile gegen Muster, die typischerweise
 personenbeziehbare Werte tragen (IBAN, USt-IdNr, E-Mail, lange Ziffernfolgen).
 
-Schluesselwerte wie LIFNR/KUNNR/MATNR sind fuer die Nachvollziehbarkeit
+Schlüsselwerte wie LIFNR/KUNNR/MATNR sind für die Nachvollziehbarkeit
 notwendig und gelten hier nicht als Klartext-Personenbezug; sie erscheinen im
-Ergebnisbericht, der wie die Eingangsdaten geschuetzt abgelegt wird (DS-01).
+Ergebnisbericht, der wie die Eingangsdaten geschützt abgelegt wird (DS-01).
 """
 
 from __future__ import annotations
@@ -62,7 +62,7 @@ def setup_logging(
 ) -> logging.Logger:
     """Richtet Konsolen- und optionales Dateilogging ein.
 
-    Wiederholte Aufrufe ersetzen die Handler, damit Testlaeufe und mehrfach
+    Wiederholte Aufrufe ersetzen die Handler, damit Testläufe und mehrfach
     gestartete Kommandos keine doppelten Ausgaben erzeugen.
     """
     logger = logging.getLogger(LOGGER_NAME)

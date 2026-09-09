@@ -2,5 +2,5 @@
 
 Vier Schritte: normalisieren, blocken, vergleichen, gruppieren. Die
 Reihenfolge ist wesentlich - ohne Normalisierung findet der Vergleich zu
-wenig, ohne Blocking dauert er bei Millionen Saetzen zu lange.
+wenig, ohne Blocking dauert er bei Millionen Sätzen zu lange.
 """

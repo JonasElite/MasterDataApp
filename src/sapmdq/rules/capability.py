@@ -1,12 +1,12 @@
 """Capability-Matrix und Coverage-Report (FA-301 bis FA-305).
 
-Das ist der Kernmechanismus fuer den Umgang mit unvollstaendigen Lieferungen
+Das ist der Kernmechanismus für den Umgang mit unvollständigen Lieferungen
 (Annahme A-02). Statt bei einer fehlenden Tabelle abzubrechen oder - schlimmer -
-eine Regel stillschweigend zu uebergehen, wird vor dem Lauf bestimmt, welche
-Regeln ueberhaupt ausfuehrbar sind. Was nicht laufen kann, erscheint im
-Coverage-Report mit der Angabe, was dafuer fehlt.
+eine Regel stillschweigend zu übergehen, wird vor dem Lauf bestimmt, welche
+Regeln überhaupt ausführbar sind. Was nicht laufen kann, erscheint im
+Coverage-Report mit der Angabe, was dafür fehlt.
 
-Daraus folgt zweierlei: die Pruefungsaussage bekommt einen belastbaren
+Daraus folgt zweierlei: die Prüfungsaussage bekommt einen belastbaren
 Vorbehalt (FA-305), und der Kunde bekommt eine nach Wirkung sortierte
 Nachforderungsliste (FA-304).
 """
@@ -37,7 +37,7 @@ class RuleCapability:
 
     @property
     def reason(self) -> str:
-        """Begruendung in einem Satz - so steht sie im Coverage-Report."""
+        """Begründung in einem Satz - so steht sie im Coverage-Report."""
         if self.executable:
             return ""
         parts: list[str] = []
@@ -55,13 +55,13 @@ class RuleCapability:
 
 @dataclass
 class UnlockCandidate:
-    """Eine Tabelle, deren Nachlieferung weitere Pruefungen freischaltet (FA-304)."""
+    """Eine Tabelle, deren Nachlieferung weitere Prüfungen freischaltet (FA-304)."""
 
     table: str
     description: str
     tier: str
     #: False, wenn die Tabelle ganz fehlt; True, wenn sie geliefert wurde,
-    #: aber Felder fehlen. Der Unterschied ist fuer den Kunden wesentlich:
+    #: aber Felder fehlen. Der Unterschied ist für den Kunden wesentlich:
     #: im einen Fall muss er eine Tabelle nachliefern, im anderen denselben
     #: Export mit mehr Spalten wiederholen.
     delivered: bool = False
@@ -69,7 +69,7 @@ class UnlockCandidate:
     missing_fields: tuple[str, ...] = ()
     #: Regeln, die allein durch diese Tabelle blockiert sind.
     unlocked_rules: tuple[str, ...] = ()
-    #: Regeln, die zusaetzlich freigeschaltet werden, wenn die vorher
+    #: Regeln, die zusätzlich freigeschaltet werden, wenn die vorher
     #: genannten Tabellen ebenfalls geliefert werden.
     cumulative_rules: tuple[str, ...] = ()
 
@@ -82,7 +82,7 @@ class UnlockCandidate:
         """Nachforderung im Klartext."""
         if not self.delivered:
             return f"Tabelle {self.table} nachliefern"
-        return f"{self.table} erneut liefern, ergaenzt um " + ", ".join(self.missing_fields)
+        return f"{self.table} erneut liefern, ergänzt um " + ", ".join(self.missing_fields)
 
     @property
     def cumulative_count(self) -> int:
@@ -91,7 +91,7 @@ class UnlockCandidate:
 
 @dataclass
 class CoverageReport:
-    """Ergebnis der Abhaengigkeitspruefung (FA-303, FA-305)."""
+    """Ergebnis der Abhängigkeitsprüfung (FA-303, FA-305)."""
 
     capabilities: list[RuleCapability] = field(default_factory=list)
     delivered_tables: tuple[str, ...] = ()
@@ -113,11 +113,11 @@ class CoverageReport:
 
     @property
     def coverage_ratio(self) -> float:
-        """Anteil ausfuehrbarer Regeln - der Coverage-Grad (FA-305)."""
+        """Anteil ausführbarer Regeln - der Coverage-Grad (FA-305)."""
         return len(self.executable) / self.total if self.total else 0.0
 
     def coverage_by_area(self) -> dict[str, tuple[int, int]]:
-        """Ausfuehrbare und gesamte Regeln je Objektbereich."""
+        """Ausführbare und gesamte Regeln je Objektbereich."""
         result: dict[str, list[int]] = defaultdict(lambda: [0, 0])
         for capability in self.capabilities:
             entry = result[capability.rule.object_area]
@@ -133,13 +133,13 @@ class CoverageReport:
 
 @dataclass
 class UnlockCandidate:
-    """Eine Tabelle, deren Nachlieferung weitere Pruefungen freischaltet (FA-304)."""
+    """Eine Tabelle, deren Nachlieferung weitere Prüfungen freischaltet (FA-304)."""
 
     table: str
     description: str
     tier: str
     #: False, wenn die Tabelle ganz fehlt; True, wenn sie geliefert wurde,
-    #: aber Felder fehlen. Der Unterschied ist fuer den Kunden wesentlich:
+    #: aber Felder fehlen. Der Unterschied ist für den Kunden wesentlich:
     #: im einen Fall muss er eine Tabelle nachliefern, im anderen denselben
     #: Export mit mehr Spalten wiederholen.
     delivered: bool = False
@@ -147,7 +147,7 @@ class UnlockCandidate:
     missing_fields: tuple[str, ...] = ()
     #: Regeln, die allein durch diese Tabelle blockiert sind.
     unlocked_rules: tuple[str, ...] = ()
-    #: Regeln, die zusaetzlich freigeschaltet werden, wenn die vorher
+    #: Regeln, die zusätzlich freigeschaltet werden, wenn die vorher
     #: genannten Tabellen ebenfalls geliefert werden.
     cumulative_rules: tuple[str, ...] = ()
 
@@ -160,7 +160,7 @@ class UnlockCandidate:
         """Nachforderung im Klartext."""
         if not self.delivered:
             return f"Tabelle {self.table} nachliefern"
-        return f"{self.table} erneut liefern, ergaenzt um " + ", ".join(self.missing_fields)
+        return f"{self.table} erneut liefern, ergänzt um " + ", ".join(self.missing_fields)
 
     @property
     def cumulative_count(self) -> int:
@@ -169,7 +169,7 @@ class UnlockCandidate:
 
 @dataclass
 class CoverageReport:
-    """Ergebnis der Abhaengigkeitspruefung (FA-303, FA-305)."""
+    """Ergebnis der Abhängigkeitsprüfung (FA-303, FA-305)."""
 
     capabilities: list[RuleCapability] = field(default_factory=list)
     delivered_tables: tuple[str, ...] = ()
@@ -191,11 +191,11 @@ class CoverageReport:
 
     @property
     def coverage_ratio(self) -> float:
-        """Anteil ausfuehrbarer Regeln - der Coverage-Grad (FA-305)."""
+        """Anteil ausführbarer Regeln - der Coverage-Grad (FA-305)."""
         return len(self.executable) / self.total if self.total else 0.0
 
     def coverage_by_area(self) -> dict[str, tuple[int, int]]:
-        """Ausfuehrbare und gesamte Regeln je Objektbereich."""
+        """Ausführbare und gesamte Regeln je Objektbereich."""
         result: dict[str, list[int]] = defaultdict(lambda: [0, 0])
         for capability in self.capabilities:
             entry = result[capability.rule.object_area]
@@ -205,7 +205,7 @@ class CoverageReport:
         return {area: (values[0], values[1]) for area, values in sorted(result.items())}
 
     def coverage_by_category(self) -> dict[str, tuple[int, int]]:
-        """Ausfuehrbare und gesamte Regeln je Kategorie."""
+        """Ausführbare und gesamte Regeln je Kategorie."""
         result: dict[str, list[int]] = defaultdict(lambda: [0, 0])
         for capability in self.capabilities:
             entry = result[capability.rule.category.label]
@@ -243,34 +243,34 @@ class CoverageReport:
         return {table: tuple(sorted(fields)) for table, fields in sorted(result.items())}
 
     def qualification(self) -> str:
-        """Vorbehalt zur Pruefungsaussage im Klartext (FA-305).
+        """Vorbehalt zur Prüfungsaussage im Klartext (FA-305).
 
-        Dieser Satz gehoert in jeden Bericht. Ohne ihn wird ein Ergebnis mit
+        Dieser Satz gehört in jeden Bericht. Ohne ihn wird ein Ergebnis mit
         60 Prozent Coverage genauso gelesen wie eines mit 100 Prozent.
         """
         executable = len(self.executable)
         blocked = len(self.blocked)
         if self.total == 0:
-            return "Es waren keine Regeln aktiv. Die Lieferung wurde nicht fachlich geprueft."
+            return "Es waren keine Regeln aktiv. Die Lieferung wurde nicht fachlich geprüft."
         if blocked == 0:
             return (
-                f"Alle {self.total} aktiven Regeln waren ausfuehrbar. Die Aussage stuetzt "
-                "sich auf den vollstaendigen Regelkatalog."
+                f"Alle {self.total} aktiven Regeln waren ausführbar. Die Aussage stützt "
+                "sich auf den vollständigen Regelkatalog."
             )
         top = ", ".join(list(self.blocking_tables())[:5])
         return (
-            f"Von {self.total} aktiven Regeln waren {executable} ausfuehrbar "
+            f"Von {self.total} aktiven Regeln waren {executable} ausführbar "
             f"({self.coverage_ratio:.0%}). {blocked} Regeln konnten nicht laufen, weil "
             f"Tabellen oder Felder fehlen (vor allem {top}). Die Aussage dieses Berichts "
-            "gilt ausschliesslich fuer die ausgefuehrten Pruefungen; zu den entfallenen "
-            "Pruefungen ist keine Aussage moeglich - weder positiv noch negativ."
+            "gilt ausschließlich für die ausgeführten Prüfungen; zu den entfallenen "
+            "Prüfungen ist keine Aussage möglich - weder positiv noch negativ."
         )
 
 
 def _evaluate_rule(
     rule: Rule, available: Mapping[str, frozenset[str]]
 ) -> RuleCapability:
-    """Prueft die Abhaengigkeiten einer Regel gegen die Lieferung (FA-302)."""
+    """Prüft die Abhängigkeiten einer Regel gegen die Lieferung (FA-302)."""
     missing_tables = tuple(
         sorted(table for table in rule.requires.all_tables if table not in available)
     )
@@ -299,15 +299,15 @@ def _build_demand_list(
     """Erstellt die priorisierte Nachforderungsliste (FA-304).
 
     Die Liste beantwortet die Frage des Kunden "was bringt es mir, wenn ich
-    noch etwas liefere". Sie wird gierig aufgebaut: zuerst die Tabelle, die
+    noch etwas liefere". Sie wird gierig aufgebaut: zürst die Tabelle, die
     allein die meisten Regeln freischaltet, dann - unter der Annahme, dass
-    diese geliefert wird - die naechste. So entsteht die Aussage "diese vier
-    Tabellen schalten 26 weitere Pruefungen frei" statt vier Einzelzahlen,
-    die sich ueberschneiden.
+    diese geliefert wird - die nächste. So entsteht die Aussage "diese vier
+    Tabellen schalten 26 weitere Prüfungen frei" statt vier Einzelzahlen,
+    die sich überschneiden.
 
     Fehlende Felder einer gelieferten Tabelle werden wie eine eigene
     Nachforderung behandelt: auch eine Tabelle, die schon da ist, kann
-    unvollstaendig geliefert worden sein.
+    unvollständig geliefert worden sein.
     """
     outstanding = {capability.rule.id: capability for capability in blocked}
     assumed: set[str] = set()
@@ -315,7 +315,7 @@ def _build_demand_list(
     cumulative: list[str] = []
 
     while outstanding and len(candidates) < limit:
-        # Wie viele der noch offenen Regeln haengen nur noch an je einer Tabelle?
+        # Wie viele der noch offenen Regeln hängen nur noch an je einer Tabelle?
         unlocks: dict[str, list[str]] = defaultdict(list)
         for rule_id, capability in outstanding.items():
             remaining = capability.blocking_tables - assumed
@@ -324,7 +324,7 @@ def _build_demand_list(
 
         if not unlocks:
             # Alle verbleibenden Regeln brauchen mehr als eine weitere
-            # Tabelle. Dann zaehlt, wie oft eine Tabelle ueberhaupt gebraucht
+            # Tabelle. Dann zählt, wie oft eine Tabelle überhaupt gebraucht
             # wird, damit die Liste nicht vorzeitig abbricht.
             for rule_id, capability in outstanding.items():
                 for table in capability.blocking_tables - assumed:
@@ -370,7 +370,7 @@ def build_coverage(
     available_columns: Mapping[str, frozenset[str]],
     registry: TableRegistry | None = None,
 ) -> CoverageReport:
-    """Bestimmt die ausfuehrbaren Regeln und den Coverage-Report.
+    """Bestimmt die ausführbaren Regeln und den Coverage-Report.
 
     ``available_columns`` bildet je gelieferter Tabelle die vorhandenen
     Spalten ab. Eine Tabelle ohne Eintrag gilt als nicht geliefert.
@@ -386,9 +386,9 @@ def build_coverage(
     report.demand_list = _build_demand_list(report.blocked, normalized, registry)
 
     logger.info(
-        "Capability-Matrix: %d von %d Regeln ausfuehrbar (%.0f%% Coverage)",
+        "Capability-Matrix: %d von %d Regeln ausführbar (%.0f%% Coverage)",
         len(report.executable), report.total, report.coverage_ratio * 100,
     )
     for capability in report.blocked:
-        logger.debug("Regel %s entfaellt: %s", capability.rule.id, capability.reason)
+        logger.debug("Regel %s entfällt: %s", capability.rule.id, capability.reason)
     return report

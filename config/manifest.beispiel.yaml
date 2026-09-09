@@ -1,9 +1,9 @@
 # Begleitzettel der Datenlieferung
 #
-# Diese Datei legt der Kunde seiner Lieferung bei (Kapitel 8.4). Sie gehoert
-# in das Eingangsverzeichnis und heisst dort "manifest.yaml".
+# Diese Datei legt der Kunde seiner Lieferung bei (Kapitel 8.4). Sie gehört
+# in das Eingangsverzeichnis und heißt dort "manifest.yaml".
 #
-# Ohne sie laesst sich nicht pruefen, ob die Lieferung vollstaendig ist -
+# Ohne sie lässt sich nicht prüfen, ob die Lieferung vollständig ist -
 # der Satzanzahlabgleich nach FA-201 braucht eine Gegenzahl.
 
 delivery:

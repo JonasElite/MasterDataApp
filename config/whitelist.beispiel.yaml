@@ -1,10 +1,10 @@
 # Dauerhafte Ausnahmen (FA-602)
 #
-# Jede Ausnahme braucht eine Begruendung und sollte benennen, wer sie erteilt
+# Jede Ausnahme braucht eine Begründung und sollte benennen, wer sie erteilt
 # hat. Ein Ablaufdatum ist empfehlenswert: eine Ausnahme, die niemand mehr
-# ueberprueft, wird mit der Zeit zur Luecke.
+# überprüft, wird mit der Zeit zur Lücke.
 #
-# Diese Datei ueberdauert Folgelieferungen und gehoert in die Versionsverwaltung.
+# Diese Datei überdauert Folgelieferungen und gehört in die Versionsverwaltung.
 
 entries: []
 #  - rule_id: VEN-DUP-002

@@ -1,12 +1,12 @@
-"""Fachliche Schnittstelle der Oberflaeche.
+"""Fachliche Schnittstelle der Oberfläche.
 
 Die Funktionen hier kennen kein HTTP. Sie nehmen den Zustand und die
-Aufrufparameter, liefern Datenstrukturen zurueck und werfen ``ApiFehler``,
-wenn etwas nicht stimmt. Das macht sie ohne laufenden Server pruefbar.
+Aufrufparameter, liefern Datenstrukturen zurück und werfen ``ApiFehler``,
+wenn etwas nicht stimmt. Das macht sie ohne laufenden Server prüfbar.
 
 Befunde werden nicht in den Speicher geladen, sondern bei jeder Anfrage aus
-der Parquet-Datei gelesen und dort gefiltert und geblaettert. Eine Oberflaeche,
-die eine Million Befunde vorhaelt, waere weder schnell noch sparsam.
+der Parquet-Datei gelesen und dort gefiltert und geblättert. Eine Oberfläche,
+die eine Million Befunde vorhält, wäre weder schnell noch sparsam.
 """
 
 from __future__ import annotations
@@ -34,14 +34,14 @@ from sapmdq.util.timeutil import parse_date
 
 logger = get_logger("ui.api")
 
-#: Hoechstzahl Befunde je Seite. Verhindert, dass ein Aufruf die Oberflaeche
-#: mit hunderttausend Zeilen belaedt.
+#: Höchstzahl Befunde je Seite. Verhindert, dass ein Aufruf die Oberfläche
+#: mit hunderttausend Zeilen belädt.
 MAX_PAGE_SIZE = 200
 
 
 @dataclass
 class ApiFehler(Exception):
-    """Ein Aufruf war nicht ausfuehrbar."""
+    """Ein Aufruf war nicht ausführbar."""
 
     meldung: str
     status: int = 400
@@ -88,9 +88,9 @@ def projekt(state: UiState) -> dict[str, Any]:
     }
 
 
-# ----------------------------------------------------------------------- Laeufe
+# ----------------------------------------------------------------------- Läufe
 def laeufe(state: UiState) -> dict[str, Any]:
-    """Liste aller Laeufe, neueste zuerst."""
+    """Liste aller Läufe, neueste zürst."""
     eintraege: list[dict[str, Any]] = []
     if state.runs_dir.is_dir():
         for verzeichnis in sorted(state.runs_dir.iterdir(), reverse=True):
@@ -104,8 +104,8 @@ def laeufe(state: UiState) -> dict[str, Any]:
                     {
                         "lauf_id": verzeichnis.name,
                         "unvollstaendig": True,
-                        # Ohne Zusammenfassung laesst sich der Lauf nicht
-                        # anzeigen, aber sehr wohl vergleichen - dafuer reicht
+                        # Ohne Zusammenfassung lässt sich der Lauf nicht
+                        # anzeigen, aber sehr wohl vergleichen - dafür reicht
                         # die Befunddatei.
                         "vergleichbar": (verzeichnis / "befunde.parquet").is_file(),
                         "verzeichnis": str(verzeichnis),
@@ -139,7 +139,7 @@ def laeufe(state: UiState) -> dict[str, Any]:
 
 
 def lauf(state: UiState, lauf_id: str) -> dict[str, Any]:
-    """Vollstaendige Zusammenfassung eines Laufs."""
+    """Vollständige Zusammenfassung eines Laufs."""
     verzeichnis = state.lauf_verzeichnis(lauf_id)
     if verzeichnis is None:
         raise ApiFehler(f"Lauf {lauf_id} nicht gefunden.", 404)
@@ -166,11 +166,11 @@ def _befunddatei(state: UiState, lauf_id: str) -> Path:
 
 
 def _bedingungen(werte: Mapping[str, list[str]]) -> tuple[list[str], list[Any]]:
-    """Uebersetzt die Filter der Oberflaeche in SQL-Bedingungen.
+    """Übersetzt die Filter der Oberfläche in SQL-Bedingungen.
 
-    Die Werte werden als Parameter uebergeben und nicht in den Text
-    eingesetzt - eine Suchanfrage aus der Oberflaeche darf die Abfrage nicht
-    veraendern koennen.
+    Die Werte werden als Parameter übergeben und nicht in den Text
+    eingesetzt - eine Suchanfrage aus der Oberfläche darf die Abfrage nicht
+    verändern können.
     """
     bedingungen: list[str] = []
     parameter: list[Any] = []
@@ -206,10 +206,10 @@ def _bedingungen(werte: Mapping[str, list[str]]) -> tuple[list[str], list[Any]]:
 def _pflegestand(state: UiState) -> tuple[Any, Any]:
     """Liest Statusdatei und Ausnahmeliste in ihrem heutigen Stand.
 
-    Die Befunddatei eines Laufs haelt den Stand von damals fest und wird nicht
-    nachtraeglich veraendert - der Bericht muss zu ihr passen. Wer aber gerade
-    in der Oberflaeche einen Stand gesetzt hat, will ihn auch sehen. Deshalb
-    wird die gespeicherte Pflege ueber die Anzeige gelegt und als
+    Die Befunddatei eines Laufs hält den Stand von damals fest und wird nicht
+    nachträglich verändert - der Bericht muss zu ihr passen. Wer aber gerade
+    in der Oberfläche einen Stand gesetzt hat, will ihn auch sehen. Deshalb
+    wird die gespeicherte Pflege über die Anzeige gelegt und als
     ``noch_nicht_im_bericht`` gekennzeichnet.
     """
     config = state.neu_laden()
@@ -220,7 +220,7 @@ def _pflegestand(state: UiState) -> tuple[Any, Any]:
 
 
 def _ueberlagern(zeile: dict[str, Any], speicher: Any, liste: Any) -> dict[str, Any]:
-    """Legt den heutigen Pflegestand ueber einen Befund aus der Laufdatei."""
+    """Legt den heutigen Pflegestand über einen Befund aus der Laufdatei."""
     offen = False
 
     eintrag = speicher.get(zeile["finding_id"])
@@ -256,7 +256,7 @@ def befunde(state: UiState, lauf_id: str, werte: Mapping[str, list[str]]) -> dic
         seite = max(int(_erste(werte, "seite", "1")), 1)
         groesse = min(max(int(_erste(werte, "groesse", "50")), 1), MAX_PAGE_SIZE)
     except ValueError:
-        raise ApiFehler("Seitenangaben muessen Zahlen sein.") from None
+        raise ApiFehler("Seitenangaben müssen Zahlen sein.") from None
 
     with duckdb.connect() as con:
         gesamt = con.execute(f"SELECT count(*) FROM {quelle}{where}", parameter).fetchone()[0]
@@ -288,7 +288,7 @@ def befunde(state: UiState, lauf_id: str, werte: Mapping[str, list[str]]) -> dic
 
 
 def befund(state: UiState, lauf_id: str, finding_id: str) -> dict[str, Any]:
-    """Ein einzelner Befund mit Details und der zugehoerigen Regel."""
+    """Ein einzelner Befund mit Details und der zugehörigen Regel."""
     pfad = _befunddatei(state, lauf_id)
     quelle = f"read_parquet({quote_literal(str(pfad))})"
 
@@ -319,7 +319,7 @@ def befund(state: UiState, lauf_id: str, finding_id: str) -> dict[str, Any]:
         ergebnis["detail"] = {}
 
     # Regelbeschreibung und Handlungsempfehlung aus der Laufzusammenfassung -
-    # sie gilt fuer diesen Lauf und nicht fuer den heutigen Katalogstand.
+    # sie gilt für diesen Lauf und nicht für den heutigen Katalogstand.
     zusammenfassung = read_summary(state.lauf_verzeichnis(lauf_id) or Path())
     if zusammenfassung:
         for regel in zusammenfassung.get("coverage", {}).get("regeln", []):
@@ -331,12 +331,12 @@ def befund(state: UiState, lauf_id: str, finding_id: str) -> dict[str, Any]:
 
 # -------------------------------------------------------------------- Dubletten
 def dubletten(state: UiState, lauf_id: str) -> dict[str, Any]:
-    """Alle Dublettencluster eines Laufs, gross zuerst.
+    """Alle Dublettencluster eines Laufs, groß zürst.
 
     Eigener Aufruf und nicht ein Filter auf die Befundliste: ein Cluster wird
     mit seinen Mitgliedern und deren verglichenen Feldern gebraucht, damit die
-    Oberflaeche sie nebeneinanderstellen kann. Das aus der Liste heraus je
-    Cluster einzeln nachzuladen waere eine Abfrage je Zeile.
+    Oberfläche sie nebeneinanderstellen kann. Das aus der Liste heraus je
+    Cluster einzeln nachzuladen wäre eine Abfrage je Zeile.
     """
     pfad = _befunddatei(state, lauf_id)
     quelle = f"read_parquet({quote_literal(str(pfad))})"
@@ -378,7 +378,7 @@ def dubletten(state: UiState, lauf_id: str) -> dict[str, Any]:
         _ueberlagern(eintrag, speicher, liste)
         cluster.append(eintrag)
 
-    # Grosse Cluster zuerst: sie binden die meiste Bereinigungsarbeit und
+    # Große Cluster zürst: sie binden die meiste Bereinigungsarbeit und
     # eignen sich am besten, um das Verfahren zu zeigen.
     cluster.sort(key=lambda e: (-e["anzahl_saetze"], e["rule_id"], e["schluessel"]))
 
@@ -387,8 +387,8 @@ def dubletten(state: UiState, lauf_id: str) -> dict[str, Any]:
         "cluster": cluster,
         "anzahl_cluster": len(cluster),
         "betroffene_saetze": betroffene,
-        # Was eine Bereinigung an Stammsaetzen einspart: je Cluster bleibt
-        # einer stehen, die uebrigen entfallen.
+        # Was eine Bereinigung an Stammsätzen einspart: je Cluster bleibt
+        # einer stehen, die übrigen entfallen.
         "einsparung": betroffene - len(cluster),
         "je_regel": _je_regel(cluster),
     }
@@ -456,16 +456,16 @@ def ausnahme_setzen(state: UiState, daten: Mapping[str, Any]) -> dict[str, Any]:
     begruendung = str(daten.get("begruendung", "")).strip()
     if not begruendung:
         raise ApiFehler(
-            "Eine Ausnahme braucht eine Begruendung. Ohne sie ist sie in einer "
-            "prueffesten Auswertung nicht vertretbar."
+            "Eine Ausnahme braucht eine Begründung. Ohne sie ist sie in einer "
+            "prüffesten Auswertung nicht vertretbar."
         )
     if not any(daten.get(feld) for feld in ("finding_id", "regel", "schluessel", "muster")):
-        raise ApiFehler("Die Ausnahme muss benennen, wofuer sie gilt.")
+        raise ApiFehler("Die Ausnahme muss benennen, wofür sie gilt.")
 
     ablauf = str(daten.get("laeuft_ab", "")).strip()
     ablaufdatum = parse_date(ablauf) if ablauf else None
     if ablauf and ablaufdatum is None:
-        raise ApiFehler(f"'{ablauf}' ist kein gueltiges Datum.")
+        raise ApiFehler(f"'{ablauf}' ist kein gültiges Datum.")
 
     liste = load_whitelist(pfad)
     eintrag = WhitelistEntry(
@@ -486,14 +486,14 @@ def ausnahme_setzen(state: UiState, daten: Mapping[str, Any]) -> dict[str, Any]:
         "aufgenommen": True,
         "geltungsbereich": eintrag.scope_description,
         "hinweis": (
-            "Die Ausnahme wirkt ab dem naechsten Lauf. Der aktuelle Bericht "
-            "bleibt unveraendert - er ist bereits geschrieben."
+            "Die Ausnahme wirkt ab dem nächsten Lauf. Der aktuelle Bericht "
+            "bleibt unverändert - er ist bereits geschrieben."
         ),
     }
 
 
 def ausnahme_entfernen(state: UiState, daten: Mapping[str, Any]) -> dict[str, Any]:
-    """Nimmt eine Ausnahme zurueck."""
+    """Nimmt eine Ausnahme zurück."""
     config = state.neu_laden()
     pfad = config.findings.whitelist_file
     if pfad is None or not pfad.is_file():
@@ -549,13 +549,13 @@ def status_setzen(state: UiState, daten: Mapping[str, Any]) -> dict[str, Any]:
     save_status(speicher, pfad)
     return {
         "gesetzt": stand.value,
-        "hinweis": "Der Stand wird beim naechsten Lauf in den Bericht uebernommen.",
+        "hinweis": "Der Stand wird beim nächsten Lauf in den Bericht übernommen.",
     }
 
 
 # -------------------------------------------------------------------- Lauf
 def lauf_starten(state: UiState, daten: Mapping[str, Any]) -> dict[str, Any]:
-    """Startet einen Pruefungslauf im Hintergrund."""
+    """Startet einen Prüfungslauf im Hintergrund."""
     gestartet, meldung = state.lauf_starten(force=bool(daten.get("force")))
     if not gestartet:
         raise ApiFehler(meldung, 409)
@@ -569,15 +569,15 @@ def fortschritt(state: UiState) -> dict[str, Any]:
 
 # ------------------------------------------------------------------ Vergleich
 def vergleich(state: UiState, werte: Mapping[str, list[str]]) -> dict[str, Any]:
-    """Vergleicht zwei Laeufe (FA-605)."""
+    """Vergleicht zwei Läufe (FA-605)."""
     from sapmdq.findings.delta import compare_runs
 
     vorher_id = _erste(werte, "vorher")
     jetzt_id = _erste(werte, "jetzt")
     if not vorher_id or not jetzt_id:
-        raise ApiFehler("Es muessen zwei Laeufe benannt werden.")
+        raise ApiFehler("Es müssen zwei Läufe benannt werden.")
     if vorher_id == jetzt_id:
-        raise ApiFehler("Ein Lauf laesst sich nicht mit sich selbst vergleichen.")
+        raise ApiFehler("Ein Lauf lässt sich nicht mit sich selbst vergleichen.")
 
     vorher = _befunddatei(state, vorher_id)
     jetzt = _befunddatei(state, jetzt_id)
@@ -593,16 +593,16 @@ def vergleich(state: UiState, werte: Mapping[str, list[str]]) -> dict[str, Any]:
     warnungen = []
     if katalog_a and katalog_b and katalog_a != katalog_b:
         warnungen.append(
-            f"Die Laeufe haben unterschiedliche Regelkataloge benutzt ({katalog_a} "
-            f"gegen {katalog_b}). Die Differenz zeigt dann auch die Aenderung des "
-            "Massstabs und nicht allein den Fortschritt der Daten."
+            f"Die Läufe haben unterschiedliche Regelkataloge benutzt ({katalog_a} "
+            f"gegen {katalog_b}). Die Differenz zeigt dann auch die Änderung des "
+            "Maßstabs und nicht allein den Fortschritt der Daten."
         )
     anteil_a = a.get("coverage", {}).get("anteil")
     anteil_b = b.get("coverage", {}).get("anteil")
     if anteil_a is not None and anteil_b is not None and anteil_a != anteil_b:
         warnungen.append(
-            f"Der Coverage-Grad hat sich geaendert ({anteil_a:.0%} gegen "
-            f"{anteil_b:.0%}). Es wurde nicht dasselbe geprueft."
+            f"Der Coverage-Grad hat sich geändert ({anteil_a:.0%} gegen "
+            f"{anteil_b:.0%}). Es wurde nicht dasselbe geprüft."
         )
 
     return {

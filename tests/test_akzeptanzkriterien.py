@@ -1,7 +1,7 @@
 """Nachweis der Akzeptanzkriterien AK-01 bis AK-07 (Kapitel 9).
 
-Diese Datei ist der Abnahmenachweis. Jede Klasse steht fuer ein Kriterium des
-Requirements-Dokuments und prueft es an einer Lieferung, nicht an einer
+Diese Datei ist der Abnahmenachweis. Jede Klasse steht für ein Kriterium des
+Requirements-Dokuments und prüft es an einer Lieferung, nicht an einer
 Einzelfunktion.
 """
 
@@ -50,11 +50,11 @@ def datei_hash(pfad: Path) -> str:
 
 
 class TestAK01VollstaendigeLieferung:
-    """AK-01: Eine vollstaendige Lieferung wird ohne manuelle Nacharbeit verarbeitet.
+    """AK-01: Eine vollständige Lieferung wird ohne manuelle Nacharbeit verarbeitet.
 
-    Das Kriterium nennt eine Million Kreditorensaetze. Der Nachweis der
-    Datenmenge gehoert in einen Lasttest gegen echte Hardware; hier wird
-    geprueft, dass eine vollstaendige Lieferung ohne jeden Eingriff durchlaeuft
+    Das Kriterium nennt eine Million Kreditorensätze. Der Nachweis der
+    Datenmenge gehört in einen Lasttest gegen echte Hardware; hier wird
+    geprüft, dass eine vollständige Lieferung ohne jeden Eingriff durchläuft
     und ein Ergebnis erzeugt.
     """
 
@@ -68,7 +68,7 @@ class TestAK01VollstaendigeLieferung:
 
 
 class TestAK02UnvollstaendigeLieferung:
-    """AK-02: Ohne LFB1 laeuft das Werkzeug fehlerfrei und weist die entfallenen
+    """AK-02: Ohne LFB1 läuft das Werkzeug fehlerfrei und weist die entfallenen
     Regeln im Coverage-Report aus."""
 
     @pytest.fixture
@@ -94,7 +94,7 @@ class TestAK02UnvollstaendigeLieferung:
     def test_entfallene_regeln_werden_ausgewiesen(self, tmp_path, ohne_lfb1):
         ergebnis = execute_run(load_config(projekt_anlegen(tmp_path, ohne_lfb1)), quiet=True)
         entfallen = {c.rule.id for c in ergebnis.coverage.blocked}
-        assert entfallen, "es muessen Regeln entfallen sein"
+        assert entfallen, "es müssen Regeln entfallen sein"
         assert all("LFB1" in c.reason for c in ergebnis.coverage.blocked if "LFB1" in c.blocking_tables)
         assert "LFB1" in ergebnis.coverage.missing_tables()
 
@@ -107,12 +107,12 @@ class TestAK02UnvollstaendigeLieferung:
         """FA-305."""
         ergebnis = execute_run(load_config(projekt_anlegen(tmp_path, ohne_lfb1)), quiet=True)
         bericht = (ergebnis.run_dir / "management_summary.md").read_text(encoding="utf-8")
-        assert "keine Aussage moeglich" in bericht
+        assert "keine Aussage möglich" in bericht
         assert "Coverage" in bericht
 
 
 class TestAK03FuehrendeNullen:
-    """AK-03: Fuehrende Nullen bleiben ueber den gesamten Verarbeitungsweg erhalten."""
+    """AK-03: Führende Nullen bleiben über den gesamten Verarbeitungsweg erhalten."""
 
     def test_von_der_eingangsdatei_bis_in_den_befund(self, tmp_path, beispiellieferung):
         ergebnis = execute_run(load_config(projekt_anlegen(tmp_path, beispiellieferung)), quiet=True)
@@ -138,13 +138,13 @@ class TestAK03FuehrendeNullen:
         mappe = openpyxl.load_workbook(ergebnis.run_dir / "befunde.xlsx")
         blatt = mappe["Befunde"]
         spalten = [zelle.value for zelle in next(blatt.iter_rows(min_row=1, max_row=1))]
-        index = spalten.index("Schluessel")
+        index = spalten.index("Schlüssel")
         werte = [zeile[index].value for zeile in blatt.iter_rows(min_row=2, max_row=6)]
         assert any(str(wert).startswith("0000") for wert in werte if wert)
 
 
 class TestAK04Reproduzierbarkeit:
-    """AK-04: Zwei identische Laeufe liefern identische Ergebnisdateien."""
+    """AK-04: Zwei identische Läufe liefern identische Ergebnisdateien."""
 
     def test_bitgleiche_befunddatei(self, tmp_path, beispiellieferung):
         erster = execute_run(load_config(projekt_anlegen(tmp_path / "a", beispiellieferung)), quiet=True)
@@ -219,7 +219,7 @@ class TestAK06Whitelisting:
         whitelist = tmp_path / "whitelist.yaml"
         whitelist.write_text(
             f"entries:\n  - finding_id: {finding_id}\n"
-            "    reason: Fachlich geprueft und bewusst so belassen\n"
+            "    reason: Fachlich geprüft und bewusst so belassen\n"
             "    approved_by: Testfall\n",
             encoding="utf-8",
         )
@@ -266,8 +266,8 @@ class TestAK06Whitelisting:
 
 
 class TestAK07Erweiterbarkeit:
-    """AK-07: Der Regelkatalog laesst sich um eine neue Regel erweitern, ohne
-    Anwendungscode zu aendern."""
+    """AK-07: Der Regelkatalog lässt sich um eine neue Regel erweitern, ohne
+    Anwendungscode zu ändern."""
 
     def test_neue_regel_allein_durch_eine_yaml_datei(self, tmp_path, beispiellieferung):
         eigene = tmp_path / "eigene_regeln"
@@ -278,7 +278,7 @@ id: KDE-COMP-001
 name: Kreditor ohne Telefonnummer
 description: >
   Kundenspezifische Regel. Bei diesem Kunden ist die Telefonnummer
-  Pflichtfeld, weil die Bestellabwicklung telefonisch rueckfragt.
+  Pflichtfeld, weil die Bestellabwicklung telefonisch rückfragt.
 category: completeness
 severity: medium
 version: "1.0.0"

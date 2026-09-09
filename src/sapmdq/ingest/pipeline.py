@@ -1,10 +1,10 @@
 """Ingestion-Pipeline: von der Eingangsdatei zur normalisierten Parquet-Datei.
 
 Ablauf je Datei: Format erkennen, Hash bilden, roh einlesen, Spalten auf
-technische Feldnamen abbilden, Werte konvertieren. Anschliessend werden
-Dateien derselben Tabelle zusammengefuehrt, gefiltert und als Parquet im
+technische Feldnamen abbilden, Werte konvertieren. Anschließend werden
+Dateien derselben Tabelle zusammengeführt, gefiltert und als Parquet im
 Arbeitsverzeichnis abgelegt. Ab diesem Punkt arbeitet der Rest des Werkzeugs
-nur noch mit diesen Zwischenstaenden - der Lauf ist ohne erneutes Einlesen
+nur noch mit diesen Zwischenständen - der Lauf ist ohne erneutes Einlesen
 wiederaufsetzbar (Architekturprinzip Kapitel 7).
 """
 
@@ -45,8 +45,8 @@ _DUCKDB_TYPES = {
     "int": "DOUBLE",
 }
 
-#: Hoechstzahl unterschiedlicher Werte, die je Spalte fuer die
-#: Plausibilitaetspruefung gesammelt werden.
+#: Höchstzahl unterschiedlicher Werte, die je Spalte für die
+#: Plausibilitätsprüfung gesammelt werden.
 _MAX_DISTINCT_SAMPLE = 50
 
 
@@ -59,7 +59,7 @@ def duckdb_type(spec: FieldSpec) -> str:
 
 @dataclass
 class SourceFile:
-    """Eine Eingangsdatei mit allem, was ueber sie bekannt ist."""
+    """Eine Eingangsdatei mit allem, was über sie bekannt ist."""
 
     path: Path
     relative_name: str
@@ -82,7 +82,7 @@ class SourceFile:
     extraction_date: date | None = None
     extraction_date_source: str = ""
     notes: list[str] = field(default_factory=list)
-    #: Name der Rohtabelle in DuckDB - nur waehrend des Laufs gueltig.
+    #: Name der Rohtabelle in DuckDB - nur während des Laufs gültig.
     raw_name: str = ""
 
 
@@ -141,9 +141,9 @@ def _extraction_date_for(
 ) -> tuple[date | None, str]:
     """Ermittelt den Extraktionsstichtag einer Datei (FA-204).
 
-    Reihenfolge nach Verlaesslichkeit: Begleitzettel des Kunden, dann die
+    Reihenfolge nach Verlässlichkeit: Begleitzettel des Kunden, dann die
     Projektkonfiguration, dann ein Datum im Dateinamen, zuletzt der
-    Zeitstempel der Datei. Die verwendete Quelle wird mitgefuehrt, damit im
+    Zeitstempel der Datei. Die verwendete Quelle wird mitgeführt, damit im
     Bericht steht, wie belastbar der Stichtag ist.
     """
     if table:
@@ -210,8 +210,8 @@ def _projection_for_file(
     """Baut die konvertierende Projektion einer Rohtabelle.
 
     Spalten, die diese Datei nicht mitbringt, werden typrichtig mit NULL
-    aufgefuellt, damit sich Teillieferungen derselben Tabelle
-    zusammenfuehren lassen.
+    aufgefüllt, damit sich Teillieferungen derselben Tabelle
+    zusammenführen lassen.
     """
     options = config.ingestion.conversion
     reverse: dict[str, str] = {}
@@ -326,7 +326,7 @@ def ingest_delivery(
         if table is None:
             logger.warning("%s konnte keiner Tabelle zugeordnet werden", path.name)
 
-    # -------------------------------------------- Zusammenfuehren je Tabelle
+    # -------------------------------------------- Zusammenführen je Tabelle
     by_table: dict[str, list[SourceFile]] = {}
     for source in result.files:
         if source.table:
@@ -347,12 +347,12 @@ def _materialize_table(
     config: ProjectConfig,
     staging_dir: Path,
 ) -> IngestedTable:
-    """Fuehrt alle Dateien einer Tabelle zusammen und schreibt Parquet."""
+    """Führt alle Dateien einer Tabelle zusammen und schreibt Parquet."""
     spec = registry.get(table)
     spec_fields: Mapping[str, FieldSpec] = spec.fields if spec else {}
 
     # Zielspalten sind die Vereinigung aller gelieferten Spalten. Die
-    # Reihenfolge folgt der DDIC-Definition, damit das Ergebnis unabhaengig
+    # Reihenfolge folgt der DDIC-Definition, damit das Ergebnis unabhängig
     # von der Spaltenreihenfolge der Lieferung ist (NFA-05).
     delivered: set[str] = set()
     for source in sources:
@@ -394,8 +394,8 @@ def _materialize_table(
         conditions.append(f"({quote_identifier('BUKRS')} IN ({allowed}) OR BUKRS IS NULL)")
     where_clause = f" WHERE {' AND '.join(conditions)}" if conditions else ""
 
-    # Stabile Sortierung nach dem fachlichen Schluessel: identische Eingaben
-    # ergeben damit bitgleiche Zwischenstaende (NFA-05, AK-04).
+    # Stabile Sortierung nach dem fachlichen Schlüssel: identische Eingaben
+    # ergeben damit bitgleiche Zwischenstände (NFA-05, AK-04).
     sort_columns = [c for c in (spec.key if spec else ()) if c in target_columns]
     order_clause = (
         " ORDER BY " + ", ".join(f"{quote_identifier(c)} NULLS LAST" for c in sort_columns)
@@ -419,7 +419,7 @@ def _materialize_table(
 
     if row_count != row_count_before:
         logger.info(
-            "%s: %d von %d Saetzen durch Mandanten-/Buchungskreisfilter entfernt",
+            "%s: %d von %d Sätzen durch Mandanten-/Buchungskreisfilter entfernt",
             table, row_count_before - row_count, row_count_before,
         )
 

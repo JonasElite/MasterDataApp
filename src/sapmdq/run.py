@@ -1,14 +1,14 @@
-"""Orchestrierung eines vollstaendigen Laufs (NFA-07).
+"""Orchestrierung eines vollständigen Laufs (NFA-07).
 
 Ein Lauf besteht aus sechs Stufen in fester Reihenfolge:
 
-    Ingestion -> Lieferungsvalidierung -> Capability -> Regelausfuehrung
+    Ingestion -> Lieferungsvalidierung -> Capability -> Regelausführung
               -> Aufbereitung -> Bericht
 
 Die Reihenfolge ist nicht beliebig. Die Lieferungsvalidierung steht vor der
 Fachlichkeit, weil eine unbrauchbare Lieferung nicht fachlich ausgewertet
-werden darf (FA-206). Die Capability-Matrix steht vor der Ausfuehrung, weil
-sonst nicht bekannt waere, worueber der Bericht ueberhaupt eine Aussage macht
+werden darf (FA-206). Die Capability-Matrix steht vor der Ausführung, weil
+sonst nicht bekannt wäre, worüber der Bericht überhaupt eine Aussage macht
 (FA-305).
 
 Jeder Lauf legt ein eigenes Verzeichnis an. Dadurch bleiben frühere
@@ -50,21 +50,21 @@ logger = get_logger("run")
 def open_database(
     work_dir: Path, memory_limit: str | None = None
 ) -> duckdb.DuckDBPyConnection:
-    """Oeffnet die Verarbeitungsdatenbank.
+    """Öffnet die Verarbeitungsdatenbank.
 
-    Die Datenbank liegt im Arbeitsspeicher, laegert aber in das
-    Arbeitsverzeichnis aus, sobald der Speicher knapp wird. Damit laeuft auch
+    Die Datenbank liegt im Arbeitsspeicher, lägert aber in das
+    Arbeitsverzeichnis aus, sobald der Speicher knapp wird. Damit läuft auch
     eine Lieferung, die nicht in den Hauptspeicher passt, ohne dass ein Server
-    noetig waere (NFA-02, NFA-03).
+    nötig wäre (NFA-02, NFA-03).
 
-    Das Speicherlimit bleibt standardmaessig bei der Vorgabe von DuckDB - sie
-    orientiert sich am tatsaechlich vorhandenen Arbeitsspeicher und ist damit
-    besser als jeder fest verdrahtete Wert. ``memory_limit`` uebersteuert sie
-    fuer Notebooks, auf denen daneben noch anderes laufen muss (Angabe wie
+    Das Speicherlimit bleibt standardmässig bei der Vorgabe von DuckDB - sie
+    orientiert sich am tatsächlich vorhandenen Arbeitsspeicher und ist damit
+    besser als jeder fest verdrahtete Wert. ``memory_limit`` übersteuert sie
+    für Notebooks, auf denen daneben noch anderes laufen muss (Angabe wie
     "4GB").
 
-    Die Einfuegereihenfolge wird nicht bewahrt; die Reproduzierbarkeit stellen
-    die ausdruecklichen Sortierungen beim Schreiben der Ergebnisdateien
+    Die Einfügereihenfolge wird nicht bewahrt; die Reproduzierbarkeit stellen
+    die ausdrücklichen Sortierungen beim Schreiben der Ergebnisdateien
     sicher, nicht ein impliziter Nebeneffekt der Verarbeitung.
     """
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -92,11 +92,11 @@ def execute_run(
     log_level: int = logging.INFO,
     baseline: Path | None = None,
 ) -> RunResult:
-    """Fuehrt einen vollstaendigen Lauf aus.
+    """Führt einen vollständigen Lauf aus.
 
-    ``force`` setzt den Abbruch bei nicht verwertbarer Lieferung ausser Kraft.
-    Das ist ausdruecklich eine bewusste Entscheidung des Analysten und wird im
-    Ausfuehrungsprotokoll vermerkt - ein Ergebnis auf einer beanstandeten
+    ``force`` setzt den Abbruch bei nicht verwertbarer Lieferung außer Kraft.
+    Das ist ausdrücklich eine bewusste Entscheidung des Analysten und wird im
+    Ausführungsprotokoll vermerkt - ein Ergebnis auf einer beanstandeten
     Lieferung muss als solches erkennbar bleiben.
     """
     started = time.perf_counter()
@@ -157,8 +157,8 @@ def execute_run(
             if force:
                 note = (
                     f"Die Lieferung wurde mit {len(delivery.errors)} blockierenden Befunden "
-                    "verarbeitet, weil der Lauf ausdruecklich erzwungen wurde (--force). "
-                    "Die Ergebnisse sind nur eingeschraenkt belastbar."
+                    "verarbeitet, weil der Lauf ausdrücklich erzwungen wurde (--force). "
+                    "Die Ergebnisse sind nur eingeschränkt belastbar."
                 )
                 audit.notes.append(note)
                 logger.warning(note)
@@ -193,10 +193,10 @@ def execute_run(
             audit.external_validation_used = True
             audit.notes.append(
                 "Externe Validierung war freigegeben; USt-IdNr. wurden an den "
-                "VIES-Dienst der Europaeischen Kommission uebermittelt (DS-04)."
+                "VIES-Dienst der Europäischen Kommission übermittelt (DS-04)."
             )
 
-        # ------------------------------------------------ Regelausfuehrung
+        # ------------------------------------------------ Regelausführung
         sql_capabilities = [
             capability for capability in coverage.executable
             if capability.rule.kind is RuleKind.SQL
@@ -215,8 +215,8 @@ def execute_run(
         result.dedup_executions = dedup.executions
         for rule_id, blocks in dedup.skipped_blocks.items():
             audit.notes.append(
-                f"Dublettenregel {rule_id}: {len(blocks)} Block/Bloecke wurden wegen ihrer "
-                "Groesse nicht verglichen."
+                f"Dublettenregel {rule_id}: {len(blocks)} Block/Blöcke wurden wegen ihrer "
+                "Größe nicht verglichen."
             )
 
         raw_findings = config.paths.work_dir / "findings.parquet"
@@ -232,8 +232,8 @@ def execute_run(
             audit.external_requests = vies_client.requests_made
             if vies_client.failures:
                 audit.notes.append(
-                    f"{vies_client.failures} VIES-Abfrage(n) sind an einer Stoerung "
-                    "gescheitert; die betroffenen Nummern gelten als nicht geprueft."
+                    f"{vies_client.failures} VIES-Abfrage(n) sind an einer Störung "
+                    "gescheitert; die betroffenen Nummern gelten als nicht geprüft."
                 )
 
         # ---------------------------------------------------- Aufbereitung
@@ -281,7 +281,7 @@ def execute_run(
 
 
 def _resolve_baseline(config: ProjectConfig, baseline: Path | None) -> Path | None:
-    """Bestimmt die Vergleichsgrundlage fuer den Delta-Vergleich (FA-605).
+    """Bestimmt die Vergleichsgrundlage für den Delta-Vergleich (FA-605).
 
     Angegeben werden kann eine Befunddatei oder ein Laufverzeichnis. Ohne
     Angabe wird der jeweils letzte vorhandene Lauf herangezogen - das ist
@@ -325,9 +325,9 @@ def _compute_score(con: duckdb.DuckDBPyConnection, result: RunResult):
     for area, severity, count in rows:
         findings_by_area.setdefault(area, {})[severity] = count
 
-    # Als "geprueft" zaehlen die Saetze der fuehrenden Tabelle je Bereich -
-    # sonst wuerde ein Bereich mit vielen Sichten kuenstlich gross wirken und
-    # seinen Score verwaessern.
+    # Als "geprüft" zählen die Sätze der führenden Tabelle je Bereich -
+    # sonst würde ein Bereich mit vielen Sichten künstlich groß wirken und
+    # seinen Score verwässern.
     leading_tables = {
         "vendor": "LFA1", "customer": "KNA1", "material": "MARA",
         "business_partner": "BUT000", "cross": "LFA1",

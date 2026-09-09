@@ -1,14 +1,14 @@
-"""Vergleich zweier Laeufe (FA-605).
+"""Vergleich zweier Läufe (FA-605).
 
-Bei Folgelieferungen zaehlt nicht der Bestand, sondern die Bewegung: was ist
-behoben, was ist neu hinzugekommen, was steht unveraendert. Erst das macht
+Bei Folgelieferungen zählt nicht der Bestand, sondern die Bewegung: was ist
+behoben, was ist neu hinzugekommen, was steht unverändert. Erst das macht
 Fortschritt messbar und belegbar.
 
-Verglichen wird ueber die Befundkennung. Sie ist stabil aus Regel-ID,
-Regelversion und Objektschluessel gebildet - derselbe Mangel am selben
-Stammsatz traegt in beiden Laeufen dieselbe Kennung. Aendert sich die
+Verglichen wird über die Befundkennung. Sie ist stabil aus Regel-ID,
+Regelversion und Objektschlüssel gebildet - derselbe Mangel am selben
+Stammsatz trägt in beiden Läufen dieselbe Kennung. Ändert sich die
 Regelversion, gelten die Befunde dieser Regel bewusst als neu: die Regel
-prueft dann etwas anderes.
+prüft dann etwas anderes.
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ class RuleDelta:
 
 @dataclass
 class DeltaReport:
-    """Ergebnis des Vergleichs zweier Laeufe."""
+    """Ergebnis des Vergleichs zweier Läufe."""
 
     baseline_path: Path
     current_path: Path
@@ -54,15 +54,15 @@ class DeltaReport:
     new_findings: int = 0
     resolved_findings: int = 0
     unchanged_findings: int = 0
-    #: Befunde, die im Vergleichslauf offen waren und jetzt als begruendete
+    #: Befunde, die im Vergleichslauf offen waren und jetzt als begründete
     #: Ausnahme gelten. Sie sind nicht behoben, sondern anerkannt - dieser
-    #: Unterschied gehoert in den Bericht, sonst wird Fortschritt vorgetaeuscht.
+    #: Unterschied gehört in den Bericht, sonst wird Fortschritt vorgetäuscht.
     newly_whitelisted: int = 0
     by_rule: list[RuleDelta] = field(default_factory=list)
-    #: Regeln, die nur in einem der beiden Laeufe aktiv waren.
+    #: Regeln, die nur in einem der beiden Läufe aktiv waren.
     rules_only_baseline: list[str] = field(default_factory=list)
     rules_only_current: list[str] = field(default_factory=list)
-    #: Regeln mit geaenderter Version - ihre Befunde sind nicht vergleichbar.
+    #: Regeln mit geänderter Version - ihre Befunde sind nicht vergleichbar.
     changed_rule_versions: list[str] = field(default_factory=list)
 
     @property
@@ -72,18 +72,18 @@ class DeltaReport:
     def summary_line(self) -> str:
         """Fasst die Bewegung in einem Satz zusammen."""
         if self.baseline_total == 0 and self.current_total == 0:
-            return "Beide Laeufe sind ohne Befund."
+            return "Beide Läufe sind ohne Befund."
         direction = "weniger" if self.net_change < 0 else "mehr"
         satz = (
             f"{self.resolved_findings} Befunde behoben, {self.new_findings} neu hinzugekommen, "
-            f"{self.unchanged_findings} unveraendert. In Summe "
+            f"{self.unchanged_findings} unverändert. In Summe "
             f"{abs(self.net_change)} Befunde {direction} als im Vergleichslauf "
             f"({self.baseline_total} zu {self.current_total})."
         )
         if self.newly_whitelisted:
             satz += (
                 f" Davon sind {self.newly_whitelisted} nicht behoben, sondern seit dem "
-                "Vergleichslauf als begruendete Ausnahme anerkannt."
+                "Vergleichslauf als begründete Ausnahme anerkannt."
             )
         return satz
 
@@ -97,12 +97,12 @@ def compare_runs(
     """Vergleicht zwei aufbereitete Befunddateien (FA-605)."""
     for path in (baseline_path, current_path):
         if not Path(path).is_file():
-            raise SapMdqError(f"Befunddatei fuer den Vergleich nicht gefunden: {path}")
+            raise SapMdqError(f"Befunddatei für den Vergleich nicht gefunden: {path}")
 
     def relation(path: Path) -> str:
         base = f"read_parquet({quote_literal(str(path))})"
         # Als Ausnahme gekennzeichnete Befunde bleiben im Vergleich aussen vor:
-        # sie sind bewusst geduldet, und ihr Wegfall waere kein Fortschritt.
+        # sie sind bewusst geduldet, und ihr Wegfall wäre kein Fortschritt.
         if not ignore_whitelisted:
             return base
         columns = {row[0] for row in con.execute(f"DESCRIBE SELECT * FROM {base}").fetchall()}
@@ -199,7 +199,7 @@ def compare_runs(
     logger.info("Vergleich: %s", report.summary_line())
     if report.changed_rule_versions:
         logger.warning(
-            "Bei %d Regel(n) hat sich die Version geaendert; ihre Befunde sind nicht "
+            "Bei %d Regel(n) hat sich die Version geändert; ihre Befunde sind nicht "
             "unmittelbar vergleichbar: %s",
             len(report.changed_rule_versions), ", ".join(report.changed_rule_versions[:5]),
         )

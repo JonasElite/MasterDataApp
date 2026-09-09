@@ -1,37 +1,37 @@
 """Pseudonymisierung personenbezogener Felder (DS-05).
 
-Zweck ist ausschliesslich, aus einer echten Lieferung eine Fassung fuer
+Zweck ist ausschließlich, aus einer echten Lieferung eine Fassung für
 Demonstrationen, Tests und Schulungen abzuleiten. Sie ersetzt keine
-Anonymisierung im Rechtssinn: die Zuordnung bleibt ueber das Salt
+Anonymisierung im Rechtssinn: die Zuordnung bleibt über das Salt
 wiederherstellbar, und aus Struktur und Verteilung der Daten kann sich ein
 Personenbezug ergeben.
 
-Zwei Eigenschaften sind fuer die Brauchbarkeit entscheidend:
+Zwei Eigenschaften sind für die Brauchbarkeit entscheidend:
 
 Gleiche Eingabe ergibt gleiches Pseudonym.
-    Sonst zerfielen alle Beziehungen: derselbe Kreditor haette in LFA1 einen
-    anderen Namen als in ADRC, und die Dublettenerkennung liesse sich an der
+    Sonst zerfielen alle Beziehungen: derselbe Kreditor hätte in LFA1 einen
+    anderen Namen als in ADRC, und die Dublettenerkennung ließe sich an der
     Demofassung nicht mehr zeigen.
 
 Die Form bleibt erhalten.
-    Aus einer IBAN wird eine andere gueltige IBAN, aus einer Postleitzahl eine
-    Postleitzahl. Sonst wuerden die Formatregeln auf der Demofassung lauter
+    Aus einer IBAN wird eine andere gültige IBAN, aus einer Postleitzahl eine
+    Postleitzahl. Sonst würden die Formatregeln auf der Demofassung lauter
     Befunde erzeugen, die es im Original nicht gibt.
 
-Das Salt gehoert getrennt von den pseudonymisierten Daten aufbewahrt. Wer
+Das Salt gehört getrennt von den pseudonymisierten Daten aufbewahrt. Wer
 beides hat, kann die Zuordnung durch Ausprobieren wiederherstellen.
 
 Was nicht erhalten bleibt
 -------------------------
-Maengel, die gerade im Wert selbst liegen, verschwinden zwangslaeufig: eine
-IBAN mit falscher Pruefziffer wird durch eine gueltige ersetzt, eine
+Mängel, die gerade im Wert selbst liegen, verschwinden zwangsläufig: eine
+IBAN mit falscher Prüfziffer wird durch eine gültige ersetzt, eine
 fehlerhafte USt-IdNr. durch eine formgerechte, ein Platzhaltername wie
 "unbekannt" durch einen erfundenen Firmennamen. Auf der pseudonymisierten
-Fassung finden die Formatregeln diese Faelle deshalb nicht mehr.
+Fassung finden die Formatregeln diese Fälle deshalb nicht mehr.
 
-Das ist kein Fehler, sondern die Folge der Aufgabenstellung - es gehoert aber
+Das ist kein Fehler, sondern die Folge der Aufgabenstellung - es gehört aber
 gewusst: eine Demofassung eignet sich zum Zeigen des Verfahrens, nicht zum
-Nachvollziehen eines konkreten Befundes. Vollstaendigkeits-, Konsistenz-,
+Nachvollziehen eines konkreten Befundes. Vollständigkeits-, Konsistenz-,
 Referenz- und Dublettenbefunde bleiben dagegen erhalten.
 """
 
@@ -50,7 +50,7 @@ logger = get_logger("privacy.pseudonymize")
 
 #: Vorsilben je Feldart - halten die Demodaten lesbar.
 _NAME_PARTS = (
-    "Alpha", "Beta", "Gamma", "Delta", "Omega", "Nord", "Sued", "West", "Ost",
+    "Alpha", "Beta", "Gamma", "Delta", "Omega", "Nord", "Süd", "West", "Ost",
     "Berg", "Tal", "Stein", "Feld", "Wald", "See", "Bach", "Rhein", "Main",
 )
 _LEGAL_FORMS = ("GmbH", "AG", "KG", "OHG", "GmbH & Co. KG", "SE", "e.K.")
@@ -64,10 +64,10 @@ def generate_salt() -> str:
 
 
 def load_or_create_salt(path: Path | None) -> tuple[str, bool]:
-    """Laedt das Salt oder erzeugt es.
+    """Lädt das Salt oder erzeugt es.
 
-    Rueckgabe ist das Salt und ob es neu erzeugt wurde. Ohne Datei entsteht
-    ein neues Salt je Aufruf - dann sind zwei Laeufe nicht mehr miteinander
+    Rückgabe ist das Salt und ob es neu erzeugt wurde. Ohne Datei entsteht
+    ein neues Salt je Aufruf - dann sind zwei Läufe nicht mehr miteinander
     vergleichbar. Darauf wird hingewiesen.
     """
     if path is None:
@@ -106,9 +106,9 @@ class Pseudonymizer:
     def company_name(self, value: str) -> str:
         """Firmenname aus festen Bausteinen und einem eindeutigen Zusatz.
 
-        Der vierstellige Zusatz ist nicht schmueckend. Ohne ihn stammten alle
+        Der vierstellige Zusatz ist nicht schmückend. Ohne ihn stammten alle
         Namen aus einem Vorrat von wenigen hundert Kombinationen; bei
-        tausenden Kreditoren traefen zwangslaeufig mehrere auf denselben Namen,
+        tausenden Kreditoren träfen zwangsläufig mehrere auf denselben Namen,
         und die Dublettenerkennung meldete auf der Demofassung hunderte
         Cluster, die es im Original nicht gibt.
         """
@@ -125,17 +125,17 @@ class Pseudonymizer:
         return f"{self._pick('vorname', value, _NAME_PARTS)} {self._pick('nachname', value, _NAME_PARTS)}"
 
     def street(self, value: str) -> str:
-        """Strasse mit Hausnummer."""
+        """Straße mit Hausnummer."""
         return f"{self._pick('strasse', value, _STREETS)} {self._number('hausnr', value, 199) + 1}"
 
     def city(self, value: str) -> str:
         return self._pick("ort", value, _CITIES)
 
     def postal_code(self, value: str) -> str:
-        """Postleitzahl gleicher Laenge und gleichen Aufbaus.
+        """Postleitzahl gleicher Länge und gleichen Aufbaus.
 
         Ziffern werden durch Ziffern ersetzt, Buchstaben durch Buchstaben.
-        Damit bleibt eine niederlaendische PLZ wie "1012 AB" formgerecht und
+        Damit bleibt eine niederländische PLZ wie "1012 AB" formgerecht und
         die Formatregeln melden auf der Demofassung nichts Falsches.
         """
         return self._preserve_shape("plz", value)
@@ -165,12 +165,12 @@ class Pseudonymizer:
         return self._preserve_shape("steuernr", value)
 
     def vat_id(self, value: str) -> str:
-        """Erzeugt eine syntaktisch gueltige USt-IdNr. desselben Landes.
+        """Erzeugt eine syntaktisch gültige USt-IdNr. desselben Landes.
 
-        Ein blosses Ersetzen der Ziffern wuerde die Pruefziffer zerstoeren:
+        Ein blosses Ersetzen der Ziffern würde die Prüfziffer zerstören:
         die Demofassung erzeugte dann bei jedem Kreditor einen Formatbefund,
         den es im Original nicht gibt. Deshalb wird so lange erzeugt, bis die
-        Nummer der Pruefung standhaelt - deterministisch, weil der
+        Nummer der Prüfung standhält - deterministisch, weil der
         Ausgangswert die Folge bestimmt.
         """
         from sapmdq.rules.validators import VAT_PATTERNS, vat_id_valid
@@ -205,10 +205,10 @@ class Pseudonymizer:
         return self._preserve_shape("konto", value)
 
     def iban(self, value: str) -> str:
-        """Erzeugt eine formal gueltige IBAN gleicher Laenge und gleichen Landes.
+        """Erzeugt eine formal gültige IBAN gleicher Länge und gleichen Landes.
 
-        Die Pruefziffer wird neu berechnet, damit die Formatregeln auf der
-        Demofassung greifen - sonst waere jede pseudonymisierte Bankverbindung
+        Die Prüfziffer wird neu berechnet, damit die Formatregeln auf der
+        Demofassung greifen - sonst wäre jede pseudonymisierte Bankverbindung
         ein Befund.
         """
         cleaned = "".join(char for char in str(value).upper() if char.isalnum())
@@ -219,11 +219,11 @@ class Pseudonymizer:
         digest = self._digest("iban", cleaned)
         body = "".join(str(digest[index % len(digest)] % 10) for index in range(body_length))
 
-        # Die Bankkennung wird aus der urspruenglichen IBAN uebernommen und
+        # Die Bankkennung wird aus der ursprünglichen IBAN übernommen und
         # mit demselben Verfahren ersetzt wie das Feld BANKL. Nur so tragen
         # Bankverbindung und IBAN nach der Pseudonymisierung noch dieselbe
-        # Bank - andernfalls meldete die Demofassung fuer jede Bankverbindung
-        # eine Abweichung zwischen IBAN und Bankschluessel (VEN-FMT-005).
+        # Bank - andernfalls meldete die Demofassung für jede Bankverbindung
+        # eine Abweichung zwischen IBAN und Bankschlüssel (VEN-FMT-005).
         bank_key_lengths = {"DE": 8, "AT": 5, "CH": 5, "NL": 4, "FR": 5, "ES": 4, "IT": 5, "BE": 3}
         laenge = bank_key_lengths.get(country)
         if laenge and body_length >= laenge:
@@ -239,7 +239,7 @@ class Pseudonymizer:
 
 
 #: Zuordnung Feldname zu Verfahren. Was hier nicht steht, aber als
-#: personenbezogen gekennzeichnet ist, wird ueber ``generic`` ersetzt.
+#: personenbezogen gekennzeichnet ist, wird über ``generic`` ersetzt.
 FIELD_METHODS: dict[str, str] = {
     "NAME1": "company_name", "NAME2": "company_name", "NAME3": "company_name",
     "NAME4": "company_name", "NAME_ORG1": "company_name", "NAME_ORG2": "company_name",
@@ -266,7 +266,7 @@ FIELD_METHODS: dict[str, str] = {
 
 
 def method_for_field(field_name: str) -> str:
-    """Verfahren fuer ein Feld; unbekannte personenbezogene Felder generisch."""
+    """Verfahren für ein Feld; unbekannte personenbezogene Felder generisch."""
     return FIELD_METHODS.get(field_name.upper(), "generic")
 
 
@@ -279,9 +279,9 @@ def pseudonymize_tables(
 ) -> dict[str, Path]:
     """Schreibt eine pseudonymisierte Fassung der eingelesenen Tabellen.
 
-    Ausgegeben wird standardmaessig CSV: die Fassung soll sich unmittelbar als
+    Ausgegeben wird standardmässig CSV: die Fassung soll sich unmittelbar als
     Eingangsverzeichnis eines Demonstrationslaufs verwenden lassen. Die
-    Spaltenueberschriften bleiben technische Feldnamen, das Trennzeichen ist
+    Spaltenüberschriften bleiben technische Feldnamen, das Trennzeichen ist
     das Semikolon - also genau das Lieferformat, das Kapitel 8.4 empfiehlt.
     """
     from sapmdq.sap.sql_conversion import quote_identifier, quote_literal
@@ -291,7 +291,7 @@ def pseudonymize_tables(
     written: dict[str, Path] = {}
 
     # Je Verfahren eine SQL-Funktion, damit die Ersetzung in der Datenbank
-    # laeuft und die Daten nicht durch Python-Speicher wandern muessen.
+    # läuft und die Daten nicht durch Python-Speicher wandern müssen.
     methods = {
         "company_name": pseudonymizer.company_name,
         "person_name": pseudonymizer.person_name,
@@ -309,8 +309,8 @@ def pseudonymize_tables(
     def als_udf(verfahren):
         """Bindet ein Verfahren als einstellige Funktion.
 
-        Ein Vorgabewert im Lambda waere hier untauglich: DuckDB liest die
-        Signatur aus und zaehlte ihn als zweiten Parameter.
+        Ein Vorgabewert im Lambda wäre hier untauglich: DuckDB liest die
+        Signatur aus und zählte ihn als zweiten Parameter.
         """
 
         def anwenden(wert):

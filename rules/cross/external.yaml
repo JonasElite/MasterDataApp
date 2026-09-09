@@ -1,29 +1,29 @@
 # Externe Validierung (FA-408).
 #
-# Diese Regeln verlassen die lokale Verarbeitung und uebertragen Daten an einen
-# externen Dienst. Sie laufen ausschliesslich, wenn beides vorliegt:
+# Diese Regeln verlassen die lokale Verarbeitung und übertragen Daten an einen
+# externen Dienst. Sie laufen ausschließlich, wenn beides vorliegt:
 #
 #   * rules.allow_external_validation ist in der Projektkonfiguration gesetzt,
 #   * eine Netzwerkverbindung besteht.
 #
-# Ohne ausdrueckliche Freigabe werden sie abgeschaltet und im Coverage-Report
-# als entfallen ausgewiesen - nicht stillschweigend uebergangen. Massgeblich
-# ist DS-04: keine Uebertragung von Kundendaten an externe Dienste ohne
+# Ohne ausdrückliche Freigabe werden sie abgeschaltet und im Coverage-Report
+# als entfallen ausgewiesen - nicht stillschweigend übergangen. Massgeblich
+# ist DS-04: keine Übertragung von Kundendaten an externe Dienste ohne
 # dokumentierte Freigabe. Die Freigabe ist vor dem Lauf mit dem Datenschutz
 # abzustimmen (offener Punkt OP-04).
 rules:
 
   - id: VEN-EXT-001
-    name: USt-IdNr. des Kreditors ist laut VIES nicht gueltig
+    name: USt-IdNr. des Kreditors ist laut VIES nicht gültig
     description: >
-      Das Bestaetigungsverfahren der Europaeischen Kommission (VIES) prueft, ob
-      eine USt-IdNr. zum Abfragezeitpunkt tatsaechlich vergeben und gueltig ist.
-      Die Formatpruefung (VEN-FMT-001) kann das nicht leisten: eine formal
+      Das Bestätigungsverfahren der Europäischen Kommission (VIES) prüft, ob
+      eine USt-IdNr. zum Abfragezeitpunkt tatsächlich vergeben und gültig ist.
+      Die Formatprüfung (VEN-FMT-001) kann das nicht leisten: eine formal
       richtige Nummer kann erloschen oder nie vergeben worden sein.
 
-      Uebertragen werden ausschliesslich Laenderkennzeichen und Nummer, keine
+      Übertragen werden ausschließlich Länderkennzeichen und Nummer, keine
       Namen und keine Adressen. Ergebnisse werden zwischengespeichert, damit
-      Wiederholungslaeufe den Dienst nicht erneut belasten.
+      Wiederholungsläufe den Dienst nicht erneut belasten.
     category: external
     severity: high
     version: "1.0.0"
@@ -38,8 +38,8 @@ rules:
         LFA1: [MANDT, LIFNR, NAME1, LAND1, STCEG, LOEVM]
     params: {}
     remediation: >
-      Gueltige USt-IdNr. beim Kreditor anfordern. Bis dahin keine steuerfreien
-      innergemeinschaftlichen Umsaetze mit diesem Partner abrechnen.
+      Gültige USt-IdNr. beim Kreditor anfordern. Bis dahin keine steuerfreien
+      innergemeinschaftlichen Umsätze mit diesem Partner abrechnen.
     sql: |
       SELECT MANDT, LIFNR, NAME1, LAND1, STCEG,
              vies_check_reason(LAND1, STCEG) AS befund
@@ -51,14 +51,14 @@ rules:
         AND NOT vies_check_valid(LAND1, STCEG)
 
   - id: CUS-EXT-001
-    name: USt-IdNr. des Debitors ist laut VIES nicht gueltig
+    name: USt-IdNr. des Debitors ist laut VIES nicht gültig
     description: >
-      Fuer steuerfreie innergemeinschaftliche Lieferungen ist die qualifizierte
-      Bestaetigung der USt-IdNr. des Empfaengers Voraussetzung. Eine nicht
-      bestaetigte Nummer laesst die Steuerfreiheit entfallen - der Befund wiegt
+      Für steuerfreie innergemeinschaftliche Lieferungen ist die qualifizierte
+      Bestätigung der USt-IdNr. des Empfängers Voraussetzung. Eine nicht
+      bestätigte Nummer lässt die Steuerfreiheit entfallen - der Befund wiegt
       beim Debitor deshalb schwerer als beim Kreditor.
 
-      Uebertragen werden ausschliesslich Laenderkennzeichen und Nummer.
+      Übertragen werden ausschließlich Länderkennzeichen und Nummer.
     category: external
     severity: critical
     version: "1.0.0"
@@ -73,7 +73,7 @@ rules:
         KNA1: [MANDT, KUNNR, NAME1, LAND1, STCEG, LOEVM]
     params: {}
     remediation: >
-      Qualifizierte Bestaetigung einholen und dokumentieren. Bis dahin keine
+      Qualifizierte Bestätigung einholen und dokumentieren. Bis dahin keine
       steuerfreie innergemeinschaftliche Lieferung abrechnen.
     sql: |
       SELECT MANDT, KUNNR, NAME1, LAND1, STCEG,

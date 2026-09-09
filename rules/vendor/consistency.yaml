@@ -1,16 +1,16 @@
-# Konsistenz ueber Sichten hinweg, Kreditor (FA-403).
+# Konsistenz über Sichten hinweg, Kreditor (FA-403).
 #
 # Der Kreditorenstamm besteht aus drei Sichten: allgemeine Daten (LFA1),
-# Buchungskreisdaten (LFB1) und Einkaufsorganisationsdaten (LFM1). Widersprueche
+# Buchungskreisdaten (LFB1) und Einkaufsorganisationsdaten (LFM1). Widersprüche
 # zwischen ihnen entstehen, wenn eine Sicht gepflegt und die andere vergessen
-# wird - und fallen im Tagesgeschaeft erst auf, wenn eine Buchung scheitert.
+# wird - und fallen im Tagesgeschäft erst auf, wenn eine Buchung scheitert.
 rules:
 
   - id: VEN-CONS-001
     name: Buchungskreisdaten ohne allgemeine Daten
     description: >
-      Ein LFB1-Satz ohne zugehoerigen LFA1-Satz ist eine Dateninkonsistenz, die im
-      laufenden System nicht entstehen kann. Sie deutet auf eine unvollstaendige
+      Ein LFB1-Satz ohne zugehörigen LFA1-Satz ist eine Dateninkonsistenz, die im
+      laufenden System nicht entstehen kann. Sie deutet auf eine unvollständige
       Lieferung oder auf eine fehlerhafte Migration hin.
     category: consistency
     severity: critical
@@ -27,7 +27,7 @@ rules:
         LFB1: [MANDT, LIFNR, BUKRS, AKONT]
     params: {}
     remediation: >
-      Zuerst pruefen, ob LFA1 vollstaendig geliefert wurde. Bleibt der Befund
+      Zürst prüfen, ob LFA1 vollständig geliefert wurde. Bleibt der Befund
       bestehen, liegt eine echte Inkonsistenz im Quellsystem vor.
     sql: |
       SELECT b.MANDT, b.LIFNR, b.BUKRS, b.AKONT
@@ -38,8 +38,8 @@ rules:
   - id: VEN-CONS-002
     name: Einkaufsorganisationsdaten ohne allgemeine Daten
     description: >
-      Ein LFM1-Satz ohne zugehoerigen LFA1-Satz kann im laufenden System nicht
-      entstehen und deutet auf eine unvollstaendige Lieferung oder eine fehlerhafte
+      Ein LFM1-Satz ohne zugehörigen LFA1-Satz kann im laufenden System nicht
+      entstehen und deutet auf eine unvollständige Lieferung oder eine fehlerhafte
       Migration hin.
     category: consistency
     severity: critical
@@ -54,7 +54,7 @@ rules:
         LFA1: [LIFNR]
         LFM1: [MANDT, LIFNR, EKORG, WAERS]
     params: {}
-    remediation: Lieferumfang pruefen; sonst Inkonsistenz im Quellsystem klaeren.
+    remediation: Lieferumfang prüfen; sonst Inkonsistenz im Quellsystem klären.
     sql: |
       SELECT m.MANDT, m.LIFNR, m.EKORG, m.WAERS
       FROM LFM1 m
@@ -62,9 +62,9 @@ rules:
       WHERE a.LIFNR IS NULL
 
   - id: VEN-CONS-003
-    name: Loeschvormerkung zentral gesetzt, im Buchungskreis aber nicht
+    name: Löschvormerkung zentral gesetzt, im Buchungskreis aber nicht
     description: >
-      Ist ein Kreditor zentral zur Loeschung vorgemerkt, im Buchungskreis aber
+      Ist ein Kreditor zentral zur Löschung vorgemerkt, im Buchungskreis aber
       nicht, bleibt er dort bebuchbar. Die zentrale Vormerkung erweckt den
       Eindruck, der Satz sei stillgelegt - er ist es nicht.
     category: consistency
@@ -81,7 +81,7 @@ rules:
         LFA1: [LIFNR, NAME1, LOEVM]
         LFB1: [MANDT, LIFNR, BUKRS, LOEVM]
     params: {}
-    remediation: Loeschvormerkung im Buchungskreis nachziehen oder zentral zuruecknehmen.
+    remediation: Löschvormerkung im Buchungskreis nachziehen oder zentral zurücknehmen.
     sql: |
       SELECT b.MANDT, b.LIFNR, a.NAME1, b.BUKRS,
              a.LOEVM AS loevm_zentral, b.LOEVM AS loevm_buchungskreis
@@ -94,7 +94,7 @@ rules:
     name: Zentrale Sperre gesetzt, Buchungskreis nicht gesperrt
     description: >
       Eine zentrale Buchungssperre ohne Sperre im Buchungskreis wirkt nur
-      teilweise. Der Kreditor laesst sich weiterhin bebuchen, obwohl die zentrale
+      teilweise. Der Kreditor lässt sich weiterhin bebuchen, obwohl die zentrale
       Sperre das Gegenteil nahelegt.
     category: consistency
     severity: high
@@ -120,10 +120,10 @@ rules:
         AND COALESCE(b.SPERR, '') <> 'X'
 
   - id: VEN-CONS-005
-    name: Laenderkennzeichen der USt-IdNr. weicht vom Land des Kreditors ab
+    name: Länderkennzeichen der USt-IdNr. weicht vom Land des Kreditors ab
     description: >
-      Eine deutsche Anschrift mit oesterreichischer USt-IdNr. ist moeglich - etwa
-      bei einer Registrierung im Ausland -, aber begruendungsbeduerftig. Haeufiger
+      Eine deutsche Anschrift mit österreichischer USt-IdNr. ist möglich - etwa
+      bei einer Registrierung im Ausland -, aber begründungsbedürftig. Häufiger
       liegt eine Verwechslung mit einem anderen Konzernunternehmen vor.
     category: consistency
     severity: medium
@@ -138,7 +138,7 @@ rules:
         LFA1: [MANDT, LIFNR, NAME1, LAND1, STCEG]
     params: {}
     remediation: >
-      Pruefen, ob eine auslaendische Registrierung vorliegt. Wenn ja, als Ausnahme
+      Prüfen, ob eine ausländische Registrierung vorliegt. Wenn ja, als Ausnahme
       whitelisten; wenn nein, korrigieren.
     sql: |
       SELECT MANDT, LIFNR, NAME1, LAND1, STCEG, vat_id_country(STCEG) AS ustid_land
@@ -149,12 +149,12 @@ rules:
         AND vat_id_country(STCEG) <> CASE WHEN LAND1 = 'GR' THEN 'EL' ELSE LAND1 END
 
   - id: VEN-CONS-006
-    name: Zahlungsbedingung in Buchungskreis und Einkauf widerspruechlich
+    name: Zahlungsbedingung in Buchungskreis und Einkauf widersprüchlich
     description: >
-      Buchungskreis und Einkaufsorganisation fuehren je eine Zahlungsbedingung.
-      Weichen sie voneinander ab, entscheidet der Belegfluss darueber, welche
-      greift - das Ergebnis ist nicht vorhersehbar und fuehrt zu Streit ueber
-      Skontoabzuege.
+      Buchungskreis und Einkaufsorganisation führen je eine Zahlungsbedingung.
+      Weichen sie voneinander ab, entscheidet der Belegfluss darüber, welche
+      greift - das Ergebnis ist nicht vorhersehbar und führt zu Streit über
+      Skontoabzüge.
     category: consistency
     severity: medium
     version: "1.0.0"
@@ -182,12 +182,12 @@ rules:
         AND b.ZTERM <> m.ZTERM
 
   - id: VEN-CONS-007
-    name: Als natuerliche Person gekennzeichnet, Name traegt eine Rechtsform
+    name: Als natürliche Person gekennzeichnet, Name trägt eine Rechtsform
     description: >
-      Das Kennzeichen "natuerliche Person" steuert die steuerliche Behandlung und
-      den Umgang mit personenbezogenen Daten. Traegt der Name eine Rechtsform wie
+      Das Kennzeichen "natürliche Person" steuert die steuerliche Behandlung und
+      den Umgang mit personenbezogenen Daten. Trägt der Name eine Rechtsform wie
       GmbH oder AG, ist das Kennzeichen mit hoher Wahrscheinlichkeit falsch
-      gesetzt - mit Folgen fuer Quellensteuer und Meldepflichten.
+      gesetzt - mit Folgen für Quellensteuer und Meldepflichten.
     category: consistency
     severity: medium
     version: "1.0.0"
@@ -202,7 +202,7 @@ rules:
     params:
       legal_form_pattern: '(?i)\b(gmbh|aktiengesellschaft|\bag\b|kgaa|\bkg\b|\bohg\b|\be\.?k\.?\b|ltd|limited|\bplc\b|\binc\b|\bllc\b|\bs\.?a\.?\b|\bb\.?v\.?\b|\bn\.?v\.?\b|\bs\.?r\.?l\.?\b|\bsarl\b|\bspa\b|\bab\b|\bas\b|\boy\b|\bsp\.? ?z ?o\.?o\.?\b|gesellschaft|genossenschaft|\beg\b|\bev\b|stiftung)\b'
     remediation: >
-      Kennzeichen STKZN pruefen und korrigieren; bei echten Einzelunternehmen als
+      Kennzeichen STKZN prüfen und korrigieren; bei echten Einzelunternehmen als
       Ausnahme whitelisten.
     sql: |
       SELECT MANDT, LIFNR, NAME1, NAME2, LAND1, STKZN

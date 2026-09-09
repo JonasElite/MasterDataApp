@@ -1,17 +1,17 @@
 # Formatregeln Kreditor (FA-402).
 #
-# Formatpruefungen sind offline und abschliessend: eine IBAN mit falscher
-# Pruefziffer ist falsch, unabhaengig von jeder Auskunft. Sie ersetzen aber
-# keine inhaltliche Bestaetigung - eine formal richtige USt-IdNr. kann
-# ungueltig sein. Das leistet erst der VIES-Abgleich (FA-408).
+# Formatprüfungen sind offline und abschließend: eine IBAN mit falscher
+# Prüfziffer ist falsch, unabhängig von jeder Auskunft. Sie ersetzen aber
+# keine inhaltliche Bestätigung - eine formal richtige USt-IdNr. kann
+# ungültig sein. Das leistet erst der VIES-Abgleich (FA-408).
 rules:
 
   - id: VEN-FMT-001
-    name: USt-IdNr. mit falschem Aufbau oder falscher Pruefziffer
+    name: USt-IdNr. mit falschem Aufbau oder falscher Prüfziffer
     description: >
-      Geprueft wird der laenderspezifische Aufbau der USt-IdNr., fuer Deutschland,
-      die Niederlande und Italien zusaetzlich die Pruefziffer. Eine formal falsche
-      Nummer wird bei der Zusammenfassenden Meldung abgewiesen und gefaehrdet die
+      Geprüft wird der länderspezifische Aufbau der USt-IdNr., für Deutschland,
+      die Niederlande und Italien zusätzlich die Prüfziffer. Eine formal falsche
+      Nummer wird bei der Zusammenfassenden Meldung abgewiesen und gefährdet die
       Steuerfreiheit innergemeinschaftlicher Lieferungen.
     category: format
     severity: high
@@ -26,7 +26,7 @@ rules:
         LFA1: [MANDT, LIFNR, NAME1, LAND1, STCEG]
     params: {}
     remediation: >
-      Nummer beim Kreditor erfragen und korrigieren. Den abschliessenden Nachweis
+      Nummer beim Kreditor erfragen und korrigieren. Den abschließenden Nachweis
       liefert der VIES-Abgleich, sobald er freigegeben ist.
     sql: |
       SELECT MANDT, LIFNR, NAME1, LAND1, STCEG, vat_id_reason(LAND1, STCEG) AS befund
@@ -39,9 +39,9 @@ rules:
     name: Postleitzahl passt nicht zum Land
     description: >
       Die Postleitzahl wird gegen den Aufbau des im Stammsatz gepflegten Landes
-      geprueft. Abweichungen deuten auf eine falsche Landeszuordnung oder auf eine
-      in das falsche Feld uebernommene Angabe hin. Laender ohne hinterlegten
-      Aufbau werden uebergangen, statt Scheinbefunde zu erzeugen.
+      geprüft. Abweichungen deuten auf eine falsche Landeszuordnung oder auf eine
+      in das falsche Feld übernommene Angabe hin. Länder ohne hinterlegten
+      Aufbau werden übergangen, statt Scheinbefunde zu erzeugen.
     category: format
     severity: medium
     version: "1.0.0"
@@ -64,12 +64,12 @@ rules:
         AND NOT postal_code_valid(LAND1, PSTLZ)
 
   - id: VEN-FMT-003
-    name: IBAN mit falschem Aufbau, falscher Laenge oder falscher Pruefziffer
+    name: IBAN mit falschem Aufbau, falscher Länge oder falscher Prüfziffer
     description: >
-      Die IBAN wird nach ISO 13616 geprueft: Aufbau, laenderspezifische Laenge und
-      Pruefziffer nach dem Modulo-97-Verfahren. Eine falsche IBAN fuehrt zur
-      Rueckweisung im Zahllauf oder - schlimmer - zur Zahlung an einen falschen
-      Empfaenger.
+      Die IBAN wird nach ISO 13616 geprüft: Aufbau, länderspezifische Länge und
+      Prüfziffer nach dem Modulo-97-Verfahren. Eine falsche IBAN führt zur
+      Rückweisung im Zahllauf oder - schlimmer - zur Zahlung an einen falschen
+      Empfänger.
     category: format
     severity: critical
     version: "1.0.0"
@@ -93,7 +93,7 @@ rules:
   - id: VEN-FMT-004
     name: IBAN-Land weicht vom Bankland ab
     description: >
-      Die ersten beiden Stellen der IBAN nennen das Land des kontofuehrenden
+      Die ersten beiden Stellen der IBAN nennen das Land des kontoführenden
       Instituts. Weicht es vom gepflegten Bankland ab, ist eine der beiden Angaben
       falsch - mit unmittelbarer Wirkung auf die Zahlwegfindung.
     category: format
@@ -120,11 +120,11 @@ rules:
         AND iban_country(IBAN) <> BANKS
 
   - id: VEN-FMT-005
-    name: IBAN enthaelt eine andere Bankleitzahl als der Stammsatz
+    name: IBAN enthält eine andere Bankleitzahl als der Stammsatz
     description: >
-      Fuer Laender mit bekanntem IBAN-Aufbau laesst sich die Bankleitzahl aus der
+      Für Länder mit bekanntem IBAN-Aufbau lässt sich die Bankleitzahl aus der
       IBAN ableiten. Weicht sie vom Feld BANKL ab, wurde eine der beiden Angaben
-      nachtraeglich geaendert, ohne die andere nachzuziehen.
+      nachträglich geändert, ohne die andere nachzuziehen.
     category: format
     severity: high
     version: "1.0.0"
@@ -152,8 +152,8 @@ rules:
   - id: VEN-FMT-006
     name: Name besteht nur aus einem Platzhalter
     description: >
-      Eintraege wie "unbekannt", "TEST" oder eine Folge gleicher Zeichen erfuellen
-      die Pflichtfeldpruefung des Systems, tragen aber keine Information. Sie
+      Einträge wie "unbekannt", "TEST" oder eine Folge gleicher Zeichen erfüllen
+      die Pflichtfeldprüfung des Systems, tragen aber keine Information. Sie
       verhindern jede Dublettenerkennung und jede Zustellung.
     category: format
     severity: high
@@ -167,7 +167,7 @@ rules:
       fields:
         LFA1: [MANDT, LIFNR, NAME1, LAND1, ERDAT, ERNAM, LOEVM]
     params: {}
-    remediation: Vollstaendigen Firmennamen nachpflegen oder den Satz loeschen.
+    remediation: Vollständigen Firmennamen nachpflegen oder den Satz löschen.
     sql: |
       SELECT MANDT, LIFNR, NAME1, LAND1, ERDAT, ERNAM
       FROM LFA1

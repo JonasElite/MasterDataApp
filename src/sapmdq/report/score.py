@@ -1,22 +1,22 @@
 """Data-Quality-Score je Objektbereich (FA-704).
 
-Der Score verdichtet die Befunde zu einer Zahl, die sich ueber mehrere
-Lieferungen hinweg vergleichen laesst. Er ersetzt keine Befundanalyse, aber
+Der Score verdichtet die Befunde zu einer Zahl, die sich über mehrere
+Lieferungen hinweg vergleichen lässt. Er ersetzt keine Befundanalyse, aber
 er beantwortet die Frage der Projektleitung, ob es besser wird.
 
 Aufbau: je Objektbereich werden die Befunde mit dem Gewicht ihres
-Schweregrads summiert und ins Verhaeltnis zur Anzahl gepruefter Stammsaetze
+Schweregrads summiert und ins Verhältnis zur Anzahl geprüfter Stammsätze
 gesetzt. Der Score ist der auf 0 bis 100 abgebildete Kehrwert.
 
-Zwei Eigenschaften sind dabei wichtig und ausdruecklich gewollt:
+Zwei Eigenschaften sind dabei wichtig und ausdrücklich gewollt:
 
 * Der Score ist nur innerhalb desselben Regelkatalogs und desselben
-  Coverage-Grades vergleichbar. Beides wird deshalb mitgefuehrt - ein von 60
-  auf 80 gestiegener Score bedeutet nichts, wenn zwischenzeitlich die Haelfte
+  Coverage-Grades vergleichbar. Beides wird deshalb mitgeführt - ein von 60
+  auf 80 gestiegener Score bedeutet nichts, wenn zwischenzeitlich die Hälfte
   der Regeln entfallen ist.
-* Ein Bereich ohne ausfuehrbare Regeln bekommt keinen Score, sondern die
-  Angabe "nicht bewertbar". Ein voller Punktwert waere hier die
-  gefaehrlichste aller Aussagen.
+* Ein Bereich ohne ausführbare Regeln bekommt keinen Score, sondern die
+  Angabe "nicht bewertbar". Ein voller Punktwert wäre hier die
+  gefährlichste aller Aussagen.
 """
 
 from __future__ import annotations
@@ -24,15 +24,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Mapping
 
-#: Wieviele gewichtete Befunde je Stammsatz zum Score 0 fuehren.
+#: Wieviele gewichtete Befunde je Stammsatz zum Score 0 führen.
 #:
-#: Zur Einordnung des Wertes: traegt jeder Stammsatz einen Befund mit
-#: Schweregrad "hoch" (Gewicht 5), ergibt sich der Score 0 - die Datenqualitaet
-#: ist dann erschoepfend beschrieben. Traegt jeder Stammsatz einen Befund mit
+#: Zur Einordnung des Wertes: trägt jeder Stammsatz einen Befund mit
+#: Schweregrad "hoch" (Gewicht 5), ergibt sich der Score 0 - die Datenqualität
+#: ist dann erschöpfend beschrieben. Trägt jeder Stammsatz einen Befund mit
 #: Schweregrad "mittel" (Gewicht 2), ergibt sich rund 33.
 #:
 #: Der absolute Wert ist eine Konvention, kein Messwert. Die Aussage liegt im
-#: Verlauf ueber mehrere Lieferungen (FA-704), nicht in der Zahl selbst.
+#: Verlauf über mehrere Lieferungen (FA-704), nicht in der Zahl selbst.
 SATURATION = 3.0
 
 
@@ -59,7 +59,7 @@ class AreaScore:
 
     @property
     def grade(self) -> str:
-        """Einordnung in Worten - fuer die Management-Summary."""
+        """Einordnung in Worten - für die Management-Summary."""
         if self.score is None:
             return "nicht bewertbar"
         if self.score >= 95:
@@ -77,21 +77,21 @@ class AreaScore:
         """Vorbehalt zum Score, abgeleitet aus dem Coverage-Grad."""
         if self.score is None:
             return (
-                f"Fuer {self.area} war keine Regel ausfuehrbar. Es liegt keine Aussage "
-                "zur Datenqualitaet vor - weder eine gute noch eine schlechte."
+                f"Für {self.area} war keine Regel ausführbar. Es liegt keine Aussage "
+                "zur Datenqualität vor - weder eine gute noch eine schlechte."
             )
         if self.coverage_ratio < 1.0:
             return (
-                f"Der Wert stuetzt sich auf {self.rules_executable} von {self.rules_total} "
-                f"Regeln ({self.coverage_ratio:.0%}). Er ist nur mit Laeufen vergleichbar, "
+                f"Der Wert stützt sich auf {self.rules_executable} von {self.rules_total} "
+                f"Regeln ({self.coverage_ratio:.0%}). Er ist nur mit Läufen vergleichbar, "
                 "die denselben Umfang hatten."
             )
-        return "Alle Regeln dieses Bereichs waren ausfuehrbar."
+        return "Alle Regeln dieses Bereichs waren ausführbar."
 
 
 @dataclass
 class ScoreReport:
-    """Data-Quality-Score ueber alle Objektbereiche."""
+    """Data-Quality-Score über alle Objektbereiche."""
 
     areas: list[AreaScore] = field(default_factory=list)
     catalog_version: str = ""
@@ -102,7 +102,7 @@ class ScoreReport:
         """Gesamtscore als mit der Satzanzahl gewichtetes Mittel.
 
         Die Gewichtung mit der Satzanzahl ist bewusst: ein Bereich mit einer
-        Million Materialien soll den Gesamtwert staerker praegen als einer mit
+        Million Materialien soll den Gesamtwert stärker prägen als einer mit
         zweihundert Buchungskreisen.
         """
         assessable = [area for area in self.areas if area.assessable]
@@ -127,8 +127,8 @@ def compute_score(
     """Berechnet den Data-Quality-Score.
 
     ``findings_by_area`` bildet je Objektbereich die Anzahl der Befunde je
-    Schweregrad ab, ``records_by_area`` die Anzahl gepruefter Stammsaetze und
-    ``rules_by_area`` das Verhaeltnis ausfuehrbarer zu vorhandenen Regeln.
+    Schweregrad ab, ``records_by_area`` die Anzahl geprüfter Stammsätze und
+    ``rules_by_area`` das Verhältnis ausführbarer zu vorhandenen Regeln.
     """
     areas: list[AreaScore] = []
     all_areas = sorted(set(findings_by_area) | set(records_by_area) | set(rules_by_area))
@@ -143,7 +143,7 @@ def compute_score(
         if executable == 0 or records == 0:
             score = None
         else:
-            # Gewichtete Befunde je Stammsatz, an der Saettigung gekappt.
+            # Gewichtete Befunde je Stammsatz, an der Sättigung gekappt.
             density = weighted / records
             score = round(max(0.0, 1.0 - min(density / SATURATION, 1.0)) * 100, 1)
 

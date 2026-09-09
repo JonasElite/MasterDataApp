@@ -2,12 +2,12 @@
 
 Adressat ist die Projektleitung, nicht der Data Owner. Deshalb steht der
 Vorbehalt zur Aussagekraft vor den Zahlen und nicht im Anhang: eine
-Befundzahl ohne Angabe, worueber ueberhaupt geprueft wurde, laedt zur
+Befundzahl ohne Angabe, worüber überhaupt geprüft wurde, lädt zur
 Fehlinterpretation ein (FA-305).
 
 Ausgabeformat ist Markdown. Es ist lesbar ohne Werkzeug, versionierbar,
-laesst sich in jedes Dokument uebernehmen und zeigt im Versionsvergleich, was
-sich gegenueber der letzten Lieferung geaendert hat.
+lässt sich in jedes Dokument übernehmen und zeigt im Versionsvergleich, was
+sich gegenüber der letzten Lieferung geändert hat.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ logger = get_logger("report.summary")
 def _table(headers: list[str], rows: list[list[str]]) -> list[str]:
     """Formatiert eine Markdown-Tabelle."""
     if not rows:
-        return ["_Keine Eintraege._", ""]
+        return ["_Keine Einträge._", ""]
     lines = ["| " + " | ".join(headers) + " |"]
     lines.append("|" + "|".join("---" for _ in headers) + "|")
     for row in rows:
@@ -56,7 +56,7 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
     lines: list[str] = []
 
     # ------------------------------------------------------------- Kopf
-    lines.append(f"# Stammdatenpruefung - {config.project.name}")
+    lines.append(f"# Stammdatenprüfung - {config.project.name}")
     lines.append("")
     header_rows = [
         ["Kunde", config.project.customer or "-"],
@@ -80,11 +80,11 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
     if result.delivery and not result.delivery.usable:
         lines.append(
             f"**Achtung:** Die Lieferung wurde mit {len(result.delivery.errors)} blockierenden "
-            "Befunden verarbeitet. Die Ergebnisse sind nur eingeschraenkt belastbar."
+            "Befunden verarbeitet. Die Ergebnisse sind nur eingeschränkt belastbar."
         )
         lines.append("")
 
-    # --------------------------------------------------- KPI-Uebersicht
+    # --------------------------------------------------- KPI-Übersicht
     lines.append("## Kennzahlen")
     lines.append("")
     severity_counts = (
@@ -93,9 +93,9 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
     executed = len([e for e in result.all_executions if e.status.value == "ausgefuehrt"])
     kpi_rows = [
         ["Gelieferte Tabellen", str(len(result.ingestion.tables) if result.ingestion else 0)],
-        ["Verarbeitete Saetze", f"{result.rows_ingested:,}".replace(",", ".")],
+        ["Verarbeitete Sätze", f"{result.rows_ingested:,}".replace(",", ".")],
         ["Aktive Regeln im Katalog", str(result.coverage.total if result.coverage else 0)],
-        ["Davon ausgefuehrt", str(executed)],
+        ["Davon ausgeführt", str(executed)],
         ["Davon entfallen (fehlende Daten)", str(len(result.coverage.blocked) if result.coverage else 0)],
         ["Regelfehler", str(len(result.failed_rules))],
         ["Coverage-Grad", f"{result.coverage.coverage_ratio:.0%}" if result.coverage else "-"],
@@ -134,7 +134,7 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
 
     # ------------------------------------------- Bewertung je Objektbereich
     if result.score:
-        lines.append("## Datenqualitaet je Objektbereich")
+        lines.append("## Datenqualität je Objektbereich")
         lines.append("")
         score_rows = []
         for area in result.score.areas:
@@ -147,7 +147,7 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
                 f"{area.rules_executable}/{area.rules_total}",
             ])
         lines += _table(
-            ["Bereich", "Score", "Einordnung", "Befunde", "Geprueft", "Regeln"], score_rows
+            ["Bereich", "Score", "Einordnung", "Befunde", "Geprüft", "Regeln"], score_rows
         )
         for area in result.score.areas:
             if not area.assessable or area.coverage_ratio < 1.0:
@@ -186,7 +186,7 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
             lines.append("")
         else:
             lines += _table(
-                ["Gewicht", "Pruefung", "Gegenstand", "Befund"],
+                ["Gewicht", "Prüfung", "Gegenstand", "Befund"],
                 [
                     [
                         str(check.severity),
@@ -203,13 +203,13 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
     lines.append("")
     if result.coverage:
         lines.append(
-            f"Ausgefuehrt wurden {len(result.coverage.executable)} von "
+            f"Ausgeführt wurden {len(result.coverage.executable)} von "
             f"{result.coverage.total} aktiven Regeln."
         )
         lines.append("")
         blocked = result.coverage.blocked
         if blocked:
-            lines.append("### Entfallene Pruefungen")
+            lines.append("### Entfallene Prüfungen")
             lines.append("")
             lines += _table(
                 ["Regel", "Bezeichnung", "Grund"],
@@ -222,13 +222,13 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
             lines.append("### Priorisierte Nachforderung")
             lines.append("")
             lines.append(
-                "Die folgenden Nachlieferungen schalten die meisten zusaetzlichen "
-                "Pruefungen frei. Die kumulierte Spalte gilt unter der Annahme, dass "
-                "die darueber genannten Punkte ebenfalls geliefert werden."
+                "Die folgenden Nachlieferungen schalten die meisten zusätzlichen "
+                "Prüfungen frei. Die kumulierte Spalte gilt unter der Annahme, dass "
+                "die darüber genannten Punkte ebenfalls geliefert werden."
             )
             lines.append("")
             lines += _table(
-                ["Nachforderung", "Bedeutung", "Zusaetzliche Pruefungen", "Kumuliert"],
+                ["Nachforderung", "Bedeutung", "Zusätzliche Prüfungen", "Kumuliert"],
                 [
                     [
                         candidate.request,
@@ -253,7 +253,7 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
         lines.append("")
         lines.append(
             "Diese Regeln sind ausgefallen. Ihr Ausfall bedeutet nicht, dass es keine "
-            "Befunde gibt - es wurde nicht geprueft."
+            "Befunde gibt - es wurde nicht geprüft."
         )
         lines.append("")
         lines += _table(
@@ -278,7 +278,7 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
             )
         if result.delta.changed_rule_versions:
             lines.append(
-                "Bei folgenden Regeln hat sich die Version geaendert; ihre Befunde sind "
+                "Bei folgenden Regeln hat sich die Version geändert; ihre Befunde sind "
                 "nicht unmittelbar vergleichbar: "
                 + ", ".join(result.delta.changed_rule_versions)
             )
@@ -289,8 +289,8 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
         lines.append("## Dauerhafte Ausnahmen")
         lines.append("")
         lines.append(
-            f"{result.enrichment.whitelisted} Befunde sind als begruendete Ausnahme "
-            "gekennzeichnet und zaehlen nicht zum offenen Bestand."
+            f"{result.enrichment.whitelisted} Befunde sind als begründete Ausnahme "
+            "gekennzeichnet und zählen nicht zum offenen Bestand."
         )
         lines.append("")
         if result.enrichment.unused_whitelist:
@@ -307,14 +307,14 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
     lines.append("## Nachvollziehbarkeit")
     lines.append("")
     lines.append(
-        "Jeder Befund ist ueber Regel-ID und Regelversion auf seine Herkunft "
-        "zurueckfuehrbar. Die folgenden Pruefsummen belegen, welche Dateien "
+        "Jeder Befund ist über Regel-ID und Regelversion auf seine Herkunft "
+        "zurückführbar. Die folgenden Prüfsummen belegen, welche Dateien "
         "verarbeitet wurden (FA-205, NFA-06)."
     )
     lines.append("")
     if result.ingestion:
         lines += _table(
-            ["Datei", "Tabelle", "Saetze", "SHA-256"],
+            ["Datei", "Tabelle", "Sätze", "SHA-256"],
             [
                 [
                     source.relative_name,
@@ -326,7 +326,7 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
             ],
         )
     lines.append(
-        "Das vollstaendige Ausfuehrungsprotokoll steht in "
+        "Das vollständige Ausführungsprotokoll steht in "
         "`ausfuehrungsprotokoll.json` im Laufverzeichnis."
     )
     lines.append("")

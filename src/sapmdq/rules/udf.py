@@ -1,7 +1,7 @@
-"""Registrierung der Pruefverfahren als SQL-Funktionen.
+"""Registrierung der Prüfverfahren als SQL-Funktionen.
 
-Die Regeln sind in SQL formuliert; Pruefziffernverfahren lassen sich darin
-nur unleserlich ausdruecken. Deshalb werden die Verfahren aus
+Die Regeln sind in SQL formuliert; Prüfziffernverfahren lassen sich darin
+nur unleserlich ausdrücken. Deshalb werden die Verfahren aus
 ``validators.py`` der Datenbank als Funktionen bekannt gemacht. Eine Regel
 schreibt dann ``WHERE NOT iban_valid(IBAN)`` und bleibt fachlich lesbar
 (FA-411).
@@ -18,7 +18,7 @@ from sapmdq.rules import validators
 
 logger = get_logger("rules.udf")
 
-#: Name, Funktion, Parametertypen, Rueckgabetyp.
+#: Name, Funktion, Parametertypen, Rückgabetyp.
 UDF_DEFINITIONS: tuple[tuple[str, object, list[str], str], ...] = (
     ("iban_valid", validators.iban_valid, ["VARCHAR"], "BOOLEAN"),
     ("iban_reason", validators.iban_reason, ["VARCHAR"], "VARCHAR"),
@@ -41,11 +41,11 @@ UDF_DEFINITIONS: tuple[tuple[str, object, list[str], str], ...] = (
 
 
 def register_udfs(con: duckdb.DuckDBPyConnection) -> tuple[str, ...]:
-    """Macht alle Pruefverfahren in der Verbindung bekannt.
+    """Macht alle Prüfverfahren in der Verbindung bekannt.
 
     Die Funktionen werden mit ``null_handling='special'`` registriert: sie
     sollen NULL selbst behandeln und beispielsweise "IBAN fehlt" melden,
-    statt bei einem leeren Feld stumm NULL zurueckzugeben.
+    statt bei einem leeren Feld stumm NULL zurückzugeben.
     """
     registered: list[str] = []
     for name, function, parameters, return_type in UDF_DEFINITIONS:
@@ -62,5 +62,5 @@ def register_udfs(con: duckdb.DuckDBPyConnection) -> tuple[str, ...]:
             side_effects=False,
         )
         registered.append(name)
-    logger.debug("%d Prueffunktionen registriert", len(registered))
+    logger.debug("%d Prüffunktionen registriert", len(registered))
     return tuple(registered)

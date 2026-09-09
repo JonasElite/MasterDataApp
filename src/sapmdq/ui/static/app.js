@@ -1,12 +1,12 @@
-/* Oberflaeche der SAP-Stammdatenpruefung.
+/* Oberfläche der SAP-Stammdatenprüfung.
  *
- * Kein Rahmenwerk, keine Abhaengigkeit, keine Nachladung aus dem Netz. Die
+ * Kein Rahmenwerk, keine Abhängigkeit, keine Nachladung aus dem Netz. Die
  * Datei baut die Anzeige aus den Antworten der lokalen Schnittstelle auf.
  *
- * Werte aus den Daten werden ausschliesslich als Textknoten gesetzt und nie
- * als HTML eingefuegt. Ein Materialkurztext, der wie ein Auszeichnungsbefehl
- * aussieht, bleibt damit Text - er stammt aus dem Kundensystem und ist fuer
- * uns nicht vertrauenswuerdig.
+ * Werte aus den Daten werden ausschließlich als Textknoten gesetzt und nie
+ * als HTML eingefügt. Ein Materialkurztext, der wie ein Auszeichnungsbefehl
+ * aussieht, bleibt damit Text - er stammt aus dem Kundensystem und ist für
+ * uns nicht vertrauenswürdig.
  */
 "use strict";
 
@@ -16,10 +16,10 @@ const TOKEN = new URLSearchParams(location.search).get("token") || "";
 
 /** Baut ein Element.
  *
- * Alles, was sichtbar wird - Text, Titel, Platzhalter, Beschriftung - laeuft
- * durch ``t()``. Damit hat die Uebersetzung genau eine Stelle statt zweihundert
- * Aufrufstellen. Unbekannte Texte gehen unveraendert durch, weshalb Regelnamen,
- * Objektschluessel und Feldinhalte unangetastet bleiben.
+ * Alles, was sichtbar wird - Text, Titel, Platzhalter, Beschriftung - läuft
+ * durch ``t()``. Damit hat die Übersetzung genau eine Stelle statt zweihundert
+ * Aufrufstellen. Unbekannte Texte gehen unverändert durch, weshalb Regelnamen,
+ * Objektschlüssel und Feldinhalte unangetastet bleiben.
  */
 const UEBERSETZTE_ATTRIBUTE = new Set(["title", "placeholder", "aria-label", "alt"]);
 
@@ -60,7 +60,7 @@ const zahl = (wert) =>
     ? "-"
     : Number(wert).toLocaleString(gebietsschema());
 
-/** Dezimalzahl in der Schreibweise der gewaehlten Sprache. */
+/** Dezimalzahl in der Schreibweise der gewählten Sprache. */
 const dezimal = (wert, stellen) =>
   wert === null || wert === undefined || Number.isNaN(Number(wert))
     ? "-"
@@ -95,9 +95,9 @@ const BEREICHE = {
   vendor: "Kreditoren",
   customer: "Debitoren",
   material: "Material",
-  business_partner: "Geschaeftspartner",
+  business_partner: "Geschäftspartner",
   bank: "Bankdaten",
-  cross: "Uebergreifend",
+  cross: "Übergreifend",
   delivery: "Lieferung",
 };
 const bereichName = (schluessel) =>
@@ -220,13 +220,13 @@ function balken(eintraege, farbeFuer) {
 
 /* ------------------------------------------------------------ Diagramme
  *
- * Alles aus HTML und CSS. Zwei Formen genuegen fuer das, was hier gezeigt
- * wird: liegende Saeulen fuer einen Groessenvergleich und ein Ring fuer einen
- * Anteil. Jeder Wert steht als Zahl daneben - niemand soll eine Laenge
- * schaetzen oder erst mit der Maus danach suchen muessen.
+ * Alles aus HTML und CSS. Zwei Formen genügen für das, was hier gezeigt
+ * wird: liegende Säulen für einen Größenvergleich und ein Ring für einen
+ * Anteil. Jeder Wert steht als Zahl daneben - niemand soll eine Länge
+ * schätzen oder erst mit der Maus danach suchen müssen.
  */
 
-/** Liegende Saeulen mit Beschriftung am Ende.
+/** Liegende Säulen mit Beschriftung am Ende.
  *
  * ``eintraege``: {name, wert, farbe?, titel?, aufKlick?, anteilVon?}
  */
@@ -291,10 +291,10 @@ function ampelfeld(titel, wert, klasse, hinweis) {
   ]);
 }
 
-/** Veraenderung gegen den Vorlauf. Weniger Befunde ist besser. */
+/** Veränderung gegen den Vorlauf. Weniger Befunde ist besser. */
 function trend(neu, behoben) {
   const netto = (neu || 0) - (behoben || 0);
-  if (!neu && !behoben) return el("span", { class: "trend gleich", text: "unveraendert" });
+  if (!neu && !behoben) return el("span", { class: "trend gleich", text: "unverändert" });
   const klasse = netto < 0 ? "besser" : netto > 0 ? "schlechter" : "gleich";
   const zeichen = netto < 0 ? "\u2193 " : netto > 0 ? "\u2191 " : "";
   return el("span", {
@@ -310,8 +310,8 @@ function trend(neu, behoben) {
 /** Einordnung eines Punktwertes in Worten.
  *
  * Wortlaut und Schwellen sind dieselben wie in ``report/score.py``. Sonst
- * stuende in der Management-Summary ein anderes Wort als auf dem Bildschirm,
- * und beides waere im selben Termin zu sehen.
+ * stünde in der Management-Summary ein anderes Wort als auf dem Bildschirm,
+ * und beides wäre im selben Termin zu sehen.
  */
 function einordnung(score) {
   if (score === null || score === undefined) return { text: "nicht bewertbar", klasse: "leise" };
@@ -335,8 +335,8 @@ const farbeSchweregrad = (grad) =>
 
 /* ---------------------------------------------------------------- Prosa
  *
- * Vorbehalt, Einordnung und Dublettenbegruendung stehen in lauf.json als
- * fertige deutsche Saetze. Angezeigt werden sie hier trotzdem nicht von dort,
+ * Vorbehalt, Einordnung und Dublettenbegründung stehen in lauf.json als
+ * fertige deutsche Sätze. Angezeigt werden sie hier trotzdem nicht von dort,
  * sondern aus den Zahlen neu gebildet - sonst bliebe die englische Fassung an
  * genau den Stellen deutsch, auf die es ankommt.
  *
@@ -345,7 +345,7 @@ const farbeSchweregrad = (grad) =>
  * neben dem Bildschirm liegen hat, soll denselben Satz lesen.
  */
 
-/** Regeln des angezeigten Laufs, nach ID. Grundlage der Uebersetzung. */
+/** Regeln des angezeigten Laufs, nach ID. Grundlage der Übersetzung. */
 let REGELN = {};
 
 function regelIndexAufbauen(lauf) {
@@ -355,22 +355,22 @@ function regelIndexAufbauen(lauf) {
   }
 }
 
-/** Die Bezeichnung einer Regel, uebersetzt wenn moeglich.
+/** Die Bezeichnung einer Regel, übersetzt wenn möglich.
  *
- * In der Befunddatei steht der deutsche Name, wie er zur Laufzeit galt. Fuer
- * die Anzeige wird er ueber die Regel-ID nachgeschlagen - der gespeicherte
- * Name bleibt der Rueckfall, etwa wenn eine Regel seither entfallen ist.
+ * In der Befunddatei steht der deutsche Name, wie er zur Laufzeit galt. Für
+ * die Anzeige wird er über die Regel-ID nachgeschlagen - der gespeicherte
+ * Name bleibt der Rückfall, etwa wenn eine Regel seither entfallen ist.
  */
 function regelName(ruleId, gespeichert) {
   const regel = REGELN[ruleId];
   return (regel && regelText(regel, "name")) || gespeichert || ruleId;
 }
 
-/** Regeltext in der gewaehlten Sprache.
+/** Regeltext in der gewählten Sprache.
  *
- * Der Katalog ist auf Deutsch geschrieben; die Uebersetzungen stehen in
- * ``rules/i18n/<sprache>.yaml`` und kommen ueber lauf.json mit. Fehlt eine,
- * erscheint der deutsche Wortlaut - lesbar, wenn auch nicht schoen.
+ * Der Katalog ist auf Deutsch geschrieben; die Übersetzungen stehen in
+ * ``rules/i18n/<sprache>.yaml`` und kommen über lauf.json mit. Fehlt eine,
+ * erscheint der deutsche Wortlaut - lesbar, wenn auch nicht schön.
  */
 function regelText(regel, feld) {
   if (!regel) return "";
@@ -379,23 +379,23 @@ function regelText(regel, feld) {
   return regel[{ name: "name", description: "beschreibung", remediation: "empfehlung" }[feld]] || "";
 }
 
-/** Vorbehalt zum Pruefumfang (FA-305). */
+/** Vorbehalt zum Prüfumfang (FA-305). */
 function vorbehaltPruefumfang(coverage) {
   const gesamt = coverage.regeln_gesamt || 0;
   const ausfuehrbar = coverage.ausfuehrbar || 0;
   const entfallen = coverage.entfallen || 0;
   if (!gesamt) {
-    return t("Es waren keine Regeln aktiv. Die Lieferung wurde nicht fachlich geprueft.");
+    return t("Es waren keine Regeln aktiv. Die Lieferung wurde nicht fachlich geprüft.");
   }
   if (!entfallen) {
-    return t("Alle {n} aktiven Regeln waren ausfuehrbar. Die Aussage stuetzt sich auf "
-      + "den vollstaendigen Regelkatalog.", { n: gesamt });
+    return t("Alle {n} aktiven Regeln waren ausführbar. Die Aussage stützt sich auf "
+      + "den vollständigen Regelkatalog.", { n: gesamt });
   }
-  return t("Von {gesamt} aktiven Regeln waren {ausfuehrbar} ausfuehrbar ({anteil}). "
+  return t("Von {gesamt} aktiven Regeln waren {ausfuehrbar} ausführbar ({anteil}). "
     + "{entfallen} Regeln konnten nicht laufen, weil Tabellen oder Felder fehlen "
-    + "(vor allem {tabellen}). Die Aussage dieses Berichts gilt ausschliesslich fuer "
-    + "die ausgefuehrten Pruefungen; zu den entfallenen Pruefungen ist keine Aussage "
-    + "moeglich - weder positiv noch negativ.", {
+    + "(vor allem {tabellen}). Die Aussage dieses Berichts gilt ausschließlich für "
+    + "die ausgeführten Prüfungen; zu den entfallenen Prüfungen ist keine Aussage "
+    + "möglich - weder positiv noch negativ.", {
       gesamt: gesamt,
       ausfuehrbar: ausfuehrbar,
       anteil: prozent(coverage.anteil),
@@ -407,21 +407,21 @@ function vorbehaltPruefumfang(coverage) {
 /** Vorbehalt zum Punktwert eines Bereichs. */
 function vorbehaltBereich(bereich) {
   if (bereich.score === null || bereich.score === undefined) {
-    return t("Fuer {bereich} war keine Regel ausfuehrbar. Es liegt keine Aussage zur "
-      + "Datenqualitaet vor - weder eine gute noch eine schlechte.",
+    return t("Für {bereich} war keine Regel ausführbar. Es liegt keine Aussage zur "
+      + "Datenqualität vor - weder eine gute noch eine schlechte.",
       { bereich: bereichName(bereich.bereich) });
   }
   if ((bereich.regeln_ausfuehrbar || 0) < (bereich.regeln_gesamt || 0)) {
     const anteil = bereich.regeln_gesamt
       ? bereich.regeln_ausfuehrbar / bereich.regeln_gesamt : 0;
-    return t("Der Wert stuetzt sich auf {a} von {b} Regeln ({anteil}). Er ist nur mit "
-      + "Laeufen vergleichbar, die denselben Umfang hatten.", {
+    return t("Der Wert stützt sich auf {a} von {b} Regeln ({anteil}). Er ist nur mit "
+      + "Läufen vergleichbar, die denselben Umfang hatten.", {
         a: bereich.regeln_ausfuehrbar,
         b: bereich.regeln_gesamt,
         anteil: prozent(anteil),
       });
   }
-  return t("Alle Regeln dieses Bereichs waren ausfuehrbar.");
+  return t("Alle Regeln dieses Bereichs waren ausführbar.");
 }
 
 /** Warum ein Cluster als Dublette gilt. */
@@ -431,26 +431,26 @@ function dublettenBegruendung(cluster) {
     const teile = [];
     for (const feld of cluster.exakte_schluessel || []) {
       const werte = mitglieder.map((m) => (m.felder || {})[feld] || "");
-      // Genannt wird nur der Schluessel, den alle Mitglieder wirklich teilen.
-      // Ein Cluster kann ueber mehrere gebildet worden sein.
+      // Genannt wird nur der Schlüssel, den alle Mitglieder wirklich teilen.
+      // Ein Cluster kann über mehrere gebildet worden sein.
       if (werte.length > 1 && werte[0] && werte.every((wert) => wert === werte[0])) {
         teile.push(t("gleiche {feld}: {wert}", { feld: feld, wert: werte[0] }));
       }
     }
-    return teile.length ? teile.join("; ") : t("uebereinstimmender harter Schluessel");
+    return teile.length ? teile.join("; ") : t("übereinstimmender harter Schlüssel");
   }
-  return t("Name sehr aehnlich ({n} von 100)", { n: Math.round(cluster.score || 0) });
+  return t("Name sehr ähnlich ({n} von 100)", { n: Math.round(cluster.score || 0) });
 }
 
 /** Die Zusammenfassung eines Laufvergleichs (FA-605). */
 function vergleichsZeile(daten) {
   const netto = (daten.neu || 0) - (daten.behoben || 0);
-  return t("{behoben} Befunde behoben, {neu} neu hinzugekommen, {unveraendert} unveraendert.", {
+  return t("{behoben} Befunde behoben, {neu} neu hinzugekommen, {unveraendert} unverändert.", {
       behoben: zahl(daten.behoben),
       neu: zahl(daten.neu),
       unveraendert: zahl(daten.unveraendert),
     }) + " " + (netto === 0
-      ? t("In Summe unveraendert.")
+      ? t("In Summe unverändert.")
       : t(netto < 0 ? "In Summe {n} Befunde weniger." : "In Summe {n} Befunde mehr.",
           { n: zahl(Math.abs(netto)) }));
 }
@@ -459,7 +459,7 @@ function vergleichsZeile(daten) {
 
 function zeigeLagebild() {
   const lauf = Z.lauf;
-  const leer = (id) => setzen($(id), [el("p", { class: "nichts", text: "Kein Lauf ausgewaehlt." })]);
+  const leer = (id) => setzen($(id), [el("p", { class: "nichts", text: "Kein Lauf ausgewählt." })]);
   if (!lauf) {
     for (const id of ["#lb-ampel", "#lb-schweregrade", "#lb-bereiche", "#lb-regeln",
                       "#lb-nachforderung", "#lb-bewertung", "#lb-ring"]) leer(id);
@@ -482,10 +482,10 @@ function zeigeLagebild() {
     el("span", { class: "merkmal hero-einordnung " + note.klasse, text: note.text }),
   ]);
   $("#lb-score-zusatz").textContent =
-    t("von 100 Punkten, aus {n} geprueften Saetzen.",
+    t("von 100 Punkten, aus {n} geprüften Sätzen.",
       { n: zahl(lauf.saetze_verarbeitet) });
 
-  // ------------------------------------------------------- Pruefumfang
+  // ------------------------------------------------------- Prüfumfang
   setzen($("#lb-ring"), [ring(
     coverage.anteil || 0,
     prozent(coverage.anteil),
@@ -502,10 +502,10 @@ function zeigeLagebild() {
       (jeGrad.critical || 0) ? "critical" : "gut"),
     ampelfeld("hoch", zahl(jeGrad.high || 0), (jeGrad.high || 0) ? "high" : "gut"),
     ampelfeld("Ausnahmen", zahl(befunde.ausnahmen || 0), "",
-      "Befunde, die mit Begruendung anerkannt wurden."),
+      "Befunde, die mit Begründung anerkannt wurden."),
     ampelfeld("Regelfehler", zahl(lauf.regelfehler),
       lauf.regelfehler ? "critical" : "gut",
-      lauf.regelfehler ? "Das Ergebnis ist unvollstaendig." : "Alle Regeln liefen durch."),
+      lauf.regelfehler ? "Das Ergebnis ist unvollständig." : "Alle Regeln liefen durch."),
   ];
   if (vergleich) {
     felder.push(el("div", { class: "ampel-feld" }, [
@@ -522,7 +522,7 @@ function zeigeLagebild() {
       wert: jeGrad[grad],
       farbe: "var(--" + grad + ")",
       titel: t("{n} Befunde mit Schweregrad {grad} - klicken, um die Liste "
-               + "darauf einzuschraenken", { n: zahl(jeGrad[grad]), grad: grad }),
+               + "darauf einzuschränken", { n: zahl(jeGrad[grad]), grad: grad }),
       aufKlick: () => {
         zuAnsicht("befunde");
         $("#b-schweregrad").value = grad;
@@ -540,7 +540,7 @@ function zeigeLagebild() {
         name: bereichName(schluessel),
         wert: wert,
         titel: t("{n} Befunde in {bereich} - klicken, um die Liste darauf "
-                 + "einzuschraenken", { n: zahl(wert), bereich: bereichName(schluessel) }),
+                 + "einzuschränken", { n: zahl(wert), bereich: bereichName(schluessel) }),
         aufKlick: () => {
           zuAnsicht("befunde");
           $("#b-bereich").value = schluessel;
@@ -579,9 +579,9 @@ function zeigeLagebild() {
       name: kandidat.tabelle,
       wert: kandidat.kumuliert || kandidat.zusaetzliche_pruefungen || 0,
       titel: kandidat.tabelle + " (" + kandidat.bedeutung + "): "
-             + t("schaltet {n} weitere Pruefungen frei", { n: zahl(kandidat.kumuliert) }),
+             + t("schaltet {n} weitere Prüfungen frei", { n: zahl(kandidat.kumuliert) }),
     })),
-    { leer: "Die Lieferung ist vollstaendig - es fehlt nichts." },
+    { leer: "Die Lieferung ist vollständig - es fehlt nichts." },
   )]);
 
   // ----------------------------------------------------------- Bewertung
@@ -590,22 +590,22 @@ function zeigeLagebild() {
     { titel: "Punkte", zahl: true, zelle: (z) => z.score === null ? "-" : dezimal(z.score) },
     { titel: "Einordnung", zelle: (z) => {
         // Wortlaut aus einordnung(): dasselbe Wort wie im Bericht, aber in
-        // der gewaehlten Sprache. z.einordnung waere immer deutsch.
+        // der gewählten Sprache. z.einordnung wäre immer deutsch.
         const n = einordnung(z.score);
         return merkmal(n.text, n.klasse);
       } },
     { titel: "Befunde", zahl: true, zelle: (z) => zahl(z.befunde) },
-    { titel: "Saetze", zahl: true, zelle: (z) => zahl(z.gepruefte_saetze) },
+    { titel: "Sätze", zahl: true, zelle: (z) => zahl(z.gepruefte_saetze) },
     { titel: "Regeln", zahl: true, zelle: (z) => z.regeln_ausfuehrbar + " / " + z.regeln_gesamt },
     { titel: "Vorbehalt", zelle: (z) => vorbehaltBereich(z) },
   ], bewertung.bereiche || [])]);
 }
 
-/** Eine Meldung der Lieferungspruefung in der gewaehlten Sprache.
+/** Eine Meldung der Lieferungsprüfung in der gewählten Sprache.
  *
  * Auch die eingesetzten Werte laufen durch ``t()``. Die meisten sind Zahlen
- * oder Tabellennamen und gehen unveraendert durch; einige sind aber ganze
- * Saetze - etwa die Begruendung, warum eine Tabelle leer ist. Sie blieben
+ * oder Tabellennamen und gehen unverändert durch; einige sind aber ganze
+ * Sätze - etwa die Begründung, warum eine Tabelle leer ist. Sie blieben
  * sonst mitten in einem englischen Satz deutsch.
  */
 function pruefmeldung(pruefung) {
@@ -625,7 +625,7 @@ function zeigeLieferung() {
   setzen($("#l-urteil"), [
     el("div", { class: "meldung " + (lieferung.verwertbar === false ? "fehler" : "erfolg") }, [
       lieferung.verwertbar === false
-        ? "Die Lieferung ist nicht verwertbar. Der Lauf wurde nur mit ausdruecklicher Freigabe fortgesetzt; die Ergebnisse sind entsprechend eingeschraenkt."
+        ? "Die Lieferung ist nicht verwertbar. Der Lauf wurde nur mit ausdrücklicher Freigabe fortgesetzt; die Ergebnisse sind entsprechend eingeschränkt."
         : "Die Lieferung ist verwertbar.",
     ]),
   ]);
@@ -641,14 +641,14 @@ function zeigeLieferung() {
           ? el("span", { class: "merkmal critical", text: zahl(z.abgewiesene_zeilen) })
           : "0" },
     { titel: "Stichtag", zelle: (z) => z.stichtag ? z.stichtag + " (" + z.stichtag_quelle + ")" : "" },
-    { titel: "Groesse", zahl: true, zelle: (z) => zahl(Math.round((z.groesse_bytes || 0) / 1024)) + " kB" },
+    { titel: "Größe", zahl: true, zelle: (z) => zahl(Math.round((z.groesse_bytes || 0) / 1024)) + " kB" },
     { titel: "SHA-256", fest: true, zelle: (z) => (z.sha256 || "").slice(0, 12) },
   ], lieferung.dateien || [])]);
 
   setzen($("#l-tabellen"), [tabelle([
     { titel: "Tabelle", fest: true, zelle: (z) => z.name },
     { titel: "Bereich", zelle: (z) => bereichName(z.bereich) },
-    { titel: "Saetze", zahl: true, zelle: (z) => zahl(z.saetze) },
+    { titel: "Sätze", zahl: true, zelle: (z) => zahl(z.saetze) },
     { titel: "Vor Filter", zahl: true, zelle: (z) => zahl(z.saetze_vor_filter) },
     { titel: "Spalten", zahl: true, zelle: (z) => zahl(z.spalten) },
     { titel: "Mandanten", zelle: (z) => (z.mandanten || []).join(", ") },
@@ -656,7 +656,7 @@ function zeigeLieferung() {
   ], lieferung.tabellen || [])]);
 
   setzen($("#l-pruefungen"), [tabelle([
-    { titel: "Pruefung", fest: true, zelle: (z) => z.id },
+    { titel: "Prüfung", fest: true, zelle: (z) => z.id },
     { titel: "Gewicht", zelle: (z) => schweregradMerkmal(z.gewicht) },
     { titel: "Gegenstand", zelle: (z) => z.gegenstand },
     { titel: "Anforderung", zelle: (z) => t(z.anforderung) },
@@ -668,7 +668,7 @@ function zeigeLieferung() {
  *
  * Die Seite beantwortet die Frage, die im Kundentermin als erste kommt.
  * Wichtig ist die Trennung zweier Zahlen: was der Katalog abdeckt (ein
- * Leistungsversprechen) und was in dieser Lieferung davon ausfuehrbar war
+ * Leistungsversprechen) und was in dieser Lieferung davon ausführbar war
  * (ein Befund). Beide stehen nebeneinander, nie eine allein.
  */
 
@@ -676,7 +676,7 @@ function zeigeAbdeckung() {
   const abdeckung = (Z.lauf || {}).abdeckung;
   if (!abdeckung || !(abdeckung.prozesse || []).length) {
     setzen($("#ab-kennzahlen"), []);
-    setzen($("#ab-kern"), [el("p", { class: "nichts", text: "Kein Lauf ausgewaehlt." })]);
+    setzen($("#ab-kern"), [el("p", { class: "nichts", text: "Kein Lauf ausgewählt." })]);
     setzen($("#ab-quer"), []);
     setzen($("#ab-tabellen"), []);
     return;
@@ -697,7 +697,7 @@ function zeigeAbdeckung() {
     kachel("Tabellen", zahl(tabellen.length),
       t("{n} in dieser Lieferung vorhanden", { n: geliefert }),
       geliefert === tabellen.length ? "gut" : ""),
-    kachel("Vollstaendig pruefbar", zahl(vollstaendig),
+    kachel("Vollständig prüfbar", zahl(vollstaendig),
       t("von {n} Prozessen in dieser Lieferung", { n: prozesse.length }),
       vollstaendig === prozesse.length ? "gut" : "warnung"),
   ]);
@@ -732,7 +732,7 @@ function prozessKarte(prozess) {
       : null,
 
     el("div", {}, [
-      el("h3", { text: "Was geprueft wird" }),
+      el("h3", { text: "Was geprüft wird" }),
       el("ul", { class: "schwerpunkte" },
         (prozess.schwerpunkte || []).map((punkt) => el("li", { text: punkt }))),
     ]),
@@ -744,7 +744,7 @@ function prozessKarte(prozess) {
       : null,
 
     el("div", {}, [
-      el("h3", { text: "Benoetigte Tabellen" }),
+      el("h3", { text: "Benötigte Tabellen" }),
       el("div", { class: "tabellen-marken" }, (prozess.tabellen || []).map((tabelle) =>
         el("span", {
           class: "tabellen-marke " + (tabelle.geliefert ? "geliefert" : "fehlt"),
@@ -838,7 +838,7 @@ function zeichneRegeln() {
     { titel: "Kategorie", zelle: (z) => t(z.kategorie_text) },
     { titel: "Grad", zelle: (z) => schweregradMerkmal(z.schweregrad) },
     { titel: "Anforderung", fest: true, zelle: (z) => z.anforderung },
-    { titel: "Ausfuehrbar", zelle: (z) => z.ausfuehrbar
+    { titel: "Ausführbar", zelle: (z) => z.ausfuehrbar
         ? merkmal("ja", "gut")
         : merkmal("nein", "high") },
     { titel: "Grund", zelle: (z) => z.ausfuehrbar ? "" : z.grund },
@@ -855,11 +855,11 @@ function zeigeRegel(regel) {
       el("dt", { text: "Schweregrad" }), el("dd", {}, [schweregradMerkmal(regel.schweregrad)]),
       el("dt", { text: "Anforderung" }), el("dd", { text: regel.anforderung }),
       el("dt", { text: "Regelversion" }), el("dd", { class: "fest", text: regel.version }),
-      el("dt", { text: "Ausfuehrbar" }),
+      el("dt", { text: "Ausführbar" }),
       el("dd", { text: regel.ausfuehrbar ? t("ja") : t("nein") + " - " + regel.grund }),
     ]),
     el("div", { class: "abschnitt" }, [
-      el("h3", { text: "Was geprueft wird" }),
+      el("h3", { text: "Was geprüft wird" }),
       el("p", { text: regelText(regel, "description") }),
     ]),
     regelText(regel, "remediation")
@@ -910,7 +910,7 @@ let befundeAnfrage = 0;
 
 async function zeigeBefunde() {
   if (!Z.laufId) {
-    setzen($("#b-tabelle"), [el("p", { class: "nichts", text: "Kein Lauf ausgewaehlt." })]);
+    setzen($("#b-tabelle"), [el("p", { class: "nichts", text: "Kein Lauf ausgewählt." })]);
     return;
   }
   const laufend = ++befundeAnfrage;
@@ -929,7 +929,7 @@ async function zeigeBefunde() {
 
     $("#b-anzahl").textContent = t("{n} Befunde", { n: zahl(daten.gesamt) })
       + (Z.befunde.regel
-          ? t(" - eingeschraenkt auf Regel {regel}", { regel: Z.befunde.regel })
+          ? t(" - eingeschränkt auf Regel {regel}", { regel: Z.befunde.regel })
           : "");
     $("#b-seite").textContent =
       t("Seite {a} von {b}", { a: daten.seite, b: daten.seiten });
@@ -945,7 +945,7 @@ async function zeigeBefunde() {
       { titel: "Mandant", fest: true, zelle: (z) => z.mandant },
       { titel: "Stand", zelle: (z) => el("span", {
           title: z.noch_nicht_im_bericht
-            ? "Gepflegt, aber noch nicht in den Bericht uebernommen - das geschieht beim naechsten Lauf."
+            ? "Gepflegt, aber noch nicht in den Bericht übernommen - das geschieht beim nächsten Lauf."
             : null,
         }, [
           merkmal(z.status, z.status === "offen" ? "leise" : "gut"),
@@ -956,7 +956,7 @@ async function zeigeBefunde() {
       { titel: "Ausnahme", zelle: (z) => z.ausnahme
           ? merkmal("ja", "leise")
           : (z.ausnahme_vorgemerkt ? merkmal("vorgemerkt", "leise") : "") },
-      { titel: "Zustaendig", zelle: (z) => z.data_owner },
+      { titel: "Zuständig", zelle: (z) => z.data_owner },
     ], daten.befunde, (zeile) => oeffneBefund(zeile.finding_id))]);
   } catch (fehler) {
     setzen($("#b-tabelle"), [el("p", { class: "nichts", text: fehler.message })]);
@@ -990,12 +990,12 @@ async function oeffneBefund(findingId) {
       el("dt", { text: "Mandant" }), el("dd", { class: "fest", text: befund.mandant || "-" }),
       befund.buchungskreis ? el("dt", { text: "Buchungskreis" }) : null,
       befund.buchungskreis ? el("dd", { class: "fest", text: befund.buchungskreis }) : null,
-      el("dt", { text: "Zustaendig" }), el("dd", { text: befund.data_owner || "nicht hinterlegt" }),
+      el("dt", { text: "Zuständig" }), el("dd", { text: befund.data_owner || "nicht hinterlegt" }),
       el("dt", { text: "Vergleich" }), el("dd", { text: befund.vergleich || "-" }),
       befund.status_im_bericht ? el("dt", { text: "Stand im Bericht" }) : null,
       befund.status_im_bericht
         ? el("dd", { text: t(befund.status_im_bericht) + " - "
-            + t("der gepflegte Stand ist neuer und wird beim naechsten Lauf uebernommen.") })
+            + t("der gepflegte Stand ist neuer und wird beim nächsten Lauf übernommen.") })
         : null,
       el("dt", { text: "Regelversion" }), el("dd", { class: "fest", text: befund.rule_version }),
       el("dt", { text: "Befundkennung" }), el("dd", { class: "fest", text: befund.finding_id }),
@@ -1013,7 +1013,7 @@ async function oeffneBefund(findingId) {
 
     regelText(regel, "description")
       ? el("div", { class: "abschnitt" }, [
-          el("h3", { text: "Was geprueft wird" }),
+          el("h3", { text: "Was geprüft wird" }),
           el("p", { text: regelText(regel, "description") }),
           regelText(regel, "remediation") ? el("h3", { text: "Handlungsempfehlung" }) : null,
           regelText(regel, "remediation")
@@ -1024,18 +1024,18 @@ async function oeffneBefund(findingId) {
     (befund.ausnahme || befund.ausnahme_vorgemerkt)
       ? el("div", { class: "abschnitt" }, [
           el("h3", { text: befund.ausnahme ? "Als Ausnahme anerkannt" : "Als Ausnahme vorgemerkt" }),
-          el("p", { text: befund.ausnahme_grund || "ohne Begruendung" }),
+          el("p", { text: befund.ausnahme_grund || "ohne Begründung" }),
           befund.ausnahme_vorgemerkt
             ? el("p", { class: "leise", text: "Die Ausnahme steht in der Ausnahmeliste, ist aber "
-                + "in diesem Bericht noch nicht beruecksichtigt. Sie wirkt ab dem naechsten Lauf." })
+                + "in diesem Bericht noch nicht berücksichtigt. Sie wirkt ab dem nächsten Lauf." })
             : null,
           el("button", {
             class: "knopf knopf-leise",
-            text: "Ausnahme zuruecknehmen",
+            text: "Ausnahme zurücknehmen",
             onclick: async () => {
               try {
                 const ergebnis = await sende("/api/ausnahmen/entfernen", { finding_id: befund.finding_id });
-                melden(t("{n} Ausnahme(n) entfernt. Wirksam ab dem naechsten Lauf.",
+                melden(t("{n} Ausnahme(n) entfernt. Wirksam ab dem nächsten Lauf.",
                          { n: ergebnis.entfernt }), "erfolg");
                 oeffneBefund(findingId);
               } catch (fehler) { melden(fehler.message, "fehler"); }
@@ -1052,7 +1052,7 @@ async function oeffneBefund(findingId) {
 
 function statusFormular(befund, findingId) {
   const auswahl = el("select", { "aria-label": "Bearbeitungsstand" },
-    ["offen", "in Klaerung", "akzeptiert", "korrigiert"].map((wert) =>
+    ["offen", "in Klärung", "akzeptiert", "korrigiert"].map((wert) =>
       el("option", { value: wert, text: wert, selected: wert === befund.status })));
   const bemerkung = el("textarea", { placeholder: "Bemerkung (freiwillig)" });
   bemerkung.value = befund.status_bemerkung || "";
@@ -1060,7 +1060,7 @@ function statusFormular(befund, findingId) {
 
   return el("div", { class: "abschnitt" }, [
     el("h3", { text: "Bearbeitungsstand" }),
-    el("p", { class: "leise", text: "Der Stand wird in der Statusdatei des Projekts gefuehrt und beim naechsten Lauf uebernommen (FA-603)." }),
+    el("p", { class: "leise", text: "Der Stand wird in der Statusdatei des Projekts geführt und beim nächsten Lauf übernommen (FA-603)." }),
     el("div", { class: "formular" }, [
       el("div", { class: "formular-reihe" }, [auswahl, bearbeiter]),
       bemerkung,
@@ -1094,10 +1094,10 @@ function statusFormular(befund, findingId) {
 }
 
 function ausnahmeFormular(befund, findingId) {
-  const begruendung = el("textarea", { placeholder: "Begruendung - warum ist der Befund vertretbar?" });
+  const begruendung = el("textarea", { placeholder: "Begründung - warum ist der Befund vertretbar?" });
   const freigabe = el("input", { type: "text", placeholder: "Freigegeben von" });
   const verweis = el("input", { type: "text", placeholder: "Verweis (Ticket, Protokoll)" });
-  const ablauf = el("input", { type: "date", "aria-label": "Laeuft ab" });
+  const ablauf = el("input", { type: "date", "aria-label": "Läuft ab" });
   const umfang = el("select", { "aria-label": "Geltungsbereich" }, [
     el("option", { value: "befund", text: "nur dieser Befund" }),
     el("option", { value: "objekt", text: "dieses Objekt in dieser Regel" }),
@@ -1106,11 +1106,11 @@ function ausnahmeFormular(befund, findingId) {
 
   return el("div", { class: "abschnitt" }, [
     el("h3", { text: "Als Ausnahme anerkennen" }),
-    el("p", { class: "leise", text: "Die Ausnahme wird in der Ausnahmeliste des Projekts gefuehrt. Sie wirkt ab dem naechsten Lauf; der bereits geschriebene Bericht bleibt unveraendert (FA-602)." }),
+    el("p", { class: "leise", text: "Die Ausnahme wird in der Ausnahmeliste des Projekts geführt. Sie wirkt ab dem nächsten Lauf; der bereits geschriebene Bericht bleibt unverändert (FA-602)." }),
     el("div", { class: "formular" }, [
       begruendung,
       el("div", { class: "formular-reihe" }, [umfang, freigabe]),
-      el("div", { class: "formular-reihe" }, [verweis, el("span", { class: "leise", text: "laeuft ab am" }), ablauf]),
+      el("div", { class: "formular-reihe" }, [verweis, el("span", { class: "leise", text: "läuft ab am" }), ablauf]),
       el("div", { class: "formular-reihe" }, [
         el("button", {
           class: "knopf knopf-haupt",
@@ -1149,7 +1149,7 @@ let dublettenDaten = null;
 
 async function zeigeDubletten() {
   if (!Z.laufId) {
-    setzen($("#d-cluster"), [el("p", { class: "nichts", text: "Kein Lauf ausgewaehlt." })]);
+    setzen($("#d-cluster"), [el("p", { class: "nichts", text: "Kein Lauf ausgewählt." })]);
     return;
   }
   try {
@@ -1161,21 +1161,21 @@ async function zeigeDubletten() {
 
   const daten = dublettenDaten;
   setzen($("#d-kennzahlen"), [
-    kachel("Cluster", zahl(daten.anzahl_cluster), "mutmasslich mehrfach angelegt"),
-    kachel("Betroffene Saetze", zahl(daten.betroffene_saetze), "in allen Clustern zusammen"),
+    kachel("Cluster", zahl(daten.anzahl_cluster), "mutmaßlich mehrfach angelegt"),
+    kachel("Betroffene Sätze", zahl(daten.betroffene_saetze), "in allen Clustern zusammen"),
     kachel("Bereinigungspotenzial", zahl(daten.einsparung),
-      "Saetze entfallen, wenn je Cluster einer fuehrend wird",
+      "Sätze entfallen, wenn je Cluster einer führend wird",
       daten.einsparung ? "warnung" : "gut"),
   ]);
 
   setzen($("#d-je-regel"), [saeulen(
-    // Ein Farbton: verglichen werden Mengen, nicht Zugehoerigkeiten. Der
+    // Ein Farbton: verglichen werden Mengen, nicht Zugehörigkeiten. Der
     // Schweregrad steht als Wort in der Beschriftung und an jedem Cluster.
     (daten.je_regel || []).map((gruppe) => ({
       name: gruppe.id + " \u2013 " + regelName(gruppe.id, gruppe.name),
       wert: gruppe.saetze,
       titel: gruppe.id + ": "
-             + t("{c} Cluster mit zusammen {s} Saetzen, Nachweis {art}, Schweregrad {grad}",
+             + t("{c} Cluster mit zusammen {s} Sätzen, Nachweis {art}, Schweregrad {grad}",
                  { c: gruppe.cluster, s: zahl(gruppe.saetze),
                    art: t(gruppe.art), grad: gruppe.schweregrad }),
     })),
@@ -1231,12 +1231,12 @@ function clusterKarte(cluster) {
     el("span", { class: "fest leise", text: cluster.rule_id }),
     el("span", { class: "cluster-titel", text: kurzname(cluster) }),
     el("span", { class: "leise", text: regelName(cluster.rule_id, cluster.rule_name) }),
-    merkmal(t("{n} Saetze", { n: cluster.anzahl_saetze }), "leise"),
-    // Der Nachweis ist die wichtigste Angabe: ein harter Schluessel ist ein
-    // Beweis, eine Namensaehnlichkeit ein begruendeter Verdacht.
+    merkmal(t("{n} Sätze", { n: cluster.anzahl_saetze }), "leise"),
+    // Der Nachweis ist die wichtigste Angabe: ein harter Schlüssel ist ein
+    // Beweis, eine Namensähnlichkeit ein begründeter Verdacht.
     cluster.art === "exakt"
-      ? merkmal("harter Schluessel", "critical")
-      : merkmal(t("Aehnlichkeit {n}", { n: Math.round(cluster.score || 0) }), "medium"),
+      ? merkmal("harter Schlüssel", "critical")
+      : merkmal(t("Ähnlichkeit {n}", { n: Math.round(cluster.score || 0) }), "medium"),
     cluster.ausnahme || cluster.ausnahme_vorgemerkt
       ? merkmal(cluster.ausnahme ? "Ausnahme" : "Ausnahme vorgemerkt", "leise")
       : null,
@@ -1267,19 +1267,19 @@ function kurzname(cluster) {
   return namen.length > 2 ? gezeigt + "  / +" + (namen.length - 2) : gezeigt;
 }
 
-/** Die Saetze eines Clusters nebeneinander, abweichende Werte hervorgehoben.
+/** Die Sätze eines Clusters nebeneinander, abweichende Werte hervorgehoben.
  *
  * Je Stammsatz eine Spalte, je Feld eine Zeile. Wer zwei Kreditoren
- * zusammenfuehren soll, muss sehen, worin sie sich unterscheiden - und das
+ * zusammenführen soll, muss sehen, worin sie sich unterscheiden - und das
  * ist genau das, was eine Liste untereinander nicht zeigt.
  */
 function clusterInhalt(cluster) {
   const mitglieder = cluster.mitglieder || [];
   const felder = cluster.verglichene_felder || [];
 
-  // Die erste Zeile traegt den Namen der Spalte, die verglichen wurde. Bei
-  // MAT-DUP-002 ist das die EAN und nicht ein Name - "Name" darueberzuschreiben
-  // waere schlicht falsch.
+  // Die erste Zeile trägt den Namen der Spalte, die verglichen wurde. Bei
+  // MAT-DUP-002 ist das die EAN und nicht ein Name - "Name" darüberzuschreiben
+  // wäre schlicht falsch.
   const zeilen = [{
     feld: cluster.namensfeld || "Name",
     werte: mitglieder.map((m) => m.name || ""),
@@ -1295,15 +1295,15 @@ function clusterInhalt(cluster) {
   ));
 
   const koerper = el("tbody", {}, zeilen.map((zeile) => {
-    // Hervorgehoben wird, was aus der Reihe faellt - nicht die ganze Zeile.
-    // Tragen zwei von drei Saetzen "Seeweg 8" und einer "See-Weg 8", ist der
-    // dritte der Ausreisser; die beiden anderen mitzufaerben verwischte genau
+    // Hervorgehoben wird, was aus der Reihe fällt - nicht die ganze Zeile.
+    // Tragen zwei von drei Sätzen "Seeweg 8" und einer "See-Weg 8", ist der
+    // dritte der Ausreisser; die beiden anderen mitzufärben verwischte genau
     // die Stelle, auf die es ankommt.
     const haeufigkeit = new Map();
     for (const wert of zeile.werte) haeufigkeit.set(wert, (haeufigkeit.get(wert) || 0) + 1);
     const haeufigster = [...haeufigkeit.entries()]
       .sort((a, b) => b[1] - a[1])[0];
-    // Nur wenn ein Wert wirklich ueberwiegt, gibt es einen Ausreisser. Bei
+    // Nur wenn ein Wert wirklich überwiegt, gibt es einen Ausreisser. Bei
     // lauter verschiedenen Werten weicht jeder ab.
     const eindeutig = haeufigkeit.size > 1;
     const mehrheitswert = haeufigster && haeufigster[1] > 1 ? haeufigster[0] : null;
@@ -1316,8 +1316,8 @@ function clusterInhalt(cluster) {
             class: abweichend ? "abweichend" : "gleich",
             text: wert || "-",
             title: abweichend
-              ? "weicht von den uebrigen Saetzen ab"
-              : (eindeutig ? "" : "in allen Saetzen gleich"),
+              ? "weicht von den übrigen Sätzen ab"
+              : (eindeutig ? "" : "in allen Sätzen gleich"),
           }),
         ]);
       }),
@@ -1332,15 +1332,15 @@ function clusterInhalt(cluster) {
       dublettenBegruendung(cluster),
       "  \u2013  ",
       cluster.art === "unscharf"
-        ? t("Ein unscharfer Treffer ist ein begruendeter Verdacht, kein Nachweis. "
-            + "Berechtigte Mehrfachanlagen - etwa je Werk - gehoeren als Ausnahme vermerkt.")
-        : t("Ein harter Schluessel ist ein Nachweis: dieselbe Nummer kann nicht zwei "
-            + "Partnern gehoeren."),
+        ? t("Ein unscharfer Treffer ist ein begründeter Verdacht, kein Nachweis. "
+            + "Berechtigte Mehrfachanlagen - etwa je Werk - gehören als Ausnahme vermerkt.")
+        : t("Ein harter Schlüssel ist ein Nachweis: dieselbe Nummer kann nicht zwei "
+            + "Partnern gehören."),
     ]),
     el("div", { class: "fuss-knopf" }, [
       el("button", {
         class: "knopf knopf-leise",
-        text: "Befund oeffnen",
+        text: "Befund öffnen",
         onclick: () => oeffneBefund(cluster.finding_id),
       }),
     ]),
@@ -1358,15 +1358,15 @@ async function zeigeAusnahmen() {
     return;
   }
   $("#a-datei").textContent = daten.datei
-    ? t("Gefuehrt in {datei}", { datei: daten.datei })
+    ? t("Geführt in {datei}", { datei: daten.datei })
     : "In der Projektkonfiguration ist keine Ausnahmeliste hinterlegt.";
 
   setzen($("#a-liste"), [tabelle([
     { titel: "Geltungsbereich", zelle: (z) => z.geltungsbereich },
-    { titel: "Begruendung", zelle: (z) => z.begruendung },
+    { titel: "Begründung", zelle: (z) => z.begruendung },
     { titel: "Freigegeben von", zelle: (z) => z.freigegeben_von },
     { titel: "Am", zelle: (z) => z.freigegeben_am },
-    { titel: "Laeuft ab", zelle: (z) => z.laeuft_ab },
+    { titel: "Läuft ab", zelle: (z) => z.laeuft_ab },
     { titel: "Verweis", zelle: (z) => z.verweis },
     { titel: "Wirksam", zelle: (z) => z.wirksam ? merkmal("ja", "gut") : merkmal("abgelaufen", "high") },
     { titel: "", zelle: (z) => el("button", {
@@ -1386,14 +1386,14 @@ async function zeigeAusnahmen() {
   ], daten.eintraege)]);
 }
 
-/* ----------------------------------------------------------------- Laeufe */
+/* ----------------------------------------------------------------- Läufe */
 
 function zeigeLaeufe() {
   setzen($("#r-liste"), [tabelle([
     { titel: "Lauf", fest: true, zelle: (z) => z.lauf_id },
     { titel: "Zeitpunkt", zelle: (z) => zeitpunkt(z.erstellt_am) },
     { titel: "Dauer", zahl: true, zelle: (z) => z.unvollstaendig ? "-" : dauer(z.laufzeit_sekunden) },
-    { titel: "Saetze", zahl: true, zelle: (z) => z.unvollstaendig ? "-" : zahl(z.saetze) },
+    { titel: "Sätze", zahl: true, zelle: (z) => z.unvollstaendig ? "-" : zahl(z.saetze) },
     { titel: "Befunde", zahl: true, zelle: (z) => z.unvollstaendig ? "-" : zahl(z.befunde) },
     { titel: "Kritisch", zahl: true, zelle: (z) => zahl(((z.je_schweregrad || {}).critical) || 0) },
     { titel: "Umfang", zahl: true, zelle: (z) => z.unvollstaendig ? "-" : prozent(z.coverage) },
@@ -1401,10 +1401,10 @@ function zeigeLaeufe() {
         z.score === null || z.score === undefined ? "-" : dezimal(z.score) },
     { titel: "Katalog", fest: true, zelle: (z) => (z.katalog || "").split("+")[0] },
     { titel: "Zustand", zelle: (z) => z.unvollstaendig
-        ? merkmal("unvollstaendig", "high")
+        ? merkmal("unvollständig", "high")
         : (z.regelfehler
             ? merkmal(t("{n} Regelfehler", { n: z.regelfehler }), "critical")
-            : merkmal("vollstaendig", "gut")) },
+            : merkmal("vollständig", "gut")) },
   ], Z.laeufe, (zeile) => {
     if (zeile.unvollstaendig) {
       melden("Zu diesem Lauf gibt es keine Zusammenfassung. Er wurde vermutlich abgebrochen.", "warnung");
@@ -1415,7 +1415,7 @@ function zeigeLaeufe() {
   })]);
 
   // Verglichen werden kann jeder Lauf mit einer Befunddatei, auch einer ohne
-  // Zusammenfassung - fuer die Differenz werden nur die Befunde gebraucht.
+  // Zusammenfassung - für die Differenz werden nur die Befunde gebraucht.
   const vergleichbar = Z.laeufe.filter((lauf) => lauf.vergleichbar);
   for (const auswahl of [$("#v-vorher"), $("#v-jetzt")]) {
     const vorher = auswahl.value;
@@ -1451,7 +1451,7 @@ async function vergleichen() {
         t("seit {lauf}", { lauf: daten.vorher }), "gut"),
       kachel("Neu", zahl(daten.neu),
         t("in {lauf}", { lauf: daten.jetzt }), daten.neu ? "warnung" : "gut"),
-      kachel("Unveraendert", zahl(daten.unveraendert), ""),
+      kachel("Unverändert", zahl(daten.unveraendert), ""),
       kachel("Anerkannte Ausnahmen", zahl(daten.anerkannte_ausnahmen), "nicht behoben, nur anerkannt"),
     ]),
     el("p", { text: vergleichsZeile(daten) }),
@@ -1469,16 +1469,16 @@ async function vergleichen() {
   ]);
 }
 
-/* ---------------------------------------------------------- Praesentation
+/* ---------------------------------------------------------- Präsentation
  *
  * Eine Abfolge von Folien, die sich aus dem Lauf ergibt. Sie soll den Bogen
- * schlagen, den ein Termin braucht: was geliefert wurde, worueber das Werkzeug
- * ueberhaupt eine Aussage macht, wie es steht, woran es liegt, und was als
- * naechstes zu tun ist.
+ * schlagen, den ein Termin braucht: was geliefert wurde, worüber das Werkzeug
+ * überhaupt eine Aussage macht, wie es steht, woran es liegt, und was als
+ * nächstes zu tun ist.
  *
- * Der Vorbehalt zum Pruefumfang steht bewusst vor dem Ergebnis. Eine Zahl, die
- * ohne ihn gezeigt wird, wird als vollstaendiges Urteil verstanden - und das
- * waere sie nicht.
+ * Der Vorbehalt zum Prüfumfang steht bewusst vor dem Ergebnis. Eine Zahl, die
+ * ohne ihn gezeigt wird, wird als vollständiges Urteil verstanden - und das
+ * wäre sie nicht.
  */
 
 const P = { folien: [], index: 0 };
@@ -1501,10 +1501,10 @@ function baueFolien() {
 
   // ------------------------------------------------------------ Titelseite
   folien.push(folie("Titel", () => el("div", { class: "folie-titelseite" }, [
-    el("p", { class: "unterzeile", text: "Analyse der Stammdatenqualitaet" }),
-    el("h2", { text: projekt.kunde || projekt.name || "Stammdatenpruefung" }),
+    el("p", { class: "unterzeile", text: "Analyse der Stammdatenqualität" }),
+    el("h2", { text: projekt.kunde || projekt.name || "Stammdatenprüfung" }),
     el("p", { class: "aussage", text:
-      t("Quellsystem {system} \u2013 {n} Stammsaetze \u2013 Stand {stand}", {
+      t("Quellsystem {system} \u2013 {n} Stammsätze \u2013 Stand {stand}", {
         system: projekt.quellsystem || t("unbekannt"),
         n: zahl(lauf.saetze_verarbeitet),
         stand: zeitpunkt(lauf.erstellt_am),
@@ -1513,11 +1513,11 @@ function baueFolien() {
   ])));
 
   // ------------------------------------------------------------- Lieferung
-  folien.push(folie("Was geprueft wurde", () => el("div", {}, [
-    el("h2", { text: "Was geprueft wurde" }),
+  folien.push(folie("Was geprüft wurde", () => el("div", {}, [
+    el("h2", { text: "Was geprüft wurde" }),
     el("p", { class: "aussage", text:
-      t("{dateien} Dateien mit zusammen {saetze} Saetzen aus {tabellen} Tabellen. "
-        + "Jede Datei ist ueber ihre Pruefsumme im Bericht nachweisbar.", {
+      t("{dateien} Dateien mit zusammen {saetze} Sätzen aus {tabellen} Tabellen. "
+        + "Jede Datei ist über ihre Prüfsumme im Bericht nachweisbar.", {
           dateien: (lieferung.dateien || []).length,
           saetze: zahl(lauf.saetze_verarbeitet),
           tabellen: (lieferung.tabellen || []).length,
@@ -1534,7 +1534,7 @@ function baueFolien() {
     lieferung.verwertbar === false
       ? el("p", { class: "meldung fehler", text:
           "Die Lieferung wurde als nicht verwertbar bewertet. Die Ergebnisse "
-          + "sind entsprechend eingeschraenkt." })
+          + "sind entsprechend eingeschränkt." })
       : null,
   ])));
 
@@ -1542,12 +1542,12 @@ function baueFolien() {
   const abdeckung = lauf.abdeckung || {};
   const prozesse = abdeckung.prozesse || [];
   if (prozesse.length) {
-    folien.push(folie("Was das Werkzeug prueft", () => el("div", {}, [
-      el("h2", { text: "Was das Werkzeug prueft" }),
+    folien.push(folie("Was das Werkzeug prüft", () => el("div", {}, [
+      el("h2", { text: "Was das Werkzeug prüft" }),
       el("p", { class: "aussage", text:
-        t("{regeln} Regeln ueber {prozesse} Geschaeftsprozesse, gestuetzt auf "
-          + "{tabellen} SAP-Tabellen. Geprueft werden die Stammdaten, auf denen "
-          + "die Prozesse aufsetzen - nicht die Prozessausfuehrung selbst.", {
+        t("{regeln} Regeln über {prozesse} Geschäftsprozesse, gestützt auf "
+          + "{tabellen} SAP-Tabellen. Geprüft werden die Stammdaten, auf denen "
+          + "die Prozesse aufsetzen - nicht die Prozessausführung selbst.", {
             regeln: abdeckung.regeln_gesamt,
             prozesse: prozesse.length,
             tabellen: (abdeckung.tabellen || []).length,
@@ -1563,8 +1563,8 @@ function baueFolien() {
     ])));
 
     // Zweite Folie: dieselben Prozesse, aber gegen die Lieferung gehalten.
-    folien.push(folie("Was davon hier pruefbar war", () => el("div", {}, [
-      el("h2", { text: "Was davon hier pruefbar war" }),
+    folien.push(folie("Was davon hier prüfbar war", () => el("div", {}, [
+      el("h2", { text: "Was davon hier prüfbar war" }),
       el("p", { class: "aussage", text:
         t("Je Prozess: wieviele der Regeln mit den gelieferten Tabellen laufen "
           + "konnten. Fehlende Tabellen stehen daneben.") }),
@@ -1580,9 +1580,9 @@ function baueFolien() {
     ])));
   }
 
-  // ----------------------------------------------------------- Pruefumfang
-  folien.push(folie("Worueber eine Aussage moeglich ist", () => el("div", {}, [
-    el("h2", { text: "Worueber eine Aussage moeglich ist" }),
+  // ----------------------------------------------------------- Prüfumfang
+  folien.push(folie("Worüber eine Aussage möglich ist", () => el("div", {}, [
+    el("h2", { text: "Worüber eine Aussage möglich ist" }),
     el("div", { class: "nebeneinander" }, [
       ring(coverage.anteil || 0, prozent(coverage.anteil),
         t("{a} von {b}", { a: coverage.ausfuehrbar || 0, b: coverage.regeln_gesamt || 0 })),
@@ -1593,7 +1593,7 @@ function baueFolien() {
   // -------------------------------------------------------------- Ergebnis
   const note = einordnung(bewertung.gesamt);
   folien.push(folie("Ergebnis", () => el("div", {}, [
-    el("p", { class: "unterzeile", text: "Datenqualitaet insgesamt" }),
+    el("p", { class: "unterzeile", text: "Datenqualität insgesamt" }),
     el("div", { class: "gross", text:
       bewertung.gesamt === null || bewertung.gesamt === undefined
         ? "-" : dezimal(bewertung.gesamt) }),
@@ -1627,9 +1627,9 @@ function baueFolien() {
     ),
   ])));
 
-  // ------------------------------------------------------- Haeufigste Regeln
-  folien.push(folie("Woran es am haeufigsten liegt", () => el("div", {}, [
-    el("h2", { text: "Woran es am haeufigsten liegt" }),
+  // ------------------------------------------------------- Häufigste Regeln
+  folien.push(folie("Woran es am häufigsten liegt", () => el("div", {}, [
+    el("h2", { text: "Woran es am häufigsten liegt" }),
     saeulen(
       (lauf.regellauf || [])
         .filter((eintrag) => eintrag.befunde > 0)
@@ -1647,11 +1647,11 @@ function baueFolien() {
     const beispiel = (dublettenDaten.cluster || [])
       .filter((c) => c.art === "unscharf" && (c.mitglieder || []).length > 1)[0]
       || dublettenDaten.cluster[0];
-    folien.push(folie("Mehrfach angelegte Stammsaetze", () => el("div", {}, [
-      el("h2", { text: "Mehrfach angelegte Stammsaetze" }),
+    folien.push(folie("Mehrfach angelegte Stammsätze", () => el("div", {}, [
+      el("h2", { text: "Mehrfach angelegte Stammsätze" }),
       el("p", { class: "aussage", text:
-        t("{cluster} Cluster mit zusammen {saetze} Stammsaetzen. Bleibt je Cluster "
-          + "ein fuehrender Satz stehen, entfallen {einsparung} Saetze.", {
+        t("{cluster} Cluster mit zusammen {saetze} Stammsätzen. Bleibt je Cluster "
+          + "ein führender Satz stehen, entfallen {einsparung} Sätze.", {
             cluster: zahl(dublettenDaten.anzahl_cluster),
             saetze: zahl(dublettenDaten.betroffene_saetze),
             einsparung: zahl(dublettenDaten.einsparung),
@@ -1660,8 +1660,8 @@ function baueFolien() {
         el("p", { class: "unterzeile abstand-unten", text:
           t("Beispiel") + " \u2013 " + beispiel.rule_id + ", "
           + (beispiel.art === "exakt"
-              ? t("ueber einen harten Schluessel nachgewiesen")
-              : t("Namensaehnlichkeit {n} von 100",
+              ? t("über einen harten Schlüssel nachgewiesen")
+              : t("Namensähnlichkeit {n} von 100",
                   { n: Math.round(beispiel.score || 0) })) }),
       ].concat(clusterInhalt(beispiel).slice(0, 2))) : null,
     ])));
@@ -1673,10 +1673,10 @@ function baueFolien() {
     .slice()
     .sort((a, b) => (b.kumuliert || 0) - (a.kumuliert || 0));
   if (offen.length) {
-    folien.push(folie("Was eine Nachlieferung braechte", () => el("div", {}, [
-      el("h2", { text: "Was eine Nachlieferung braechte" }),
+    folien.push(folie("Was eine Nachlieferung brächte", () => el("div", {}, [
+      el("h2", { text: "Was eine Nachlieferung brächte" }),
       el("p", { class: "aussage", text:
-        "Nach Wirkung geordnet: wieviele zusaetzliche Pruefungen jede Tabelle "
+        "Nach Wirkung geordnet: wieviele zusätzliche Prüfungen jede Tabelle "
         + "freischaltet." }),
       saeulen(
         offen.slice(0, 8).map((kandidat) => ({
@@ -1689,29 +1689,29 @@ function baueFolien() {
   }
 
   // ------------------------------------------------------------- Empfehlung
-  folien.push(folie("Naechste Schritte", () => {
+  folien.push(folie("Nächste Schritte", () => {
     const schritte = [];
     if (jeGrad.critical) {
-      schritte.push(t("{n} kritische Befunde zuerst klaeren - sie betreffen "
+      schritte.push(t("{n} kritische Befunde zürst klären - sie betreffen "
         + "Zahlungsverkehr, Steuer oder Bilanz.", { n: zahl(jeGrad.critical) }));
     }
     if (dublettenDaten && dublettenDaten.anzahl_cluster) {
-      schritte.push(t("{n} Dublettencluster sichten und je Cluster den fuehrenden "
+      schritte.push(t("{n} Dublettencluster sichten und je Cluster den führenden "
         + "Stammsatz bestimmen.", { n: zahl(dublettenDaten.anzahl_cluster) }));
     }
     if (offen.length) {
       schritte.push(t("Fehlende Tabellen nachfordern ({tabellen}), um den "
-        + "Pruefumfang von {anteil} anzuheben.", {
+        + "Prüfumfang von {anteil} anzuheben.", {
           tabellen: offen.slice(0, 3).map((k) => k.tabelle).join(", "),
           anteil: prozent(coverage.anteil),
         }));
     }
-    schritte.push("Berechtigte Faelle als Ausnahme mit Begruendung vermerken, "
+    schritte.push("Berechtigte Fälle als Ausnahme mit Begründung vermerken, "
       + "damit sie im Folgelauf nicht erneut als Befund erscheinen.");
     schritte.push("Nach der Bereinigung erneut messen - die Aussage liegt im "
       + "Verlauf, nicht im einzelnen Wert.");
     return el("div", {}, [
-      el("h2", { text: "Naechste Schritte" }),
+      el("h2", { text: "Nächste Schritte" }),
       el("ul", {}, schritte.map((text) => el("li", { text: text }))),
     ]);
   }));
@@ -1721,7 +1721,7 @@ function baueFolien() {
 
 async function praesentationOeffnen() {
   // Die Dublettenfolie braucht die Cluster. Sie werden hier geholt, damit die
-  // Abfolge vollstaendig ist, auch wenn die Ansicht noch nicht offen war.
+  // Abfolge vollständig ist, auch wenn die Ansicht noch nicht offen war.
   if (!dublettenDaten && Z.laufId) {
     try {
       dublettenDaten = await hole("/api/laeufe/" + encodeURIComponent(Z.laufId) + "/dubletten");
@@ -1731,7 +1731,7 @@ async function praesentationOeffnen() {
   }
   P.folien = baueFolien();
   if (!P.folien.length) {
-    melden("Ohne Lauf laesst sich nichts zeigen.", "warnung");
+    melden("Ohne Lauf lässt sich nichts zeigen.", "warnung");
     return;
   }
   P.index = 0;
@@ -1828,8 +1828,8 @@ function fortschrittVerfolgen() {
 /* --------------------------------------------------------------- Sprache
  *
  * Die festen Texte stehen als Deutsch im Markup. Beim ersten Lauf wird der
- * urspruengliche Wortlaut je Element gemerkt; jede Umschaltung setzt ihn neu
- * uebersetzt. So steht kein Text doppelt in der Datei, und wer das Markup
+ * ursprüngliche Wortlaut je Element gemerkt; jede Umschaltung setzt ihn neu
+ * übersetzt. So steht kein Text doppelt in der Datei, und wer das Markup
  * liest, sieht denselben Satz wie der Benutzer.
  */
 
@@ -1837,12 +1837,12 @@ const UEBERSETZBARE_ATTRIBUTE = ["title", "placeholder", "aria-label"];
 
 function statischeTexteMerken() {
   // Nur Elemente, deren gesamter Inhalt ein einziger Textknoten ist. Alles
-  // andere wird ohnehin von der Oberflaeche selbst gefuellt.
+  // andere wird ohnehin von der Oberfläche selbst gefüllt.
   //
   // Der Wortlaut wird auf einfache Leerzeichen gebracht: im Markup stehen
-  // laengere Saetze umbrochen und eingerueckt, im Woerterbuch stehen sie in
-  // einer Zeile. Ohne diese Angleichung faende kein einziger Absatz seine
-  // Uebersetzung.
+  // längere Sätze umbrochen und eingerückt, im Wörterbuch stehen sie in
+  // einer Zeile. Ohne diese Angleichung fände kein einziger Absatz seine
+  // Übersetzung.
   const auswahl = "h1, h2, h3, p, label, button, option, span, code, dt, "
                 + "div.hero-titel, div.ring-unter, div.ampel-titel";
   for (const knoten of document.querySelectorAll(auswahl)) {
@@ -1850,7 +1850,7 @@ function statischeTexteMerken() {
       const wortlaut = knoten.textContent.split(/\s+/).join(" ").trim();
       if (wortlaut) {
         knoten.dataset.quelltext = wortlaut;
-        // Auch im Deutschen den geglaetteten Wortlaut setzen, damit die
+        // Auch im Deutschen den geglätteten Wortlaut setzen, damit die
         // Anzeige vor und nach einer Umschaltung dieselbe ist.
         knoten.textContent = wortlaut;
       }
@@ -1873,15 +1873,15 @@ function statischeTexteUebersetzen() {
       knoten.setAttribute(attribut, t(knoten.dataset[merker]));
     }
   }
-  document.title = (Z.projekt ? Z.projekt.name + " - " : "") + t("Stammdatenpruefung");
 }
 
-/** Zeichnet die Oberflaeche in der gewaehlten Sprache neu. */
+/** Zeichnet die Oberfläche in der gewählten Sprache neu. */
 function spracheWechseln(sprache) {
   spracheSetzen(sprache);
   statischeTexteUebersetzen();
-  // Die Auswahllisten tragen uebersetzte Beschriftungen und werden aus den
-  // Daten aufgebaut - sie muessen mit.
+  projektzeileSchreiben();
+  // Die Auswahllisten tragen übersetzte Beschriftungen und werden aus den
+  // Daten aufgebaut - sie müssen mit.
   fuelleBefundfilter();
   if (Z.lauf) kopfzeileSchreiben();
   if (Z.laeufe.length) laufAuswahlFuellen();
@@ -1908,10 +1908,10 @@ const ANSICHTEN = {
   befunde: { titel: "Befunde", zeichnen: zeigeBefunde },
   dubletten: { titel: "Dubletten", zeichnen: zeigeDubletten },
   abdeckung: { titel: "Abdeckung", zeichnen: zeigeAbdeckung },
-  coverage: { titel: "Pruefumfang", zeichnen: zeigeCoverage },
+  coverage: { titel: "Prüfumfang", zeichnen: zeigeCoverage },
   lieferung: { titel: "Lieferung", zeichnen: zeigeLieferung },
   ausnahmen: { titel: "Ausnahmen", zeichnen: zeigeAusnahmen },
-  laeufe: { titel: "Laeufe", zeichnen: zeigeLaeufe },
+  laeufe: { titel: "Läufe", zeichnen: zeigeLaeufe },
 };
 
 function zuAnsicht(name, zusatz) {
@@ -1938,7 +1938,25 @@ function schliesseBlende() {
 
 /* ------------------------------------------------------------------ Laden */
 
-/** Die Zeile unter der Ueberschrift: welcher Lauf gerade angezeigt wird. */
+/** Die Zeile am Fuß der Seitenleiste: Projekt, Quellsystem, Eingang.
+ *
+ * Sie steht in einer eigenen Funktion, damit die Sprachumschaltung sie neu
+ * setzen kann. Beim ersten Anlauf wurde sie nur beim Start geschrieben und
+ * blieb nach dem Wechsel in der alten Sprache stehen.
+ */
+function projektzeileSchreiben() {
+  const projekt = Z.projekt;
+  if (!projekt) return;
+  document.title = projekt.name + " - " + t("Stammdatenprüfung");
+  $("#projekt-fuss").textContent =
+    projekt.name + (projekt.kunde ? " / " + projekt.kunde : "") + " - "
+    + t("Quellsystem {system} - {n} Datei(en) im Eingang", {
+        system: projekt.quellsystem || t("unbekannt"),
+        n: projekt.eingangsdateien.length,
+      });
+}
+
+/** Die Zeile unter der Überschrift: welcher Lauf gerade angezeigt wird. */
 function kopfzeileSchreiben() {
   const lauf = Z.lauf;
   if (!lauf) return;
@@ -1951,13 +1969,13 @@ function kopfzeileSchreiben() {
     });
 }
 
-/** Fuellt die Auswahlliste der Laeufe. */
+/** Füllt die Auswahlliste der Läufe. */
 function laufAuswahlFuellen() {
   const auswahl = $("#lauf-auswahl");
   const gewaehlt = auswahl.value || Z.laufId;
   setzen(auswahl, Z.laeufe.map((lauf) => el("option", {
     value: lauf.lauf_id,
-    text: lauf.lauf_id + (lauf.unvollstaendig ? " (" + t("unvollstaendig") + ")" : ""),
+    text: lauf.lauf_id + (lauf.unvollstaendig ? " (" + t("unvollständig") + ")" : ""),
   })));
   if (gewaehlt) auswahl.value = gewaehlt;
 }
@@ -1967,7 +1985,7 @@ async function waehleLauf(laufId) {
   Z.lauf = null;
   if (!laufId) {
     $("#kopf-unter").textContent =
-      t("Es liegt noch kein Lauf vor. Die Pruefung laesst sich links starten.");
+      t("Es liegt noch kein Lauf vor. Die Prüfung lässt sich links starten.");
     ANSICHTEN[Z.ansicht].zeichnen();
     return;
   }
@@ -2025,14 +2043,7 @@ async function starten() {
   $("#sprache").addEventListener("change", (ereignis) => spracheWechseln(ereignis.target.value));
 
   const projekt = Z.projekt;
-  document.title = projekt.name + " - " + t("Stammdatenpruefung");
-  // Die Anmeldeseite ist ausserhalb des Rahmens und wurde oben nicht erfasst.
-  $("#projekt-fuss").textContent =
-    projekt.name + (projekt.kunde ? " / " + projekt.kunde : "") + " - "
-    + t("Quellsystem {system} - {n} Datei(en) im Eingang", {
-        system: projekt.quellsystem || t("unbekannt"),
-        n: projekt.eingangsdateien.length,
-      });
+  projektzeileSchreiben();
 
   // Bedienelemente
   for (const knopf of document.querySelectorAll(".nav")) {
@@ -2120,8 +2131,8 @@ async function starten() {
     fortschrittVerfolgen();
   }
   if (!Z.laufId) {
-    melden(t("Es liegt noch kein Lauf vor. Mit 'Pruefung starten' wird die "
-      + "Lieferung aus {pfad} geprueft.", { pfad: projekt.eingangsverzeichnis }),
+    melden(t("Es liegt noch kein Lauf vor. Mit 'Prüfung starten' wird die "
+      + "Lieferung aus {pfad} geprüft.", { pfad: projekt.eingangsverzeichnis }),
       "hinweis");
   }
 }

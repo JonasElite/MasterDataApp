@@ -6,12 +6,12 @@
 # Steuerfindung, Kreditlimit und Fakturierung im Vordergrund.
 rules:
 
-  # ------------------------------------------------------ Vollstaendigkeit
+  # ------------------------------------------------------ Vollständigkeit
   - id: CUS-COMP-001
     name: Debitor ohne Umsatzsteuer-Identifikationsnummer
     description: >
-      Fuer steuerfreie innergemeinschaftliche Lieferungen ist die USt-IdNr. des
-      Empfaengers zwingend. Fehlt sie, ist die Steuerfreiheit nicht nachweisbar
+      Für steuerfreie innergemeinschaftliche Lieferungen ist die USt-IdNr. des
+      Empfängers zwingend. Fehlt sie, ist die Steuerfreiheit nicht nachweisbar
       und die Umsatzsteuer wird im Zweifel nacherhoben.
     category: completeness
     severity: critical
@@ -28,7 +28,7 @@ rules:
       eu_countries: [AT, BE, BG, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HR, HU, IE,
                      IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK]
       excluded_account_groups: [CPD, CPDA]
-    remediation: USt-IdNr. beim Kunden erfragen, pflegen und ueber VIES bestaetigen lassen.
+    remediation: USt-IdNr. beim Kunden erfragen, pflegen und über VIES bestätigen lassen.
     sql: |
       SELECT MANDT, KUNNR, NAME1, LAND1, KTOKD, STCEG
       FROM KNA1
@@ -42,8 +42,8 @@ rules:
   - id: CUS-COMP-002
     name: Debitor ohne Ort oder Postleitzahl
     description: >
-      Ohne vollstaendige Anschrift ist weder die Rechnungsstellung noch die
-      Steuerfindung ueber das Empfaengerland verlaesslich.
+      Ohne vollständige Anschrift ist weder die Rechnungsstellung noch die
+      Steuerfindung über das Empfängerland verlässlich.
     category: completeness
     severity: medium
     version: "1.0.0"
@@ -74,7 +74,7 @@ rules:
     name: Debitor ohne Buchungskreisdaten
     description: >
       Ein Debitor ohne Buchungskreissicht kann nicht fakturiert werden. Solche
-      Saetze stammen meist aus abgebrochenen Anlagen.
+      Sätze stammen meist aus abgebrochenen Anlagen.
     category: completeness
     severity: medium
     version: "1.0.0"
@@ -113,7 +113,7 @@ rules:
       fields:
         KNB1: [MANDT, KUNNR, BUKRS, AKONT, LOEVM]
     params: {}
-    remediation: Abstimmkonto gemaess Kontenplan nachpflegen.
+    remediation: Abstimmkonto gemäß Kontenplan nachpflegen.
     sql: |
       SELECT MANDT, KUNNR, BUKRS, AKONT
       FROM KNB1
@@ -123,8 +123,8 @@ rules:
   - id: CUS-COMP-005
     name: Buchungskreisdaten ohne Zahlungsbedingung
     description: >
-      Ohne Zahlungsbedingung ist die Faelligkeit der Forderung nicht bestimmt.
-      Das verfaelscht die Altersstrukturliste und die Liquiditaetsplanung.
+      Ohne Zahlungsbedingung ist die Fälligkeit der Forderung nicht bestimmt.
+      Das verfälscht die Altersstrukturliste und die Liquiditätsplanung.
     category: completeness
     severity: high
     version: "1.0.0"
@@ -147,9 +147,9 @@ rules:
 
   # -------------------------------------------------------------- Format
   - id: CUS-FMT-001
-    name: USt-IdNr. mit falschem Aufbau oder falscher Pruefziffer
+    name: USt-IdNr. mit falschem Aufbau oder falscher Prüfziffer
     description: >
-      Eine formal falsche USt-IdNr. des Empfaengers laesst die Steuerfreiheit der
+      Eine formal falsche USt-IdNr. des Empfängers lässt die Steuerfreiheit der
       innergemeinschaftlichen Lieferung entfallen. Der Befund wiegt beim Debitor
       deshalb schwerer als beim Kreditor.
     category: format
@@ -164,7 +164,7 @@ rules:
       fields:
         KNA1: [MANDT, KUNNR, NAME1, LAND1, STCEG]
     params: {}
-    remediation: Nummer beim Kunden erfragen, korrigieren und ueber VIES bestaetigen.
+    remediation: Nummer beim Kunden erfragen, korrigieren und über VIES bestätigen.
     sql: |
       SELECT MANDT, KUNNR, NAME1, LAND1, STCEG, vat_id_reason(LAND1, STCEG) AS befund
       FROM KNA1
@@ -199,10 +199,10 @@ rules:
         AND NOT postal_code_valid(LAND1, PSTLZ)
 
   - id: CUS-FMT-003
-    name: IBAN des Debitors ist ungueltig
+    name: IBAN des Debitors ist ungültig
     description: >
-      Die Bankverbindung des Debitors wird fuer das Lastschriftverfahren
-      gebraucht. Eine falsche IBAN fuehrt zur Rueckgabe der Lastschrift mit
+      Die Bankverbindung des Debitors wird für das Lastschriftverfahren
+      gebraucht. Eine falsche IBAN führt zur Rückgabe der Lastschrift mit
       Entgeltbelastung.
     category: format
     severity: high
@@ -227,7 +227,7 @@ rules:
     name: Buchungskreisdaten ohne allgemeine Daten
     description: >
       Ein KNB1-Satz ohne KNA1-Satz ist eine Inkonsistenz, die im laufenden System
-      nicht entstehen kann, und deutet auf eine unvollstaendige Lieferung hin.
+      nicht entstehen kann, und deutet auf eine unvollständige Lieferung hin.
     category: consistency
     severity: critical
     version: "1.0.0"
@@ -242,7 +242,7 @@ rules:
         KNA1: [KUNNR]
         KNB1: [MANDT, KUNNR, BUKRS, AKONT]
     params: {}
-    remediation: Lieferumfang pruefen; sonst Inkonsistenz im Quellsystem klaeren.
+    remediation: Lieferumfang prüfen; sonst Inkonsistenz im Quellsystem klären.
     sql: |
       SELECT b.MANDT, b.KUNNR, b.BUKRS, b.AKONT
       FROM KNB1 b
@@ -266,7 +266,7 @@ rules:
         KNA1: [KUNNR]
         KNVV: [MANDT, KUNNR, VKORG, VTWEG, SPART]
     params: {}
-    remediation: Lieferumfang pruefen; sonst Inkonsistenz im Quellsystem klaeren.
+    remediation: Lieferumfang prüfen; sonst Inkonsistenz im Quellsystem klären.
     sql: |
       SELECT v.MANDT, v.KUNNR, v.VKORG, v.VTWEG, v.SPART
       FROM KNVV v
@@ -274,7 +274,7 @@ rules:
       WHERE a.KUNNR IS NULL
 
   - id: CUS-CONS-003
-    name: Loeschvormerkung zentral gesetzt, im Buchungskreis aber nicht
+    name: Löschvormerkung zentral gesetzt, im Buchungskreis aber nicht
     description: >
       Der zentral vorgemerkte Debitor bleibt im Buchungskreis bebuchbar. Die
       Vormerkung erweckt einen falschen Eindruck von Stilllegung.
@@ -292,7 +292,7 @@ rules:
         KNA1: [KUNNR, NAME1, LOEVM]
         KNB1: [MANDT, KUNNR, BUKRS, LOEVM]
     params: {}
-    remediation: Loeschvormerkung nachziehen oder zentral zuruecknehmen.
+    remediation: Löschvormerkung nachziehen oder zentral zurücknehmen.
     sql: |
       SELECT b.MANDT, b.KUNNR, a.NAME1, b.BUKRS,
              a.LOEVM AS loevm_zentral, b.LOEVM AS loevm_buchungskreis
@@ -301,10 +301,10 @@ rules:
       WHERE COALESCE(a.LOEVM, '') = 'X' AND COALESCE(b.LOEVM, '') <> 'X'
 
   - id: CUS-CONS-004
-    name: Laenderkennzeichen der USt-IdNr. weicht vom Land des Debitors ab
+    name: Länderkennzeichen der USt-IdNr. weicht vom Land des Debitors ab
     description: >
-      Weicht das Laenderkennzeichen der USt-IdNr. vom Land des Debitors ab, ist
-      die Steuerfindung nicht eindeutig. Bei Reihengeschaeften kann das richtig
+      Weicht das Länderkennzeichen der USt-IdNr. vom Land des Debitors ab, ist
+      die Steuerfindung nicht eindeutig. Bei Reihengeschäften kann das richtig
       sein, muss dann aber dokumentiert werden.
     category: consistency
     severity: high
@@ -318,7 +318,7 @@ rules:
       fields:
         KNA1: [MANDT, KUNNR, NAME1, LAND1, STCEG]
     params: {}
-    remediation: Steuerliche Wuerdigung dokumentieren oder die Angabe korrigieren.
+    remediation: Steuerliche Würdigung dokumentieren oder die Angabe korrigieren.
     sql: |
       SELECT MANDT, KUNNR, NAME1, LAND1, STCEG, vat_id_country(STCEG) AS ustid_land
       FROM KNA1
@@ -330,8 +330,8 @@ rules:
     name: Vertriebssperre gesetzt, Buchungskreis aber offen
     description: >
       Ein im Vertrieb gesperrter Debitor ohne Buchungssperre kann weiterhin
-      bebucht werden. Die Sperre wirkt dann nur gegen neue Auftraege, nicht gegen
-      offene Vorgaenge.
+      bebucht werden. Die Sperre wirkt dann nur gegen neue Aufträge, nicht gegen
+      offene Vorgänge.
     category: consistency
     severity: medium
     version: "1.0.0"
@@ -346,7 +346,7 @@ rules:
         KNA1: [KUNNR, NAME1, AUFSD, LIFSD, FAKSD]
         KNB1: [MANDT, KUNNR, BUKRS, SPERR]
     params: {}
-    remediation: Sperrenkonzept pruefen und die Sperren aufeinander abstimmen.
+    remediation: Sperrenkonzept prüfen und die Sperren aufeinander abstimmen.
     sql: |
       SELECT b.MANDT, b.KUNNR, a.NAME1, b.BUKRS,
              a.AUFSD AS auftragssperre, a.LIFSD AS liefersperre,
@@ -357,7 +357,7 @@ rules:
              OR COALESCE(a.FAKSD, '') <> '')
         AND COALESCE(b.SPERR, '') <> 'X'
 
-  # ------------------------------------------------------ Referenzintegritaet
+  # ------------------------------------------------------ Referenzintegrität
   - id: CUS-REF-001
     name: Abstimmkonto existiert nicht im Buchungskreis
     description: >
@@ -388,7 +388,7 @@ rules:
     name: Zahlungsbedingung ist im Customizing nicht definiert
     description: >
       Ein Verweis auf eine nicht vorhandene Zahlungsbedingung macht die
-      Faelligkeitsrechnung unmoeglich.
+      Fälligkeitsrechnung unmöglich.
     category: referential
     severity: high
     version: "1.0.0"
@@ -414,7 +414,7 @@ rules:
     name: Kontengruppe ist im Customizing nicht definiert
     description: >
       Eine unbekannte Kontengruppe setzt die Feldauswahl und damit die
-      Pflichtfeldpruefung des Systems ausser Kraft.
+      Pflichtfeldprüfung des Systems außer Kraft.
     category: referential
     severity: high
     version: "1.0.0"
@@ -428,7 +428,7 @@ rules:
         KNA1: [MANDT, KUNNR, NAME1, KTOKD]
         T077D: [KTOKD]
     params: {}
-    remediation: Kontengruppe pruefen und den Stammsatz zuordnen.
+    remediation: Kontengruppe prüfen und den Stammsatz zuordnen.
     sql: |
       SELECT a.MANDT, a.KUNNR, a.NAME1, a.KTOKD
       FROM KNA1 a
@@ -436,10 +436,10 @@ rules:
       WHERE a.KTOKD IS NOT NULL AND t.KTOKD IS NULL
 
   - id: CUS-REF-004
-    name: Laenderschluessel ist im Customizing nicht definiert
+    name: Länderschlüssel ist im Customizing nicht definiert
     description: >
-      Ein unbekannter Laenderschluessel bricht die Steuerfindung und die
-      Adresspruefung.
+      Ein unbekannter Länderschlüssel bricht die Steuerfindung und die
+      Adressprüfung.
     category: referential
     severity: high
     version: "1.0.0"
@@ -453,7 +453,7 @@ rules:
         KNA1: [MANDT, KUNNR, NAME1, LAND1]
         T005: [LAND1]
     params: {}
-    remediation: Laenderschluessel gegen T005 korrigieren.
+    remediation: Länderschlüssel gegen T005 korrigieren.
     sql: |
       SELECT a.MANDT, a.KUNNR, a.NAME1, a.LAND1
       FROM KNA1 a
@@ -478,7 +478,7 @@ rules:
         KNVV: [MANDT, KUNNR, VKORG, VTWEG, SPART]
         TVKO: [VKORG]
     params: {}
-    remediation: Verwaiste Saetze bereinigen.
+    remediation: Verwaiste Sätze bereinigen.
     sql: |
       SELECT v.MANDT, v.KUNNR, v.VKORG, v.VTWEG, v.SPART
       FROM KNVV v
@@ -487,9 +487,9 @@ rules:
 
   # ------------------------------------------------ Lifecycle und Risiko
   - id: CUS-LC-001
-    name: Loeschvormerkung gesetzt, Satz aber weiterhin im Bestand
+    name: Löschvormerkung gesetzt, Satz aber weiterhin im Bestand
     description: >
-      Die Loeschvormerkung ist der erste Schritt der Archivierung. Bleibt sie
+      Die Löschvormerkung ist der erste Schritt der Archivierung. Bleibt sie
       lange stehen, wurde nie archiviert.
     category: lifecycle
     severity: medium
@@ -504,7 +504,7 @@ rules:
         KNA1: [MANDT, KUNNR, NAME1, ERDAT, LOEVM]
     params:
       months_since_creation: 12
-    remediation: Archivierungslauf anstossen.
+    remediation: Archivierungslauf anstoßen.
     sql: |
       SELECT MANDT, KUNNR, NAME1, ERDAT,
              date_diff('month', ERDAT, current_date) AS monate_seit_anlage
@@ -516,7 +516,7 @@ rules:
   - id: CUS-RISK-001
     name: Debitor mit reiner Postfachanschrift
     description: >
-      Fuer die Rechnungsanschrift und fuer Sorgfaltspflichten reicht ein Postfach
+      Für die Rechnungsanschrift und für Sorgfaltspflichten reicht ein Postfach
       in aller Regel nicht aus.
     category: risk
     severity: medium
@@ -530,7 +530,7 @@ rules:
       fields:
         KNA1: [MANDT, KUNNR, NAME1, LAND1, STRAS, PFACH, ORT01, LOEVM]
     params: {}
-    remediation: Ladungsfaehige Anschrift erfragen und pflegen.
+    remediation: Ladungsfähige Anschrift erfragen und pflegen.
     sql: |
       SELECT MANDT, KUNNR, NAME1, LAND1, STRAS, PFACH, ORT01
       FROM KNA1

@@ -1,26 +1,26 @@
-"""Abgleich der USt-IdNr. gegen das VIES-Bestaetigungsverfahren (FA-408).
+"""Abgleich der USt-IdNr. gegen das VIES-Bestätigungsverfahren (FA-408).
 
-VIES ist das Bestaetigungsverfahren der Europaeischen Kommission. Es
+VIES ist das Bestätigungsverfahren der Europäischen Kommission. Es
 beantwortet die Frage, ob eine USt-IdNr. zum Abfragezeitpunkt vergeben und
-gueltig ist - eine Aussage, die keine Formatpruefung leisten kann.
+gültig ist - eine Aussage, die keine Formatprüfung leisten kann.
 
 Drei Entwurfsentscheidungen, die den Betrieb bestimmen:
 
-Uebertragen wird das Mindeste.
-    An den Dienst gehen ausschliesslich Laenderkennzeichen und Nummer. Namen,
+Übertragen wird das Mindeste.
+    An den Dienst gehen ausschließlich Länderkennzeichen und Nummer. Namen,
     Adressen und Kontonummern verlassen das System nicht (DS-04).
 
-Bei Stoerung wird kein Befund erzeugt.
-    Ist der Dienst nicht erreichbar, gilt die Nummer als nicht geprueft und
-    nicht als ungueltig. Andernfalls erzeugte ein Netzwerkausfall tausende
-    Scheinbefunde - der schlimmstmoegliche Ausgang fuer einen Bericht, der
-    prueffest sein soll. Dass die Pruefung nicht stattgefunden hat, wird
+Bei Störung wird kein Befund erzeugt.
+    Ist der Dienst nicht erreichbar, gilt die Nummer als nicht geprüft und
+    nicht als ungültig. Andernfalls erzeugte ein Netzwerkausfall tausende
+    Scheinbefunde - der schlimmstmögliche Ausgang für einen Bericht, der
+    prüffest sein soll. Dass die Prüfung nicht stattgefunden hat, wird
     stattdessen im Lauf protokolliert und im Bericht ausgewiesen.
 
 Ergebnisse werden dauerhaft zwischengespeichert.
-    Ein externer Dienst antwortet morgen moeglicherweise anders als heute.
-    Ohne Zwischenspeicher waere die Reproduzierbarkeit (NFA-05) verletzt. Der
-    Zwischenspeicher haelt Antwort und Abfragezeitpunkt fest; ein
+    Ein externer Dienst antwortet morgen möglicherweise anders als heute.
+    Ohne Zwischenspeicher wäre die Reproduzierbarkeit (NFA-05) verletzt. Der
+    Zwischenspeicher hält Antwort und Abfragezeitpunkt fest; ein
     Wiederholungslauf liefert damit dasselbe Ergebnis und belastet den Dienst
     nicht erneut.
 """
@@ -41,7 +41,7 @@ from sapmdq.rules.validators import _clean, vat_id_country
 
 logger = get_logger("external.vies")
 
-#: REST-Schnittstelle des Bestaetigungsverfahrens.
+#: REST-Schnittstelle des Bestätigungsverfahrens.
 VIES_ENDPOINT = "https://ec.europa.eu/taxation_customs/vies/rest-api/ms/{country}/vat/{number}"
 
 #: Zeitgrenze je Abfrage in Sekunden.
@@ -50,15 +50,15 @@ REQUEST_TIMEOUT = 15.0
 #: Dateiname des Zwischenspeichers im Arbeitsverzeichnis.
 CACHE_FILENAME = "vies_cache.json"
 
-#: Ergebniszustaende.
+#: Ergebniszustände.
 STATUS_VALID = "gueltig"
 STATUS_INVALID = "ungueltig"
-STATUS_UNCHECKED = "nicht geprueft"
+STATUS_UNCHECKED = "nicht geprüft"
 
 
 @dataclass
 class ViesResult:
-    """Antwort des Bestaetigungsverfahrens zu einer Nummer."""
+    """Antwort des Bestätigungsverfahrens zu einer Nummer."""
 
     status: str
     checked_on: str = ""
@@ -66,9 +66,9 @@ class ViesResult:
 
     @property
     def valid(self) -> bool:
-        """True, wenn die Nummer bestaetigt wurde oder nicht geprueft werden konnte.
+        """True, wenn die Nummer bestätigt wurde oder nicht geprüft werden konnte.
 
-        Der zweite Fall ist Absicht: eine nicht durchgefuehrte Pruefung darf
+        Der zweite Fall ist Absicht: eine nicht durchgeführte Prüfung darf
         keinen Befund erzeugen.
         """
         return self.status in (STATUS_VALID, STATUS_UNCHECKED)
@@ -76,16 +76,16 @@ class ViesResult:
 
 @dataclass
 class ViesClient:
-    """Zugriff auf das Bestaetigungsverfahren mit dauerhaftem Zwischenspeicher."""
+    """Zugriff auf das Bestätigungsverfahren mit dauerhaftem Zwischenspeicher."""
 
     cache_path: Path
     #: Bei True wird keine Abfrage gestellt; nur der Zwischenspeicher genutzt.
     offline: bool = False
     _cache: dict[str, dict[str, Any]] = field(default_factory=dict, init=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False)
-    #: Anzahl der Abfragen, die an einer Stoerung gescheitert sind.
+    #: Anzahl der Abfragen, die an einer Störung gescheitert sind.
     failures: int = field(default=0, init=False)
-    #: Anzahl der tatsaechlich gestellten Abfragen.
+    #: Anzahl der tatsächlich gestellten Abfragen.
     requests_made: int = field(default=0, init=False)
 
     def __post_init__(self) -> None:
@@ -97,15 +97,15 @@ class ViesClient:
             return
         try:
             self._cache = json.loads(self.cache_path.read_text(encoding="utf-8"))
-            logger.info("VIES-Zwischenspeicher geladen: %d Eintraege", len(self._cache))
+            logger.info("VIES-Zwischenspeicher geladen: %d Einträge", len(self._cache))
         except (OSError, json.JSONDecodeError) as exc:
             logger.warning("VIES-Zwischenspeicher nicht lesbar (%s), wird neu aufgebaut", exc)
             self._cache = {}
 
     def save_cache(self) -> None:
-        """Schreibt den Zwischenspeicher zurueck.
+        """Schreibt den Zwischenspeicher zurück.
 
-        Die Eintraege sind sortiert, damit die Datei zwischen Laeufen
+        Die Einträge sind sortiert, damit die Datei zwischen Läufen
         vergleichbar bleibt.
         """
         try:
@@ -120,7 +120,7 @@ class ViesClient:
     # -------------------------------------------------------------- Abfrage
     @staticmethod
     def _split(country: str | None, value: str | None) -> tuple[str, str] | None:
-        """Zerlegt die Angabe in Laenderkennzeichen und Nummer."""
+        """Zerlegt die Angabe in Länderkennzeichen und Nummer."""
         cleaned = _clean(value)
         if not cleaned:
             return None
@@ -160,11 +160,11 @@ class ViesClient:
         return ViesResult(
             status=STATUS_VALID if is_valid else STATUS_INVALID,
             checked_on=date.today().isoformat(),
-            message="" if is_valid else "VIES bestaetigt die Nummer nicht",
+            message="" if is_valid else "VIES bestätigt die Nummer nicht",
         )
 
     def check(self, country: str | None, value: str | None) -> ViesResult:
-        """Prueft eine USt-IdNr., bevorzugt aus dem Zwischenspeicher."""
+        """Prüft eine USt-IdNr., bevorzugt aus dem Zwischenspeicher."""
         parts = self._split(country, value)
         if parts is None:
             return ViesResult(status=STATUS_UNCHECKED, message="Keine auswertbare USt-IdNr.")
@@ -209,15 +209,15 @@ def set_active_client(client: ViesClient | None) -> None:
 
 
 def vies_check_valid(country: str | None, value: str | None) -> bool:
-    """SQL-Funktion: True, wenn die Nummer bestaetigt oder nicht pruefbar ist."""
+    """SQL-Funktion: True, wenn die Nummer bestätigt oder nicht prüfbar ist."""
     client = _active_client
     if client is None:
-        return True  # ohne Freigabe wird nicht geprueft und nichts beanstandet
+        return True  # ohne Freigabe wird nicht geprüft und nichts beanstandet
     return client.check(country, value).valid
 
 
 def vies_check_reason(country: str | None, value: str | None) -> str:
-    """SQL-Funktion: Begruendung zum Ergebnis des Bestaetigungsverfahrens."""
+    """SQL-Funktion: Begründung zum Ergebnis des Bestätigungsverfahrens."""
     client = _active_client
     if client is None:
         return "Externe Validierung ist nicht freigegeben"
@@ -233,7 +233,7 @@ def register_vies_udfs(con: Any, client: ViesClient) -> None:
     """Macht die VIES-Funktionen in der Datenbank bekannt.
 
     Wird nur aufgerufen, wenn die externe Validierung freigegeben ist. Die
-    Funktionen sind ausdruecklich als nebenwirkungsbehaftet gekennzeichnet:
+    Funktionen sind ausdrücklich als nebenwirkungsbehaftet gekennzeichnet:
     sie stellen Netzwerkabfragen, und DuckDB darf sie nicht wegoptimieren
     oder beliebig oft auswerten.
     """

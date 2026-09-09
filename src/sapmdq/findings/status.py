@@ -1,12 +1,12 @@
 """Statusverfolgung je Befund (FA-603).
 
-Der Bearbeitungsstand gehoert nicht in das Laufverzeichnis, sondern in eine
-Datei, die den Lauf ueberdauert: dieselbe Befundkennung soll in der
-Folgelieferung ihren Stand behalten. Genau dafuer ist die Befundkennung stabil
-aus Regel-ID, Regelversion und Objektschluessel gebildet.
+Der Bearbeitungsstand gehört nicht in das Laufverzeichnis, sondern in eine
+Datei, die den Lauf überdauert: dieselbe Befundkennung soll in der
+Folgelieferung ihren Stand behalten. Genau dafür ist die Befundkennung stabil
+aus Regel-ID, Regelversion und Objektschlüssel gebildet.
 
-Als Format dient CSV mit Semikolon. Es ist bewusst gewaehlt: der Analyst
-pflegt den Stand ueblicherweise in einer Tabellenkalkulation, und CSV ist das
+Als Format dient CSV mit Semikolon. Es ist bewusst gewählt: der Analyst
+pflegt den Stand üblicherweise in einer Tabellenkalkulation, und CSV ist das
 Format, das dabei ohne Umwege funktioniert.
 """
 
@@ -42,7 +42,7 @@ class StatusEntry:
 
 @dataclass
 class StatusStore:
-    """Alle bekannten Bearbeitungsstaende."""
+    """Alle bekannten Bearbeitungsstände."""
 
     entries: dict[str, StatusEntry] = field(default_factory=dict)
     path: Path | None = None
@@ -87,7 +87,7 @@ class StatusStore:
 
 
 def load_status(path: Path | None) -> StatusStore:
-    """Laedt die Statusdatei; eine fehlende Datei ist kein Fehler."""
+    """Lädt die Statusdatei; eine fehlende Datei ist kein Fehler."""
     if path is None or not path.is_file():
         return StatusStore(path=path)
 
@@ -97,7 +97,7 @@ def load_status(path: Path | None) -> StatusStore:
         for number, row in enumerate(reader, start=2):
             finding_id = (row.get("finding_id") or "").strip()
             if not finding_id:
-                logger.warning("%s Zeile %d ohne Befundkennung wird uebergangen", path.name, number)
+                logger.warning("%s Zeile %d ohne Befundkennung wird übergangen", path.name, number)
                 continue
             store.entries[finding_id] = StatusEntry(
                 finding_id=finding_id,
@@ -108,15 +108,15 @@ def load_status(path: Path | None) -> StatusStore:
                 rule_id=(row.get("rule_id") or "").strip().upper(),
                 object_key=(row.get("object_key") or "").strip(),
             )
-    logger.info("%d Bearbeitungsstaende aus %s geladen", len(store), path.name)
+    logger.info("%d Bearbeitungsstände aus %s geladen", len(store), path.name)
     return store
 
 
 def save_status(store: StatusStore, path: Path) -> None:
-    """Schreibt die Statusdatei zurueck.
+    """Schreibt die Statusdatei zurück.
 
-    Die Eintraege werden nach Befundkennung sortiert, damit die Datei zwischen
-    Laeufen vergleichbar bleibt und Aenderungen im Versionsstand lesbar sind.
+    Die Einträge werden nach Befundkennung sortiert, damit die Datei zwischen
+    Läufen vergleichbar bleibt und Änderungen im Versionsstand lesbar sind.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -135,4 +135,4 @@ def save_status(store: StatusStore, path: Path) -> None:
                     "updated_on": entry.updated_on.isoformat() if entry.updated_on else "",
                 }
             )
-    logger.info("%d Bearbeitungsstaende nach %s geschrieben", len(store), path)
+    logger.info("%d Bearbeitungsstände nach %s geschrieben", len(store), path)

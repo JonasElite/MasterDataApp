@@ -1,18 +1,18 @@
-"""HTTP-Zustellung der Oberflaeche.
+"""HTTP-Zustellung der Oberfläche.
 
 Bewusst mit der Standardbibliothek. Ein Webrahmenwerk brauchte eine weitere
-Abhaengigkeit, ohne dass es fuer einen Einzelplatz etwas beitraegt - und
-NFA-03 verlangt Lauffaehigkeit ohne Serverinstallation.
+Abhängigkeit, ohne dass es für einen Einzelplatz etwas beiträgt - und
+NFA-03 verlangt Lauffähigkeit ohne Serverinstallation.
 
-Drei Grenzen sind gezogen, weil die Oberflaeche personenbezogene Daten
+Drei Grenzen sind gezogen, weil die Oberfläche personenbezogene Daten
 anzeigt:
 
-* Gebunden wird ausschliesslich an die Rueckschleife (127.0.0.1). Die
-  Oberflaeche ist von aussen nicht erreichbar, auch nicht aus dem lokalen Netz.
+* Gebunden wird ausschließlich an die Rückschleife (127.0.0.1). Die
+  Oberfläche ist von aussen nicht erreichbar, auch nicht aus dem lokalen Netz.
 * Jeder Aufruf braucht das Sitzungsmerkmal aus der Startmeldung. Auf einem
   gemeinsam genutzten Rechner reicht der offene Port allein nicht aus.
-* Statische Dateien kommen ausschliesslich aus dem Paketverzeichnis; jeder
-  aufgeloeste Pfad wird dagegen geprueft.
+* Statische Dateien kommen ausschließlich aus dem Paketverzeichnis; jeder
+  aufgelöste Pfad wird dagegen geprüft.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ CONTENT_TYPES = {
     ".ico": "image/x-icon",
 }
 
-#: Hoechstgroesse eines Anfragekoerpers.
+#: Höchstgröße eines Anfragekörpers.
 MAX_BODY = 256 * 1024
 
 
@@ -63,7 +63,7 @@ class UiServer(ThreadingHTTPServer):
 
 
 class UiHandler(BaseHTTPRequestHandler):
-    """Beantwortet Anfragen der Oberflaeche."""
+    """Beantwortet Anfragen der Oberfläche."""
 
     server: UiServer  # type: ignore[assignment]
     server_version = "sapmdq"
@@ -73,8 +73,8 @@ class UiHandler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:
         """Leitet den Zugriffsprotokolleintrag in das Werkzeugprotokoll um.
 
-        Der Pfad kann Suchbegriffe enthalten, also moeglicherweise
-        Feldinhalte. Er geht deshalb nur auf die Debug-Ebene und laeuft dort
+        Der Pfad kann Suchbegriffe enthalten, also möglicherweise
+        Feldinhalte. Er geht deshalb nur auf die Debug-Ebene und läuft dort
         durch dieselbe Redaction wie alle anderen Zeilen (DS-07).
         """
         logger.debug("%s - %s", self.address_string(), format % args)
@@ -83,7 +83,7 @@ class UiHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(koerper)))
-        # Die Oberflaeche laedt nichts aus dem Netz nach. Die Richtlinie haelt
+        # Die Oberfläche lädt nichts aus dem Netz nach. Die Richtlinie hält
         # das auch dann durch, wenn sich einmal ein Verweis einschleicht.
         self.send_header(
             "Content-Security-Policy",
@@ -111,14 +111,14 @@ class UiHandler(BaseHTTPRequestHandler):
         if laenge <= 0:
             return {}
         if laenge > MAX_BODY:
-            raise api.ApiFehler("Die Anfrage ist zu gross.", 413)
+            raise api.ApiFehler("Die Anfrage ist zu groß.", 413)
         try:
             return json.loads(self.rfile.read(laenge).decode("utf-8")) or {}
         except (json.JSONDecodeError, UnicodeDecodeError):
-            raise api.ApiFehler("Die Anfrage ist kein gueltiges JSON.") from None
+            raise api.ApiFehler("Die Anfrage ist kein gültiges JSON.") from None
 
     def _token_gueltig(self, werte: dict[str, list[str]]) -> bool:
-        """Prueft das Sitzungsmerkmal gegen Kopfzeile und Abfrageteil."""
+        """Prüft das Sitzungsmerkmal gegen Kopfzeile und Abfrageteil."""
         aus_kopf = self.headers.get("X-Sapmdq-Token", "")
         aus_abfrage = (werte.get("token") or [""])[0]
         return any(
@@ -211,15 +211,15 @@ class UiHandler(BaseHTTPRequestHandler):
     def _statisch(self, pfad: str) -> None:
         """Liefert eine Datei aus dem Paketverzeichnis.
 
-        Der Zielpfad wird aufgeloest und gegen das Verzeichnis geprueft. Damit
-        laesst sich ueber ``../`` nichts ausserhalb erreichen.
+        Der Zielpfad wird aufgelöst und gegen das Verzeichnis geprüft. Damit
+        lässt sich über ``../`` nichts außerhalb erreichen.
         """
         name = "index.html" if pfad in ("/", "") else pfad.lstrip("/")
         ziel = (STATIC_DIR / name).resolve()
         try:
             ziel.relative_to(STATIC_DIR.resolve())
         except ValueError:
-            self._fehler("Unzulaessiger Pfad.", 403)
+            self._fehler("Unzulässiger Pfad.", 403)
             return
 
         if not ziel.is_file() or ziel.suffix not in CONTENT_TYPES:
@@ -235,15 +235,15 @@ def start_ui(
     port: int = 0,
     browser_oeffnen: bool = True,
 ) -> tuple[UiServer, str]:
-    """Startet die Oberflaeche und liefert Server und Adresse.
+    """Startet die Oberfläche und liefert Server und Adresse.
 
-    ``port=0`` laesst das Betriebssystem einen freien Port waehlen. Der Host
-    ist fest auf die Rueckschleife vorbelegt; wird er ueberschrieben, ist das
+    ``port=0`` lässt das Betriebssystem einen freien Port wählen. Der Host
+    ist fest auf die Rückschleife vorbelegt; wird er überschrieben, ist das
     eine bewusste Entscheidung und wird als solche protokolliert.
     """
     if host not in ("127.0.0.1", "localhost", "::1"):
         logger.warning(
-            "Die Oberflaeche wird an %s gebunden und ist damit ueber das Netz "
+            "Die Oberfläche wird an %s gebunden und ist damit über das Netz "
             "erreichbar. Sie zeigt personenbezogene Daten an - das ist nur mit "
             "einer bewussten Entscheidung und abgesicherter Umgebung vertretbar "
             "(DS-02).",
@@ -256,12 +256,12 @@ def start_ui(
 
     thread = threading.Thread(target=server.serve_forever, name="sapmdq-ui", daemon=True)
     thread.start()
-    logger.info("Oberflaeche laeuft auf %s", adresse)
+    logger.info("Oberfläche läuft auf %s", adresse)
 
     if browser_oeffnen:
         try:
             webbrowser.open(adresse)
         except Exception as fehler:  # pragma: no cover - kein Browser vorhanden
-            logger.info("Browser konnte nicht geoeffnet werden (%s)", fehler)
+            logger.info("Browser konnte nicht geöffnet werden (%s)", fehler)
 
     return server, adresse

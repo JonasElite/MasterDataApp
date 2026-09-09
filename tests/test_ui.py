@@ -1,8 +1,8 @@
-"""Tests der oertlichen Oberflaeche.
+"""Tests der örtlichen Oberfläche.
 
-Geprueft wird in drei Schichten: die Zustandsverwaltung ohne Server, die
+Geprüft wird in drei Schichten: die Zustandsverwaltung ohne Server, die
 fachliche Schnittstelle ohne HTTP und der Server selbst gegen einen echten
-Port. Die letzte Schicht ist die kleinste, aber die wichtigste - dort haengen
+Port. Die letzte Schicht ist die kleinste, aber die wichtigste - dort hängen
 die Zugriffsgrenzen, und die lassen sich nur an einer echten Anfrage
 nachweisen.
 """
@@ -28,7 +28,7 @@ from tests.conftest import RULES_DIR
 def projekt_anlegen(tmp_path: Path, eingang: Path) -> Path:
     text = f"""
 project:
-  name: Oberflaechentest
+  name: Oberflächentest
   source_system: ECC
 paths:
   input_dir: {eingang}
@@ -51,7 +51,7 @@ findings:
 
 @pytest.fixture(scope="module")
 def gelaufen(tmp_path_factory, beispiellieferung):
-    """Ein einmal ausgefuehrter Lauf, auf dem alle Tests aufsetzen."""
+    """Ein einmal ausgeführter Lauf, auf dem alle Tests aufsetzen."""
     verzeichnis = tmp_path_factory.mktemp("ui")
     config = load_config(projekt_anlegen(verzeichnis, beispiellieferung))
     ergebnis = execute_run(config, quiet=True)
@@ -75,21 +75,21 @@ class TestZustand:
         ["../..", "..", "/etc", "20260101T000000Z", "", "."],
     )
     def test_praeparierte_kennung_fuehrt_nicht_aus_dem_ausgabeverzeichnis(self, state, kennung):
-        """Eine Kennung wird nie in einen Pfad eingesetzt, sondern aufgeloest."""
+        """Eine Kennung wird nie in einen Pfad eingesetzt, sondern aufgelöst."""
         assert state.lauf_verzeichnis(kennung) is None
 
     def test_zwei_laeufe_gleichzeitig_sind_ausgeschlossen(self, state):
         state.auftrag.status = "laeuft"
         gestartet, meldung = state.lauf_starten()
         assert gestartet is False
-        assert "laeuft bereits" in meldung
+        assert "läuft bereits" in meldung
 
 
 # ------------------------------------------------------------ Schnittstelle
 class TestSchnittstelle:
     def test_projekt_nennt_pfade_und_dateien(self, state):
         daten = api.projekt(state)
-        assert daten["name"] == "Oberflaechentest"
+        assert daten["name"] == "Oberflächentest"
         assert daten["eingangsdateien"]
 
     def test_laeufe_werden_neueste_zuerst_gelistet(self, state, gelaufen):
@@ -119,7 +119,7 @@ class TestSchnittstelle:
         assert seite["gesamt"] == ergebnis.effective_findings
 
     def test_seitengroesse_ist_begrenzt(self, state, gelaufen):
-        """Ohne Grenze koennte ein Aufruf die ganze Befundmenge anfordern."""
+        """Ohne Grenze könnte ein Aufruf die ganze Befundmenge anfordern."""
         _, ergebnis = gelaufen
         seite = api.befunde(state, ergebnis.run_id, {"groesse": ["100000"]})
         assert seite["groesse"] == api.MAX_PAGE_SIZE
@@ -157,7 +157,7 @@ class TestPflege:
         erster = api.befunde(state, ergebnis.run_id, {"groesse": ["1"]})["befunde"][0]
         with pytest.raises(api.ApiFehler) as fehler:
             api.ausnahme_setzen(state, {"finding_id": erster["finding_id"]})
-        assert "Begruendung" in fehler.value.meldung
+        assert "Begründung" in fehler.value.meldung
 
     def test_ausnahme_ohne_geltungsbereich_wird_abgelehnt(self, state):
         with pytest.raises(api.ApiFehler):
@@ -177,7 +177,7 @@ class TestPflege:
         eintraege = api.ausnahmen(state)["eintraege"]
         assert any(e["finding_id"] == erster["finding_id"] for e in eintraege)
 
-        # Der bereits geschriebene Bericht bleibt unveraendert; die Anzeige
+        # Der bereits geschriebene Bericht bleibt unverändert; die Anzeige
         # weist die Ausnahme aber als vorgemerkt aus.
         angezeigt = api.befund(state, ergebnis.run_id, erster["finding_id"])
         assert angezeigt["ausnahme"] is False
@@ -198,10 +198,10 @@ class TestPflege:
         erster = api.befunde(state, ergebnis.run_id, {"groesse": ["1"]})["befunde"][0]
         api.status_setzen(
             state,
-            {"finding_id": erster["finding_id"], "status": "in Klaerung", "bemerkung": "beim Einkauf"},
+            {"finding_id": erster["finding_id"], "status": "in Klärung", "bemerkung": "beim Einkauf"},
         )
         befund = api.befund(state, ergebnis.run_id, erster["finding_id"])
-        assert befund["status"] == "in Klaerung"
+        assert befund["status"] == "in Klärung"
         assert befund["status_im_bericht"] == "offen"
         assert befund["noch_nicht_im_bericht"] is True
 
@@ -244,7 +244,7 @@ class TestDubletten:
         assert daten["einsparung"] == daten["betroffene_saetze"] - daten["anzahl_cluster"]
 
     def test_mitglieder_tragen_die_verglichenen_felder(self, state, gelaufen):
-        """Ohne sie kann die Oberflaeche nichts gegenueberstellen."""
+        """Ohne sie kann die Oberfläche nichts gegenüberstellen."""
         _, ergebnis = gelaufen
         daten = api.dubletten(state, ergebnis.run_id)
         unscharf = [c for c in daten["cluster"] if c["art"] == "unscharf" and c["verglichene_felder"]]
@@ -295,7 +295,7 @@ class TestServer:
         assert basis.startswith("http://127.0.0.1:")
 
     def test_oberflaeche_wird_ohne_merkmal_ausgeliefert(self, server):
-        """Die Seite selbst enthaelt keine Daten; sie holt sie erst mit Merkmal."""
+        """Die Seite selbst enthält keine Daten; sie holt sie erst mit Merkmal."""
         _, basis, _ = server
         status, koerper = ruf(basis, "/")
         assert status == 200
@@ -325,7 +325,7 @@ class TestServer:
         assert ruf(basis, "/gibtsnicht.html")[0] == 404
 
     def test_richtlinie_verbietet_nachladen_aus_dem_netz(self, server):
-        """CSP haelt NFA-04 durch, auch wenn sich ein Verweis einschleicht."""
+        """CSP hält NFA-04 durch, auch wenn sich ein Verweis einschleicht."""
         _, basis, _ = server
         anfrage = urllib.request.Request(basis + "/")
         with urllib.request.urlopen(anfrage, timeout=20) as antwort:
@@ -359,18 +359,18 @@ class TestServer:
 
 
 class TestAusgelieferteDateien:
-    """Die Oberflaeche muss vollstaendig im Paket liegen (NFA-04)."""
+    """Die Oberfläche muss vollständig im Paket liegen (NFA-04)."""
 
     def test_alle_dateien_sind_vorhanden(self):
         for name in ("index.html", "app.js", "stil.css", "zeichen.svg"):
             assert (STATIC_DIR / name).is_file(), name
 
     def test_keine_stilangaben_am_element(self):
-        """Die Content-Security-Policy laesst nur Stile aus der CSS-Datei zu.
+        """Die Content-Security-Policy lässt nur Stile aus der CSS-Datei zu.
 
         Ein ``style``-Attribut im Markup wird vom Browser verworfen - ohne
-        sichtbaren Fehler, aber mit kaputtem Layout. Der Test faengt das ab,
-        bevor es jemand im Kundentermin bemerkt. Ueber die CSSOM gesetzte
+        sichtbaren Fehler, aber mit kaputtem Layout. Der Test fängt das ab,
+        bevor es jemand im Kundentermin bemerkt. Über die CSSOM gesetzte
         Eigenschaften (``element.style.width = ...``) sind davon nicht
         betroffen und bleiben erlaubt.
         """
@@ -379,13 +379,13 @@ class TestAusgelieferteDateien:
             for verdacht in ('style="', "style: \""):
                 assert verdacht not in text, (
                     f"{name} setzt ein style-Attribut - die Richtlinie verwirft es. "
-                    "Gehoert als Klasse nach stil.css."
+                    "Gehört als Klasse nach stil.css."
                 )
 
     def test_nichts_wird_aus_dem_netz_geladen(self):
-        """Kein src, href, url() oder fetch() zeigt nach draussen.
+        """Kein src, href, url() oder fetch() zeigt nach draußen.
 
-        Geprueft wird die Ladeanweisung, nicht jedes Vorkommen einer Adresse:
+        Geprüft wird die Ladeanweisung, nicht jedes Vorkommen einer Adresse:
         ein Beispiel im Fliesstext und der XML-Namensraum einer SVG-Datei
         laden nichts nach.
         """
@@ -397,5 +397,5 @@ class TestAusgelieferteDateien:
         for pfad in sorted(STATIC_DIR.iterdir()):
             for treffer in laden.finditer(pfad.read_text(encoding="utf-8")):
                 assert treffer.group("ziel").lower() == "data:", (
-                    f"{pfad.name} laedt von aussen: {treffer.group(0)!r}"
+                    f"{pfad.name} lädt von aussen: {treffer.group(0)!r}"
                 )

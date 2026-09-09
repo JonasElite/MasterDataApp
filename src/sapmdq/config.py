@@ -1,12 +1,12 @@
 """Projektkonfiguration (NFA-07, FA-413).
 
-Ein Lauf wird vollstaendig durch eine YAML-Datei beschrieben. Sie ist
-versionierbar, diff-faehig und ohne Programmierkenntnisse zu pflegen; der
-Aufruf beschraenkt sich auf ``sapmdq run -c projekt.yaml``.
+Ein Lauf wird vollständig durch eine YAML-Datei beschrieben. Sie ist
+versionierbar, diff-fähig und ohne Programmierkenntnisse zu pflegen; der
+Aufruf beschränkt sich auf ``sapmdq run -c projekt.yaml``.
 
 Alle Abschnitte sind optional und mit projekttauglichen Vorgaben belegt. Was
 in der Datei steht, gewinnt gegen die Vorgabe; was fehlt, wird dokumentiert
-uebernommen.
+übernommen.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from sapmdq.sap.conversion import ConversionOptions
 from sapmdq.util.hashing import sha256_text
 from sapmdq.util.timeutil import parse_date
 
-#: Quellsysteme gemaess Annahme A-03.
+#: Quellsysteme gemäß Annahme A-03.
 SOURCE_SYSTEMS = ("ECC", "S4")
 
 #: MATNR ist in S/4HANA 40 statt 18 Stellen lang.
@@ -112,11 +112,11 @@ class DeliveryConfig:
     expected_clients: list[str] = field(default_factory=list)
     #: Filter auf Buchungskreise (FA-108); leer bedeutet "alle".
     company_codes: list[str] = field(default_factory=list)
-    #: Zulaessige Abweichung der Satzanzahl in Prozent, bevor abgebrochen wird.
+    #: Zulässige Abweichung der Satzanzahl in Prozent, bevor abgebrochen wird.
     row_count_tolerance_pct: float = 0.0
     #: Anteil abgeschnittener Werte, ab dem eine Tabelle als unbrauchbar gilt.
     truncation_abort_ratio: float = 0.05
-    #: Bei True bricht der Lauf ab, wenn eine Musstabelle vollstaendig fehlt.
+    #: Bei True bricht der Lauf ab, wenn eine Musstabelle vollständig fehlt.
     require_must_tables: bool = False
 
     @classmethod
@@ -135,7 +135,7 @@ class DeliveryConfig:
         if extraction is not None:
             parsed_date = extraction if isinstance(extraction, date) else parse_date(str(extraction))
             if parsed_date is None:
-                raise ConfigError(f"delivery.extraction_date '{extraction}' ist kein gueltiges Datum")
+                raise ConfigError(f"delivery.extraction_date '{extraction}' ist kein gültiges Datum")
         return cls(
             expected_row_counts=counts,
             extraction_date=parsed_date,
@@ -153,13 +153,13 @@ class IngestionConfig:
 
     encoding: str = "auto"
     delimiter: str = "auto"
-    #: Manuelle Uebersteuerung der Datei-zu-Tabelle-Zuordnung (FA-107).
+    #: Manuelle Übersteuerung der Datei-zu-Tabelle-Zuordnung (FA-107).
     file_table_map: dict[str, str] = field(default_factory=dict)
     #: Dateinamensmuster, die ignoriert werden (Readme, Beschreibungen).
     ignore_patterns: list[str] = field(default_factory=lambda: ["*.md", "*.txt.bak", "~$*"])
-    #: Projektspezifische Ergaenzung der Tabellenmetadaten.
+    #: Projektspezifische Ergänzung der Tabellenmetadaten.
     sap_tables_overlay: dict[str, Any] = field(default_factory=dict)
-    #: Zusaetzliche Header-Aliasse je Tabelle: {LFA1: {"Lieferantennr": LIFNR}}.
+    #: Zusätzliche Header-Aliasse je Tabelle: {LFA1: {"Lieferantennr": LIFNR}}.
     header_overrides: dict[str, dict[str, str]] = field(default_factory=dict)
     conversion: ConversionOptions = field(default_factory=ConversionOptions)
     #: Zeilen je Lesevorgang - begrenzt den Speicherbedarf (NFA-02).
@@ -204,17 +204,17 @@ class RuleConfig:
     """Auswahl und Parametrisierung des Regelkatalogs (FA-413, FA-414)."""
 
     catalog_dirs: list[Path] = field(default_factory=list)
-    #: Nur diese Regeln ausfuehren; leer bedeutet "alle aktivierten".
+    #: Nur diese Regeln ausführen; leer bedeutet "alle aktivierten".
     enabled: list[str] = field(default_factory=list)
-    #: Diese Regeln nicht ausfuehren - gewinnt gegen ``enabled``.
+    #: Diese Regeln nicht ausführen - gewinnt gegen ``enabled``.
     disabled: list[str] = field(default_factory=list)
     #: Kategorien, die insgesamt entfallen sollen.
     disabled_categories: list[str] = field(default_factory=list)
-    #: Schweregrad je Regel uebersteuern (FA-601).
+    #: Schweregrad je Regel übersteuern (FA-601).
     severity_overrides: dict[str, str] = field(default_factory=dict)
-    #: Regelparameter uebersteuern: {"VEN-LC-001": {"months": 24}}.
+    #: Regelparameter übersteuern: {"VEN-LC-001": {"months": 24}}.
     params: dict[str, dict[str, Any]] = field(default_factory=dict)
-    #: Externe Validierung (FA-408) nur nach ausdruecklicher Freigabe.
+    #: Externe Validierung (FA-408) nur nach ausdrücklicher Freigabe.
     allow_external_validation: bool = False
 
     @classmethod
@@ -246,26 +246,26 @@ class DedupConfig:
     """Parameter der Dublettenerkennung (FA-5xx)."""
 
     enabled: bool = True
-    #: Schwellwert fuer den unscharfen Namensabgleich (0-100).
+    #: Schwellwert für den unscharfen Namensabgleich (0-100).
     name_threshold: float = 88.0
-    #: Schwellwert fuer den kombinierten Name-plus-Adresse-Abgleich.
+    #: Schwellwert für den kombinierten Name-plus-Adresse-Abgleich.
     combined_threshold: float = 85.0
     #: Blocking-Strategie je Objektbereich (FA-504).
     blocking: list[str] = field(default_factory=lambda: ["country_postcode", "name_prefix"])
-    #: Obergrenze der Satzanzahl je Block - schuetzt vor quadratischer Last.
+    #: Obergrenze der Satzanzahl je Block - schützt vor quadratischer Last.
     max_block_size: int = 5_000
     #: Obergrenze der Treffer je Dublettenregel.
     #:
-    #: Der Aufwand der Dublettenerkennung haengt nicht an der Satzanzahl,
+    #: Der Aufwand der Dublettenerkennung hängt nicht an der Satzanzahl,
     #: sondern an der Zahl der Treffer. Ein Bestand, in dem jeder zweite Satz
-    #: eine Dublette ist, laesst den Vergleich unbegrenzt wachsen. Die Grenze
-    #: haelt die Laufzeit berechenbar (NFA-01); dass sie gegriffen hat, wird
-    #: ausgewiesen - ein stillschweigend gekuerztes Ergebnis waere schlimmer
+    #: eine Dublette ist, lässt den Vergleich unbegrenzt wachsen. Die Grenze
+    #: hält die Laufzeit berechenbar (NFA-01); dass sie gegriffen hat, wird
+    #: ausgewiesen - ein stillschweigend gekürztes Ergebnis wäre schlimmer
     #: als ein langsamer Lauf.
     max_pairs_per_rule: int = 1_000_000
-    #: Rechtsformzusaetze, die vor dem Vergleich entfernt werden (FA-501).
+    #: Rechtsformzusätze, die vor dem Vergleich entfernt werden (FA-501).
     legal_forms: list[str] = field(default_factory=list)
-    #: Strassenabkuerzungen fuer die Adressnormalisierung (FA-501).
+    #: Straßenabkürzungen für die Adressnormalisierung (FA-501).
     street_abbreviations: dict[str, str] = field(default_factory=dict)
 
     @classmethod
@@ -349,9 +349,9 @@ class ReportConfig:
 class PrivacyConfig:
     """Datenschutzeinstellungen (Kapitel 6)."""
 
-    #: Pseudonymisierung personenbezogener Felder fuer Demo/Test (DS-05).
+    #: Pseudonymisierung personenbezogener Felder für Demo/Test (DS-05).
     pseudonymize: bool = False
-    #: Salt-Datei; ohne sie wird je Lauf ein zufaelliges Salt erzeugt.
+    #: Salt-Datei; ohne sie wird je Lauf ein zufälliges Salt erzeugt.
     pseudonymize_salt_file: Path | None = None
     #: Aufbewahrungsfrist in Tagen; steuert ``sapmdq purge`` (DS-03).
     retention_days: int | None = None
@@ -388,13 +388,13 @@ class ProjectConfig:
     report: ReportConfig = field(default_factory=ReportConfig)
     privacy: PrivacyConfig = field(default_factory=PrivacyConfig)
 
-    #: Herkunft und Fingerabdruck - gehen in das Ausfuehrungsprotokoll ein.
+    #: Herkunft und Fingerabdruck - gehen in das Ausführungsprotokoll ein.
     source_path: Path | None = None
     config_hash: str = ""
 
     @property
     def alpha_length_overrides(self) -> dict[str, int]:
-        """Feldlaengen, die vom Quellsystem abhaengen (A-03)."""
+        """Feldlängen, die vom Quellsystem abhängen (A-03)."""
         return dict(_ALPHA_BY_SYSTEM.get(self.project.source_system, {}))
 
     @classmethod
@@ -423,9 +423,9 @@ class ProjectConfig:
 
 
 def load_config(path: str | Path) -> ProjectConfig:
-    """Laedt eine Projektkonfiguration und bildet ihren Fingerabdruck.
+    """Lädt eine Projektkonfiguration und bildet ihren Fingerabdruck.
 
-    Der Hash geht in das Ausfuehrungsprotokoll ein (DS-06) und macht
+    Der Hash geht in das Ausführungsprotokoll ein (DS-06) und macht
     nachvollziehbar, mit welcher Konfiguration ein Ergebnis entstanden ist
     (NFA-05, NFA-06).
     """
@@ -436,7 +436,7 @@ def load_config(path: str | Path) -> ProjectConfig:
     try:
         raw = yaml.safe_load(text) or {}
     except yaml.YAMLError as exc:
-        raise ConfigError(f"Konfiguration ist kein gueltiges YAML: {exc}") from exc
+        raise ConfigError(f"Konfiguration ist kein gültiges YAML: {exc}") from exc
     if not isinstance(raw, Mapping):
         raise ConfigError("Die Konfiguration muss auf oberster Ebene eine Zuordnung sein")
     config = ProjectConfig.from_dict(raw, base=config_path.parent, source_path=config_path)

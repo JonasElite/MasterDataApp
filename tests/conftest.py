@@ -18,7 +18,7 @@ RULES_DIR = Path(__file__).resolve().parents[1] / "rules"
 
 @pytest.fixture
 def con() -> duckdb.DuckDBPyConnection:
-    """Eine frische Datenbankverbindung mit registrierten Prueffunktionen."""
+    """Eine frische Datenbankverbindung mit registrierten Prüffunktionen."""
     from sapmdq.rules.udf import register_udfs
 
     connection = duckdb.connect()

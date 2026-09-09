@@ -1,9 +1,9 @@
-"""Ausfuehrungsprotokoll (DS-06, NFA-06).
+"""Ausführungsprotokoll (DS-06, NFA-06).
 
 Festgehalten wird, wer wann mit welcher Konfiguration welche Dateien
-verarbeitet hat. Das Protokoll ist die Grundlage dafuer, ein Ergebnis spaeter
-nachzuvollziehen - und der Nachweis gegenueber dem Datenschutz, welche
-Verarbeitung tatsaechlich stattgefunden hat.
+verarbeitet hat. Das Protokoll ist die Grundlage dafür, ein Ergebnis später
+nachzuvollziehen - und der Nachweis gegenüber dem Datenschutz, welche
+Verarbeitung tatsächlich stattgefunden hat.
 
 Im Protokoll stehen keine Feldinhalte, sondern nur Metadaten: Dateinamen,
 Hashes, Satzanzahlen, Regelversionen (DS-07).
@@ -30,7 +30,7 @@ AUDIT_FILENAME = "ausfuehrungsprotokoll.json"
 
 @dataclass
 class AuditRecord:
-    """Ein Ausfuehrungsprotokoll."""
+    """Ein Ausführungsprotokoll."""
 
     run_id: str
     started_at: str
@@ -56,7 +56,7 @@ class AuditRecord:
     source_system: str = ""
     input_dir: str = ""
     output_dir: str = ""
-    #: Je Eingangsdatei: Name, SHA-256, Groesse, Satzanzahl, Tabelle.
+    #: Je Eingangsdatei: Name, SHA-256, Größe, Satzanzahl, Tabelle.
     input_files: list[dict[str, Any]] = field(default_factory=list)
     clients_processed: list[str] = field(default_factory=list)
 
@@ -80,7 +80,7 @@ class AuditRecord:
 
     @classmethod
     def start(cls, run_id: str) -> "AuditRecord":
-        """Legt ein Protokoll mit den Angaben zur Ausfuehrungsumgebung an."""
+        """Legt ein Protokoll mit den Angaben zur Ausführungsumgebung an."""
         try:
             user = getpass.getuser()
         except Exception:  # pragma: no cover - Umgebung ohne Benutzernamen
@@ -106,12 +106,12 @@ def write_audit(record: AuditRecord, run_dir: Path) -> Path:
         json.dumps(record.to_dict(), indent=2, ensure_ascii=False, sort_keys=False),
         encoding="utf-8",
     )
-    logger.info("Ausfuehrungsprotokoll geschrieben: %s", path)
+    logger.info("Ausführungsprotokoll geschrieben: %s", path)
     return path
 
 
 def read_audit(run_dir: Path) -> AuditRecord | None:
-    """Liest das Protokoll eines frueheren Laufs."""
+    """Liest das Protokoll eines früheren Laufs."""
     path = Path(run_dir) / AUDIT_FILENAME
     if not path.is_file():
         return None

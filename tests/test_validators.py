@@ -1,4 +1,4 @@
-"""Pruefverfahren der Formatregeln (FA-402)."""
+"""Prüfverfahren der Formatregeln (FA-402)."""
 
 from __future__ import annotations
 
@@ -23,13 +23,13 @@ from sapmdq.rules.validators import (
 
 
 class TestIban:
-    """ISO 13616: Aufbau, laenderspezifische Laenge, Pruefziffer."""
+    """ISO 13616: Aufbau, länderspezifische Länge, Prüfziffer."""
 
     @pytest.mark.parametrize(
         "iban",
         [
             "DE89370400440532013000",
-            "DE89 3704 0044 0532 0130 00",  # Leerzeichen sind zulaessig
+            "DE89 3704 0044 0532 0130 00",  # Leerzeichen sind zulässig
             "de89370400440532013000",  # Kleinschreibung ebenso
             "AT611904300234573201",
             "NL91ABNA0417164300",
@@ -41,10 +41,10 @@ class TestIban:
 
     def test_falsche_pruefziffer(self):
         assert not iban_valid("DE89370400440532013001")
-        assert "Pruefziffer" in iban_reason("DE89370400440532013001")
+        assert "Prüfziffer" in iban_reason("DE89370400440532013001")
 
     def test_falsche_laenge_fuer_das_land(self):
-        # 20 Stellen sind fuer Oesterreich richtig, fuer Deutschland nicht.
+        # 20 Stellen sind für Österreich richtig, für Deutschland nicht.
         assert "22 sind vorgesehen" in iban_reason("DE61190430023457320") or "Stellen" in iban_reason(
             "DE61190430023457320"
         )
@@ -89,7 +89,7 @@ class TestUmsatzsteuerId:
 
     def test_falsche_pruefziffer_deutschland(self):
         assert not vat_id_valid("DE", "DE136695970")
-        assert "Pruefziffer" in vat_id_reason("DE", "DE136695970")
+        assert "Prüfziffer" in vat_id_reason("DE", "DE136695970")
 
     def test_falscher_aufbau(self):
         assert not vat_id_valid("DE", "DE12345")
@@ -131,7 +131,7 @@ class TestEanPruefziffer:
 
     def test_falsche_pruefziffer(self):
         assert not gtin_valid("4006381333930")
-        assert "Pruefziffer" in gtin_reason("4006381333930")
+        assert "Prüfziffer" in gtin_reason("4006381333930")
 
     def test_falsche_laenge(self):
         assert "Stellen" in gtin_reason("12345")
@@ -150,4 +150,4 @@ class TestTextpruefungen:
         assert is_placeholder_text(wert)
 
     def test_echter_name_ist_kein_platzhalter(self):
-        assert not is_placeholder_text("Mueller GmbH")
+        assert not is_placeholder_text("Müller GmbH")

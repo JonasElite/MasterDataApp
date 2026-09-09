@@ -1,15 +1,15 @@
-"""Ausfuehrung des Regelkatalogs (FA-411, NFA-06, NFA-09).
+"""Ausführung des Regelkatalogs (FA-411, NFA-06, NFA-09).
 
 Die Engine kennt keine Fachlichkeit. Sie stellt die gelieferten Tabellen als
-Sichten bereit, setzt Parameter in die Abfrage ein, fuehrt sie aus und
-uebersetzt jede Ergebniszeile in einen Befund mit einheitlichem Aufbau.
+Sichten bereit, setzt Parameter in die Abfrage ein, führt sie aus und
+übersetzt jede Ergebniszeile in einen Befund mit einheitlichem Aufbau.
 
 Zwei Eigenschaften sind dabei wesentlich:
 
 * Ein Fehler in einer einzelnen Regel bricht den Gesamtlauf nicht ab, sondern
   wird als Regelfehler ausgewiesen (NFA-09).
-* Jeder Befund traegt Regel-ID, Regelversion und Objektschluessel, ist also
-  auf seine Herkunft zurueckfuehrbar (NFA-06, AK-05).
+* Jeder Befund trägt Regel-ID, Regelversion und Objektschlüssel, ist also
+  auf seine Herkunft zurückführbar (NFA-06, AK-05).
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ from sapmdq.sap.sql_conversion import quote_identifier, quote_literal
 logger = get_logger("rules.engine")
 
 #: Spalten eines Befundes. Die Reihenfolge ist Teil des Ergebnisschemas und
-#: darf sich nur mit einer Erhoehung von RESULT_SCHEMA_VERSION aendern.
+#: darf sich nur mit einer Erhöhung von RESULT_SCHEMA_VERSION ändern.
 FINDING_COLUMNS: tuple[str, ...] = (
     "finding_id",
     "rule_id",
@@ -53,7 +53,7 @@ FINDING_COLUMNS: tuple[str, ...] = (
 
 
 class ExecutionStatus(str, Enum):
-    """Ausgang der Ausfuehrung einer Regel."""
+    """Ausgang der Ausführung einer Regel."""
 
     OK = "ausgefuehrt"
     ERROR = "regelfehler"
@@ -65,7 +65,7 @@ class ExecutionStatus(str, Enum):
 
 @dataclass
 class RuleExecution:
-    """Protokoll der Ausfuehrung einer einzelnen Regel."""
+    """Protokoll der Ausführung einer einzelnen Regel."""
 
     rule: Rule
     status: ExecutionStatus
@@ -104,10 +104,10 @@ class EngineResult:
 
 
 def register_tables(con: duckdb.DuckDBPyConnection, ingestion: IngestionResult) -> tuple[str, ...]:
-    """Macht die normalisierten Tabellen als Sichten verfuegbar.
+    """Macht die normalisierten Tabellen als Sichten verfügbar.
 
-    Die Sichten lesen unmittelbar aus den Parquet-Dateien. DuckDB laedt dabei
-    nur die Spalten und Zeilen, die eine Regel tatsaechlich anfasst - die
+    Die Sichten lesen unmittelbar aus den Parquet-Dateien. DuckDB lädt dabei
+    nur die Spalten und Zeilen, die eine Regel tatsächlich anfasst - die
     Verarbeitung bleibt out-of-core (NFA-02).
     """
     registered: list[str] = []
@@ -122,9 +122,9 @@ def register_tables(con: duckdb.DuckDBPyConnection, ingestion: IngestionResult) 
 
 
 def _key_expression(rule: Rule) -> str:
-    """SQL-Ausdruck, der den Objektschluessel eines Befundes bildet.
+    """SQL-Ausdruck, der den Objektschlüssel eines Befundes bildet.
 
-    Mehrteilige Schluessel werden mit ``/`` verbunden - so bleibt ein Befund
+    Mehrteilige Schlüssel werden mit ``/`` verbunden - so bleibt ein Befund
     zu LFB1 als "0000004711/1000" lesbar und zugleich eindeutig.
     """
     parts = ", ".join(f"CAST({quote_identifier(column)} AS VARCHAR)" for column in rule.key_columns)
@@ -132,16 +132,16 @@ def _key_expression(rule: Rule) -> str:
 
 
 def build_finding_query(rule: Rule) -> str:
-    """Baut die Abfrage, die Regelergebnisse in Befunde uebersetzt.
+    """Baut die Abfrage, die Regelergebnisse in Befunde übersetzt.
 
-    Der Befundschluessel wird aus Regel-ID, Regelversion und Objektschluessel
-    gebildet. Damit ist er stabil: derselbe Mangel am selben Stammsatz traegt
-    in jedem Lauf dieselbe Kennung, solange die Regel unveraendert bleibt.
-    Genau darauf stuetzen sich Whitelisting (FA-602), Statusverfolgung
+    Der Befundschlüssel wird aus Regel-ID, Regelversion und Objektschlüssel
+    gebildet. Damit ist er stabil: derselbe Mangel am selben Stammsatz trägt
+    in jedem Lauf dieselbe Kennung, solange die Regel unverändert bleibt.
+    Genau darauf stützen sich Whitelisting (FA-602), Statusverfolgung
     (FA-603) und der Delta-Vergleich (FA-605).
 
-    Eine Aenderung der Regelversion erzeugt bewusst neue Befundkennungen: die
-    Regel prueft dann etwas anderes, und eine alte Ausnahmegenehmigung soll
+    Eine Änderung der Regelversion erzeugt bewusst neue Befundkennungen: die
+    Regel prüft dann etwas anderes, und eine alte Ausnahmegenehmigung soll
     nicht stillschweigend weitergelten.
     """
     body = render_params(rule.sql, rule.params, rule.id).strip().rstrip(";")
@@ -183,11 +183,11 @@ FROM _rule
 def execute_rule(
     con: duckdb.DuckDBPyConnection, rule: Rule, findings_dir: Path
 ) -> RuleExecution:
-    """Fuehrt eine Regel aus und schreibt ihre Befunde als Parquet.
+    """Führt eine Regel aus und schreibt ihre Befunde als Parquet.
 
-    Faellt die Regel aus, wird das protokolliert und der Lauf geht weiter
-    (NFA-09). Eine fehlerhafte Regel darf nicht dazu fuehren, dass zwanzig
-    andere Pruefungen verloren gehen - wohl aber muss sie im Bericht
+    Fällt die Regel aus, wird das protokolliert und der Lauf geht weiter
+    (NFA-09). Eine fehlerhafte Regel darf nicht dazu führen, dass zwanzig
+    andere Prüfungen verloren gehen - wohl aber muss sie im Bericht
     erscheinen, damit ihr Ausfall nicht als "keine Befunde" gelesen wird.
     """
     started = time.perf_counter()
@@ -204,8 +204,8 @@ def execute_rule(
         )
 
     try:
-        # Die Sortierung macht die Ergebnisdatei unabhaengig von der
-        # Ausfuehrungsreihenfolge und damit reproduzierbar (NFA-05, AK-04).
+        # Die Sortierung macht die Ergebnisdatei unabhängig von der
+        # Ausführungsreihenfolge und damit reproduzierbar (NFA-05, AK-04).
         con.execute(
             f"COPY ({query} ORDER BY object_key) TO {quote_literal(str(target))} "
             "(FORMAT PARQUET, COMPRESSION ZSTD)"
@@ -247,7 +247,7 @@ def execute_rule(
 def combine_findings(
     con: duckdb.DuckDBPyConnection, executions: Sequence[RuleExecution], target: Path
 ) -> int:
-    """Fuehrt die Befunde aller Regeln zu einer Ergebnisdatei zusammen."""
+    """Führt die Befunde aller Regeln zu einer Ergebnisdatei zusammen."""
     paths = [
         execution.result_path
         for execution in executions
@@ -287,14 +287,14 @@ def run_rules(
     capabilities: Sequence[RuleCapability] | None = None,
     combine: bool = True,
 ) -> EngineResult:
-    """Fuehrt alle ausfuehrbaren Regeln aus (FA-302).
+    """Führt alle ausführbaren Regeln aus (FA-302).
 
-    Dublettenregeln werden hier uebersprungen; sie haben ein eigenes
+    Dublettenregeln werden hier übersprungen; sie haben ein eigenes
     Verfahren mit Blocking und unscharfem Vergleich (``dedup``-Paket).
 
-    Mit ``combine=False`` unterbleibt das Zusammenfuehren zur Ergebnisdatei.
-    Der Gesamtlauf nutzt das, um erst die Dublettenbefunde zu ergaenzen und
-    dann alles in einem Zug zusammenzufuehren.
+    Mit ``combine=False`` unterbleibt das Zusammenführen zur Ergebnisdatei.
+    Der Gesamtlauf nutzt das, um erst die Dublettenbefunde zu ergänzen und
+    dann alles in einem Zug zusammenzuführen.
     """
     findings_dir = work_dir / "findings"
     findings_dir.mkdir(parents=True, exist_ok=True)
@@ -313,7 +313,7 @@ def run_rules(
             )
             continue
         if rule.kind is not RuleKind.SQL:
-            continue  # Dubletten laufen ueber ein eigenes Verfahren
+            continue  # Dubletten laufen über ein eigenes Verfahren
         result.executions.append(execute_rule(con, rule, findings_dir))
 
     result.findings_path = work_dir / "findings.parquet"
@@ -324,7 +324,7 @@ def run_rules(
 
     failures = len(result.failures)
     logger.info(
-        "Regellauf beendet: %d Regeln ausgefuehrt, %d Befunde, %d Regelfehler, %.1fs",
+        "Regellauf beendet: %d Regeln ausgeführt, %d Befunde, %d Regelfehler, %.1fs",
         len(result.succeeded), result.total_findings, failures, result.duration_seconds,
     )
     if failures:

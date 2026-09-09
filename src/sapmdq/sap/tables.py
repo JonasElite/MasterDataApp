@@ -1,12 +1,12 @@
-"""Registry der unterstuetzten SAP-Tabellen (FA-103, FA-105, FA-107).
+"""Registry der unterstützten SAP-Tabellen (FA-103, FA-105, FA-107).
 
 Die Metadaten liegen als Daten in ``tables.yaml``. Diese Modul stellt sie als
 typisierte Objekte bereit und beantwortet drei Fragen:
 
-* Wie heisst ein Feld technisch, wenn die Lieferung eine beschreibende
-  Spaltenueberschrift traegt? (FA-105)
+* Wie heißt ein Feld technisch, wenn die Lieferung eine beschreibende
+  Spaltenüberschrift trägt? (FA-105)
 * Wie muss ein Feldwert konvertiert werden (ALPHA, Datum, Betrag)? (FA-103/104)
-* Zu welcher Tabelle gehoert eine Datei, deren Name nichts verraet? (FA-107)
+* Zu welcher Tabelle gehört eine Datei, deren Name nichts verrät? (FA-107)
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ TIME_TYPES = frozenset({"tims"})
 
 
 #: Umlaute und Eszett werden vor der Zerlegung ausgeschrieben, damit
-#: "Löschvormerkung" und "Loeschvormerkung" denselben Schluessel ergeben.
+#: "Löschvormerkung" und "Löschvormerkung" denselben Schlüssel ergeben.
 _UMLAUT_MAP = str.maketrans(
     {
         "ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss",
@@ -40,20 +40,20 @@ _UMLAUT_MAP = str.maketrans(
 )
 
 #: Nach dem Ausschreiben werden die Doppellaute wieder auf den Grundbuchstaben
-#: verkuerzt. Dadurch trifft die Normalisierung in beide Richtungen: eine
-#: Lieferung darf "Loschvormerkung", "Loeschvormerkung" oder
+#: verkürzt. Dadurch trifft die Normalisierung in beide Richtungen: eine
+#: Lieferung darf "Loschvormerkung", "Löschvormerkung" oder
 #: "Löschvormerkung" schreiben.
 _DIGRAPH_PATTERN = re.compile(r"AE|OE|UE|SS")
 _DIGRAPH_MAP = {"AE": "A", "OE": "O", "UE": "U", "SS": "S"}
 
 
 def normalize_header(text: str) -> str:
-    """Vereinheitlicht eine Spaltenueberschrift fuer den Vergleich.
+    """Vereinheitlicht eine Spaltenüberschrift für den Vergleich.
 
     Grossschreibung, Umlaute, Akzente und Satzzeichen werden entfernt, damit
-    ``"USt-IdNr."``, ``"Ust IdNr"`` und ``"USTIDNR"`` denselben Schluessel
+    ``"USt-IdNr."``, ``"Ust IdNr"`` und ``"USTIDNR"`` denselben Schlüssel
     ergeben. Die Normalisierung wird auf beide Seiten des Vergleichs
-    angewandt, ist also richtungsunabhaengig.
+    angewandt, ist also richtungsunabhängig.
     """
     expanded = (text or "").translate(_UMLAUT_MAP)
     decomposed = unicodedata.normalize("NFKD", expanded)
@@ -69,19 +69,19 @@ class FieldSpec:
     name: str
     type: str = "char"
     alpha_length: int | None = None
-    #: Feldlaenge laut DDIC - Grundlage der Truncation-Pruefung (FA-202).
+    #: Feldlänge laut DDIC - Grundlage der Truncation-Prüfung (FA-202).
     length: int | None = None
     aliases: tuple[str, ...] = ()
     pii: bool = False
 
     @property
     def is_alpha(self) -> bool:
-        """Feld unterliegt der ALPHA-Konvertierung (fuehrende Nullen)."""
+        """Feld unterliegt der ALPHA-Konvertierung (führende Nullen)."""
         return self.alpha_length is not None
 
     @property
     def max_length(self) -> int | None:
-        """Zulaessige Feldlaenge; bei ALPHA-Feldern ist es die ALPHA-Laenge."""
+        """Zulässige Feldlänge; bei ALPHA-Feldern ist es die ALPHA-Länge."""
         return self.length if self.length is not None else self.alpha_length
 
     @property
@@ -118,7 +118,7 @@ class TableSpec:
 
     @property
     def business_key(self) -> tuple[str, ...]:
-        """Schluessel ohne Mandantenfeld."""
+        """Schlüssel ohne Mandantenfeld."""
         client = self.client_field
         return tuple(k for k in self.key if k != client)
 
@@ -157,7 +157,7 @@ class TableRegistry:
     def require(self, table: str) -> TableSpec:
         spec = self.get(table)
         if spec is None:
-            raise ConfigError(f"Unbekannte Tabelle '{table}' - bitte in tables.yaml ergaenzen.")
+            raise ConfigError(f"Unbekannte Tabelle '{table}' - bitte in tables.yaml ergänzen.")
         return spec
 
     def by_tier(self, tier: str) -> tuple[TableSpec, ...]:
@@ -165,7 +165,7 @@ class TableRegistry:
 
     # ------------------------------------------------------ Header-Mapping
     def resolve_field(self, table: str, header: str) -> str | None:
-        """Technischer Feldname zu einer gelieferten Spaltenueberschrift."""
+        """Technischer Feldname zu einer gelieferten Spaltenüberschrift."""
         index = self._alias_index.get(table.upper())
         if index is None:
             return None
@@ -174,7 +174,7 @@ class TableRegistry:
     def map_headers(self, table: str, headers: Iterable[str]) -> dict[str, str]:
         """Bildet gelieferte Spalten auf technische Feldnamen ab (FA-105).
 
-        Nicht aufloesbare Spalten werden auf ihre normalisierte Grossform
+        Nicht auflösbare Spalten werden auf ihre normalisierte Grossform
         abgebildet und bleiben erhalten - eine unbekannte Spalte ist kein
         Grund, Daten zu verwerfen.
         """
@@ -202,10 +202,10 @@ class TableRegistry:
     ) -> list[tuple[str, float]]:
         """Ordnet eine Datei anhand ihrer Spaltensignatur einer Tabelle zu.
 
-        Die Bewertung gewichtet zwei Anteile: wie vollstaendig der fachliche
-        Schluessel der Tabelle vorhanden ist und welcher Anteil der gelieferten
-        Spalten der Tabelle ueberhaupt bekannt ist. Ohne vollstaendigen
-        fachlichen Schluessel kommt eine Tabelle nicht in Frage - sonst
+        Die Bewertung gewichtet zwei Anteile: wie vollständig der fachliche
+        Schlüssel der Tabelle vorhanden ist und welcher Anteil der gelieferten
+        Spalten der Tabelle überhaupt bekannt ist. Ohne vollständigen
+        fachlichen Schlüssel kommt eine Tabelle nicht in Frage - sonst
         gewinnen Tabellen mit vielen generischen Feldern.
         """
         header_list = [h for h in headers if h and h.strip()]
@@ -231,10 +231,10 @@ class TableRegistry:
         return results
 
     def match_by_filename(self, filename: str) -> str | None:
-        """Ordnet eine Datei ueber ihren Namen einer Tabelle zu (FA-107).
+        """Ordnet eine Datei über ihren Namen einer Tabelle zu (FA-107).
 
         Erkannt werden Namen wie ``LFA1.csv``, ``export_LFA1_2026.csv`` oder
-        ``100_lfa1.parquet``. Bei mehreren Treffern gewinnt der laengste
+        ``100_lfa1.parquet``. Bei mehreren Treffern gewinnt der längste
         Tabellenname, damit ``T077K`` nicht als ``T077`` gelesen wird.
         """
         stem = normalize_header(Path(filename).stem)
@@ -249,10 +249,10 @@ def _parse_field(name: str, raw: Any, default_lengths: Mapping[str, int]) -> Fie
     if raw is None:
         return FieldSpec(name=name, length=default_lengths.get(name))
     if not isinstance(raw, Mapping):
-        raise ConfigError(f"Feldbeschreibung fuer '{name}' muss eine Zuordnung sein, ist {type(raw)}")
+        raise ConfigError(f"Feldbeschreibung für '{name}' muss eine Zuordnung sein, ist {type(raw)}")
     alpha = raw.get("alpha")
     if alpha is not None and not isinstance(alpha, int):
-        raise ConfigError(f"'alpha' fuer Feld '{name}' muss die Feldlaenge als Zahl sein")
+        raise ConfigError(f"'alpha' für Feld '{name}' muss die Feldlänge als Zahl sein")
     aliases = raw.get("aliases") or []
     if isinstance(aliases, str):
         aliases = [aliases]
@@ -284,7 +284,7 @@ def _parse_table(name: str, raw: Mapping[str, Any], default_lengths: Mapping[str
 
 
 def _deep_merge(base: dict[str, Any], overlay: Mapping[str, Any]) -> dict[str, Any]:
-    """Fuegt ein Overlay rekursiv in die Basisdefinition ein."""
+    """Fügt ein Overlay rekursiv in die Basisdefinition ein."""
     result = dict(base)
     for key, value in overlay.items():
         existing = result.get(key)
@@ -301,7 +301,7 @@ def _load_raw() -> tuple[dict[str, Any], dict[str, int]]:
         data = yaml.safe_load(handle) or {}
     tables = data.get("tables")
     if not isinstance(tables, dict):
-        raise ConfigError("tables.yaml enthaelt keinen 'tables'-Abschnitt")
+        raise ConfigError("tables.yaml enthält keinen 'tables'-Abschnitt")
     lengths = {
         str(name).upper(): int(value)
         for name, value in (data.get("field_lengths") or {}).items()
@@ -313,10 +313,10 @@ def load_registry(
     overlay: Mapping[str, Any] | None = None,
     alpha_length_overrides: Mapping[str, int] | None = None,
 ) -> TableRegistry:
-    """Laedt die Tabellenmetadaten.
+    """Lädt die Tabellenmetadaten.
 
-    ``overlay`` ergaenzt oder uebersteuert Definitionen projektspezifisch.
-    ``alpha_length_overrides`` passt Feldlaengen global an - noetig, weil MATNR
+    ``overlay`` ergänzt oder übersteuert Definitionen projektspezifisch.
+    ``alpha_length_overrides`` passt Feldlängen global an - nötig, weil MATNR
     in S/4HANA 40 statt 18 Stellen hat (A-03).
     """
     raw_tables, default_lengths = _load_raw()

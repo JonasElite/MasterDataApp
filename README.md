@@ -1,11 +1,11 @@
-# SAP-Stammdatenpruefung
+# SAP-Stammdatenprüfung
 
-Werkzeug zur automatisierten Pruefung von SAP-Stammdaten auf Vollstaendigkeit,
-formale Korrektheit, Konsistenz und Dubletten. Es laeuft lokal und offline; die
-zu pruefenden Daten liefert der Kunde als Dateiexport.
+Werkzeug zur automatisierten Prüfung von SAP-Stammdaten auf Vollständigkeit,
+formale Korrektheit, Konsistenz und Dubletten. Es läuft lokal und offline; die
+zu prüfenden Daten liefert der Kunde als Dateiexport.
 
 Umgesetzt sind die Anforderungen aus *Requirements Document - Tool zur
-automatisierten Pruefung von SAP-Stammdaten*, Fassung 0.1. Die Zuordnung von
+automatisierten Prüfung von SAP-Stammdaten*, Fassung 0.1. Die Zuordnung von
 Anforderung zu Umsetzung steht in [docs/anforderungsabdeckung.md](docs/anforderungsabdeckung.md).
 
 ## Was es leistet
@@ -14,22 +14,22 @@ Aus einer Datenlieferung entsteht ohne manuelle Nacharbeit ein
 nachvollziehbarer Befundbericht. Drei Eigenschaften unterscheiden das Werkzeug
 von einer Sammlung von Excel-Auswertungen:
 
-**Es kommt mit unvollstaendigen Lieferungen zurecht.** Jede Regel deklariert,
+**Es kommt mit unvollständigen Lieferungen zurecht.** Jede Regel deklariert,
 welche Tabellen und Felder sie braucht. Vor dem Lauf steht fest, welche Regeln
-ausfuehrbar sind; was nicht laufen kann, erscheint mit Begruendung im
-Coverage-Report. Der Bericht traegt einen Vorbehalt, der benennt, worueber er
-eine Aussage macht - und worueber nicht.
+ausführbar sind; was nicht laufen kann, erscheint mit Begründung im
+Coverage-Report. Der Bericht trägt einen Vorbehalt, der benennt, worüber er
+eine Aussage macht - und worüber nicht.
 
 **Es sagt dem Kunden, was eine Nachlieferung bringt.** Die Nachforderungsliste
 ist nach Wirkung sortiert und kumuliert: "diese vier Tabellen schalten 26
-weitere Pruefungen frei".
+weitere Prüfungen frei".
 
-**Es ist prueffest.** Jeder Befund ist auf Regel-ID, Regelversion,
-Quelldatei-Hash und Zeitstempel zurueckfuehrbar. Zwei Laeufe auf denselben
+**Es ist prüffest.** Jeder Befund ist auf Regel-ID, Regelversion,
+Quelldatei-Hash und Zeitstempel zurückführbar. Zwei Läufe auf denselben
 Daten erzeugen bitgleiche Ergebnisdateien.
 
-Zum Durchsatz: 1,2 Millionen Saetze ueber 62 Regeln in gut zwei Minuten,
-hochgerechnet knapp neun Minuten fuer fuenf Millionen. Nachmessen laesst sich
+Zum Durchsatz: 1,2 Millionen Sätze über 62 Regeln in gut zwei Minuten,
+hochgerechnet knapp neun Minuten für fünf Millionen. Nachmessen lässt sich
 das mit `python tools/lasttest.py`; die Einordnung der Zahl steht in
 [docs/anforderungsabdeckung.md](docs/anforderungsabdeckung.md).
 
@@ -54,15 +54,15 @@ python tools/beispieldaten.py kundenprojekt/data/input --vendors 400
 sapmdq run -c kundenprojekt/projekt.yaml
 ```
 
-Die Beispiellieferung enthaelt 45 gezielt eingebaute Maengel ueber Kreditoren,
+Die Beispiellieferung enthält 45 gezielt eingebaute Mängel über Kreditoren,
 Debitoren und Material; welche das sind, steht in der miterzeugten Datei
-`EINGEBAUTE_MAENGEL.md`. Darunter sind mehrere Dublettenfaelle - derselbe Kunde
-unter Schreibvarianten, derselbe Kunde ohne jede Namensaehnlichkeit aber mit
-gleicher USt-IdNr. - und zwei Faelle, die **nicht** gemeldet werden duerfen:
-zwei verschiedene Firmen mit gleichem Namensstamm in derselben Strasse, und
+`EINGEBAUTE_MAENGEL.md`. Darunter sind mehrere Dublettenfälle - derselbe Kunde
+unter Schreibvarianten, derselbe Kunde ohne jede Namensähnlichkeit aber mit
+gleicher USt-IdNr. - und zwei Fälle, die **nicht** gemeldet werden dürfen:
+zwei verschiedene Firmen mit gleichem Namensstamm in derselben Straße, und
 eine Schreibvariante, die der unscharfe Abgleich nachweislich nicht findet.
-Auch das steht dort, denn wer das Werkzeug vorfuehrt, sollte seine Grenzen
-nennen koennen.
+Auch das steht dort, denn wer das Werkzeug vorführt, sollte seine Grenzen
+nennen können.
 
 Wer die Ergebnisse lieber ansieht als liest:
 
@@ -70,19 +70,19 @@ Wer die Ergebnisse lieber ansieht als liest:
 sapmdq ui -c kundenprojekt/projekt.yaml
 ```
 
-Das oeffnet eine oertliche Oberflaeche im Browser: eine Abdeckungsseite, die
-zeigt, welche Geschaeftsprozesse und SAP-Tabellen abgedeckt sind und was je
-Prozess geprueft wird; ein Lagebild mit Punktwert,
-Pruefumfang und Verteilung der Befunde, eine filterbare Befundliste, die
-Dublettencluster mit Gegenueberstellung der betroffenen Stammsaetze, Lieferung,
-Pruefumfang und der Vergleich zweier Laeufe. Ausnahmen und Bearbeitungsstaende
-lassen sich per Klick pflegen, Laeufe von dort starten. Der Knopf
-*Praesentation* baut aus dem Lauf eine Folienabfolge fuer den Kundentermin,
-druckbar als PDF. Die Oberflaeche laesst sich zwischen Deutsch und Englisch
-umschalten - einschliesslich der Regeltexte; die geschriebenen Berichte bleiben
-deutsch. Kein Server, keine zusaetzliche Abhaengigkeit, nichts aus dem Netz;
+Das öffnet eine örtliche Oberfläche im Browser: eine Abdeckungsseite, die
+zeigt, welche Geschäftsprozesse und SAP-Tabellen abgedeckt sind und was je
+Prozess geprüft wird; ein Lagebild mit Punktwert,
+Prüfumfang und Verteilung der Befunde, eine filterbare Befundliste, die
+Dublettencluster mit Gegenüberstellung der betroffenen Stammsätze, Lieferung,
+Prüfumfang und der Vergleich zweier Läufe. Ausnahmen und Bearbeitungsstände
+lassen sich per Klick pflegen, Läufe von dort starten. Der Knopf
+*Präsentation* baut aus dem Lauf eine Folienabfolge für den Kundentermin,
+druckbar als PDF. Die Oberfläche lässt sich zwischen Deutsch und Englisch
+umschalten - einschließlich der Regeltexte; die geschriebenen Berichte bleiben
+deutsch. Kein Server, keine zusätzliche Abhängigkeit, nichts aus dem Netz;
 gebunden wird nur an 127.0.0.1. Einzelheiten in
-[docs/oberflaeche.md](docs/oberflaeche.md), die Einrichtung Schritt fuer
+[docs/oberflaeche.md](docs/oberflaeche.md), die Einrichtung Schritt für
 Schritt in [docs/installation.md](docs/installation.md).
 
 ## Ablauf eines Laufs
@@ -113,7 +113,7 @@ Eingangsdateien
 ```
 
 Jede Stufe legt ihr Ergebnis als Parquet im Arbeitsverzeichnis ab. Ein Lauf
-laesst sich dadurch wiederaufsetzen, ohne erneut einzulesen.
+lässt sich dadurch wiederaufsetzen, ohne erneut einzulesen.
 
 ## Ergebnis eines Laufs
 
@@ -122,11 +122,11 @@ Jeder Lauf legt ein eigenes Verzeichnis unter `out/runs/<Zeitstempel>/` an:
 | Datei | Inhalt |
 |---|---|
 | `management_summary.md` | Kennzahlen, Befunde je Kategorie, Coverage, Vorbehalt |
-| `befunde.xlsx` | je Regel eine Registerkarte mit den betroffenen Schluesseln |
+| `befunde.xlsx` | je Regel eine Registerkarte mit den betroffenen Schlüsseln |
 | `befunde.csv` | maschinenlesbarer Export ohne Zeilengrenze |
-| `befunde.parquet` | typisierter Export, Grundlage des naechsten Vergleichs |
-| `coverage.csv` | ausgefuehrte und entfallene Regeln mit Begruendung |
-| `lauf.json` | strukturierte Zusammenfassung des Laufs, Grundlage der Oberflaeche |
+| `befunde.parquet` | typisierter Export, Grundlage des nächsten Vergleichs |
+| `coverage.csv` | ausgeführte und entfallene Regeln mit Begründung |
+| `lauf.json` | strukturierte Zusammenfassung des Laufs, Grundlage der Oberfläche |
 | `ausfuehrungsprotokoll.json` | wer, wann, welche Konfiguration, welche Dateien |
 | `lauf.log` | Ablaufprotokoll ohne Feldinhalte mit Personenbezug |
 
@@ -135,35 +135,35 @@ Jeder Lauf legt ein eigenes Verzeichnis unter `out/runs/<Zeitstempel>/` an:
 | Befehl | Zweck |
 |---|---|
 | `init` | Projektverzeichnis mit kommentierten Vorlagen anlegen |
-| `validate` | Lieferung pruefen, ohne fachliche Regeln auszufuehren |
-| `run` | vollstaendigen Lauf ausfuehren |
-| `coverage` | zeigen, welche Regeln auf dieser Lieferung laufen koennen |
+| `validate` | Lieferung prüfen, ohne fachliche Regeln auszuführen |
+| `run` | vollständigen Lauf ausführen |
+| `coverage` | zeigen, welche Regeln auf dieser Lieferung laufen können |
 | `rules` | Regelkatalog auflisten, mit `--detail` samt Beschreibung |
-| `delta` | zwei Laeufe vergleichen |
+| `delta` | zwei Läufe vergleichen |
 | `whitelist` | dauerhafte Ausnahmen verwalten |
 | `status` | Bearbeitungsstand je Befund pflegen |
-| `pseudonymize` | Fassung fuer Demo, Test und Schulung erzeugen |
-| `purge` | abgelaufene Daten loeschen und Loeschbestaetigung schreiben |
-| `ui` | oertliche Oberflaeche im Browser oeffnen |
+| `pseudonymize` | Fassung für Demo, Test und Schulung erzeugen |
+| `purge` | abgelaufene Daten löschen und Löschbestätigung schreiben |
+| `ui` | örtliche Oberfläche im Browser öffnen |
 
-Rueckgabewerte: `0` erfolgreich, `1` abgebrochen, `2` Aufruffehler,
-`3` erfolgreich mit kritischen Befunden - fuer die Einbindung in eine
+Rückgabewerte: `0` erfolgreich, `1` abgebrochen, `2` Aufruffehler,
+`3` erfolgreich mit kritischen Befunden - für die Einbindung in eine
 Ablaufsteuerung.
 
 ## Regelkatalog
 
-Der mitgelieferte Katalog umfasst 106 Regeln. Zwei davon uebertragen Daten
-an einen externen Dienst und sind ohne ausdrueckliche Freigabe abgeschaltet -
+Der mitgelieferte Katalog umfasst 106 Regeln. Zwei davon übertragen Daten
+an einen externen Dienst und sind ohne ausdrückliche Freigabe abgeschaltet -
 ohne Freigabe laufen also 104.
 
 | Kategorie | Anzahl | Anforderung |
 |---|---|---|
-| Vollstaendigkeit | 22 | FA-401 |
+| Vollständigkeit | 22 | FA-401 |
 | Format / Syntax | 13 | FA-402 |
-| Konsistenz ueber Sichten | 23 | FA-403 |
-| Referenzintegritaet | 21 | FA-404 |
+| Konsistenz über Sichten | 23 | FA-403 |
+| Referenzintegrität | 21 | FA-404 |
 | Dubletten | 7 | FA-405 |
-| Aktualitaet / Lifecycle | 9 | FA-406 |
+| Aktualität / Lifecycle | 9 | FA-406 |
 | Risiko / Compliance | 9 | FA-407 |
 | Externe Validierung | 2 | FA-408 |
 
@@ -194,20 +194,20 @@ sql: |
     AND (STCEG IS NULL OR is_placeholder_text(STCEG))
 ```
 
-Eigene Regeln kommen in ein zusaetzliches Verzeichnis, das in
+Eigene Regeln kommen in ein zusätzliches Verzeichnis, das in
 `rules.catalog_dirs` genannt wird - der mitgelieferte Katalog bleibt
-unveraendert. Wie das im Einzelnen geht, steht in
+unverändert. Wie das im Einzelnen geht, steht in
 [docs/regeln_schreiben.md](docs/regeln_schreiben.md).
 
-Der Katalog wird beim Laden geprueft. Verwendet eine Abfrage ein Feld, das
-nicht unter `requires.fields` steht, wird sie zurueckgewiesen: die
-Capability-Matrix haelte die Regel sonst auch dann fuer ausfuehrbar, wenn das
+Der Katalog wird beim Laden geprüft. Verwendet eine Abfrage ein Feld, das
+nicht unter `requires.fields` steht, wird sie zurückgewiesen: die
+Capability-Matrix hälte die Regel sonst auch dann für ausführbar, wenn das
 Feld gar nicht geliefert wurde.
 
 ## Datenlieferung
 
 Bevorzugt Parquet oder CSV mit UTF-8 und Semikolon, technische Feldnamen in der
-Kopfzeile, keine Excel-Zwischenverarbeitung. Gelesen werden ausserdem
+Kopfzeile, keine Excel-Zwischenverarbeitung. Gelesen werden außerdem
 SE16N-Textexporte, Excel und Latin-1- sowie UTF-16-kodierte Dateien.
 
 Welche Tabellen gebraucht werden und was ihre Lieferung freischaltet, steht in
@@ -217,33 +217,33 @@ Welche Tabellen gebraucht werden und was ihre Lieferung freischaltet, steht in
   BUT000/BUT020/BUT0BK bei S/4HANA
 - **Soll:** die Customizing-Tabellen T001, T005, T042Z, T052, T007A, TBSL,
   T059P/T059Z, T077K/T077D. Sie sind klein und unkritisch in der Freigabe,
-  schalten aber ueberproportional viele Pruefungen frei.
+  schalten aber überproportional viele Prüfungen frei.
 - **Kann:** CDHDR/CDPOS, ADRC, BNKA, LFBK/KNBK, MAKT
 
 Der Lieferung sollte ein Begleitzettel `manifest.yaml` mit Satzanzahl,
-Mandant und Extraktionsstichtag beiliegen. Ohne ihn laesst sich nicht pruefen,
-ob die Lieferung vollstaendig ist.
+Mandant und Extraktionsstichtag beiliegen. Ohne ihn lässt sich nicht prüfen,
+ob die Lieferung vollständig ist.
 
 ## Datenschutz
 
-Kreditoren- und Debitorenstaemme enthalten regelmaessig personenbezogene Daten.
-Vor der ersten Datenlieferung ist die vertragliche Grundlage zu klaeren.
+Kreditoren- und Debitorenstämme enthalten regelmäßig personenbezogene Daten.
+Vor der ersten Datenlieferung ist die vertragliche Grundlage zu klären.
 
-Das Werkzeug unterstuetzt dabei: Logdateien werden gegen Muster gefiltert, die
-personenbeziehbare Werte tragen; das Ausfuehrungsprotokoll enthaelt nur
-Metadaten; eine pseudonymisierte Fassung fuer Demonstration und Schulung laesst
-sich erzeugen; abgelaufene Daten werden mit dokumentierter Loeschbestaetigung
-entfernt. Externe Dienste werden nur nach ausdruecklicher Freigabe angesprochen.
+Das Werkzeug unterstützt dabei: Logdateien werden gegen Muster gefiltert, die
+personenbeziehbare Werte tragen; das Ausführungsprotokoll enthält nur
+Metadaten; eine pseudonymisierte Fassung für Demonstration und Schulung lässt
+sich erzeugen; abgelaufene Daten werden mit dokumentierter Löschbestätigung
+entfernt. Externe Dienste werden nur nach ausdrücklicher Freigabe angesprochen.
 
-Verschluesselte Ablage und Zugriffsbeschraenkung (DS-01, DS-02) liegen
-ausserhalb des Werkzeugs und sind organisatorisch zu regeln; siehe
+Verschlüsselte Ablage und Zugriffsbeschränkung (DS-01, DS-02) liegen
+außerhalb des Werkzeugs und sind organisatorisch zu regeln; siehe
 [docs/betrieb.md](docs/betrieb.md).
 
 ## Entwicklung
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest              # 404 Tests
+python -m pytest              # 416 Tests
 python -m pytest tests/test_akzeptanzkriterien.py -v   # Abnahmenachweis
 ```
 
@@ -253,13 +253,13 @@ beschrieben.
 ## Grenzen
 
 - **Bewegungsdaten sind nicht im Umfang.** "Ohne Bewegung seit X Monaten"
-  stuetzt sich ersatzweise auf die Aenderungshistorie (CDHDR). Eine Buchung
-  ohne Stammdatenaenderung bleibt unsichtbar.
-- **Pruefziffern der USt-IdNr.** sind fuer Deutschland, die Niederlande und
-  Italien umgesetzt. Fuer die uebrigen Laender wird nur die Syntax geprueft;
-  die inhaltliche Bestaetigung leistet erst der VIES-Abgleich.
-- **Die Pseudonymisierung erhaelt keine Wertfehler.** Eine IBAN mit falscher
-  Pruefziffer wird durch eine gueltige ersetzt. Die Demofassung eignet sich
+  stützt sich ersatzweise auf die Änderungshistorie (CDHDR). Eine Buchung
+  ohne Stammdatenänderung bleibt unsichtbar.
+- **Prüfziffern der USt-IdNr.** sind für Deutschland, die Niederlande und
+  Italien umgesetzt. Für die übrigen Länder wird nur die Syntax geprüft;
+  die inhaltliche Bestätigung leistet erst der VIES-Abgleich.
+- **Die Pseudonymisierung erhält keine Wertfehler.** Eine IBAN mit falscher
+  Prüfziffer wird durch eine gültige ersetzt. Die Demofassung eignet sich
   zum Zeigen des Verfahrens, nicht zum Nachvollziehen eines Befundes.
 - **Der Data-Quality-Score ist eine Konvention.** Die Aussage liegt im Verlauf
-  ueber mehrere Lieferungen, nicht im absoluten Wert.
+  über mehrere Lieferungen, nicht im absoluten Wert.

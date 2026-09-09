@@ -1,7 +1,7 @@
 """Erkennung von Format, Encoding und Trennzeichen (FA-101, FA-102).
 
 Kunden liefern, was ihr Exportwerkzeug hergibt: SE16N-Textexporte mit
-Rahmenzeichen, Excel-Dateien mit vernichteten fuehrenden Nullen, CSV in
+Rahmenzeichen, Excel-Dateien mit vernichteten führenden Nullen, CSV in
 Latin-1 mit Semikolon. Dieses Modul stellt fest, womit man es zu tun hat,
 bevor gelesen wird.
 """
@@ -17,7 +17,7 @@ from sapmdq.logging_setup import get_logger
 
 logger = get_logger("ingest.detect")
 
-#: Groesse der Stichprobe, die zur Erkennung gelesen wird.
+#: Größe der Stichprobe, die zur Erkennung gelesen wird.
 SAMPLE_BYTES = 256 * 1024
 
 #: Encodings, die DuckDB unmittelbar lesen kann. Alles andere wird vor dem
@@ -30,7 +30,7 @@ CANDIDATE_DELIMITERS: tuple[str, ...] = (";", "\t", "|", ",")
 
 
 class FileFormat(str, Enum):
-    """Unterstuetzte Lieferformate (FA-101)."""
+    """Unterstützte Lieferformate (FA-101)."""
 
     CSV = "csv"
     SE16N = "se16n"
@@ -61,10 +61,10 @@ def _read_sample(path: Path, size: int = SAMPLE_BYTES) -> bytes:
 def detect_encoding(path: Path, configured: str = "auto") -> tuple[str, bool]:
     """Bestimmt das Encoding einer Textdatei (FA-102).
 
-    Rueckgabe ist das Encoding und ob die Datei eine Byte Order Mark traegt.
+    Rückgabe ist das Encoding und ob die Datei eine Byte Order Mark trägt.
     Die Reihenfolge ist bewusst: eine BOM ist eine Aussage der Quelle und
-    schlaegt jede Heuristik; danach entscheidet ein strikter UTF-8-Versuch,
-    weil UTF-8 nur selten zufaellig gueltig ist; erst zuletzt wird geraten.
+    schlägt jede Heuristik; danach entscheidet ein strikter UTF-8-Versuch,
+    weil UTF-8 nur selten zufällig gültig ist; erst zuletzt wird geraten.
     """
     if configured and configured.lower() != "auto":
         return configured.lower(), False
@@ -77,7 +77,7 @@ def detect_encoding(path: Path, configured: str = "auto") -> tuple[str, bool]:
     if not sample:
         return "utf-8", False
 
-    # UTF-16 ohne BOM erkennt man an regelmaessigen Nullbytes.
+    # UTF-16 ohne BOM erkennt man an regelmässigen Nullbytes.
     zero_ratio = sample.count(0) / len(sample)
     if zero_ratio > 0.25:
         return "utf-16", False
@@ -96,14 +96,14 @@ def detect_encoding(path: Path, configured: str = "auto") -> tuple[str, bool]:
         if best is not None and best.encoding:
             encoding = best.encoding.lower().replace("_", "-")
             # cp1252 unterscheidet sich von latin-1 gerade in den Zeichen, die
-            # in Firmennamen vorkommen (Anfuehrungszeichen, Euro-Zeichen).
+            # in Firmennamen vorkommen (Anführungszeichen, Euro-Zeichen).
             if encoding in ("windows-1252", "cp1252"):
                 return "cp1252", False
             if encoding in NATIVE_ENCODINGS:
                 return encoding, False
             return encoding, False
-    except Exception as exc:  # pragma: no cover - Bibliothek nicht verfuegbar
-        logger.debug("Encoding-Erkennung ueber charset_normalizer fehlgeschlagen: %s", exc)
+    except Exception as exc:  # pragma: no cover - Bibliothek nicht verfügbar
+        logger.debug("Encoding-Erkennung über charset_normalizer fehlgeschlagen: %s", exc)
 
     return "latin-1", False
 
@@ -126,9 +126,9 @@ def looks_like_se16n(sample_text: str) -> bool:
 def detect_delimiter(sample_text: str, configured: str = "auto") -> str:
     """Bestimmt das Spaltentrennzeichen (FA-102).
 
-    Bewertet wird nicht die Haeufigkeit allein, sondern die Gleichmaessigkeit:
+    Bewertet wird nicht die Häufigkeit allein, sondern die Gleichmäßigkeit:
     das richtige Trennzeichen kommt in jeder Zeile gleich oft vor. Ein Komma
-    in Firmennamen taucht dagegen unregelmaessig auf.
+    in Firmennamen taucht dagegen unregelmässig auf.
     """
     if configured and configured.lower() != "auto":
         return {"\\t": "\t", "tab": "\t"}.get(configured.lower(), configured)

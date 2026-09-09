@@ -1,17 +1,17 @@
 # Regelwerk Materialstamm (FA-401 bis FA-406).
 #
 # Der Materialstamm ist sichtenorientiert: allgemeine Daten (MARA), Werksdaten
-# (MARC), Bewertung (MBEW) und Kurztexte (MAKT). Der in FA-403 ausdruecklich
-# genannte Zusammenhang Bewertungsklasse gegen Materialart wird ueber die
-# Kontenkategorie-Referenz aus T134 und T025 geprueft.
+# (MARC), Bewertung (MBEW) und Kurztexte (MAKT). Der in FA-403 ausdrücklich
+# genannte Zusammenhang Bewertungsklasse gegen Materialart wird über die
+# Kontenkategorie-Referenz aus T134 und T025 geprüft.
 rules:
 
-  # ------------------------------------------------------ Vollstaendigkeit
+  # ------------------------------------------------------ Vollständigkeit
   - id: MAT-COMP-001
     name: Material ohne Kurztext
     description: >
       Ohne Materialkurztext ist das Material in Bestellungen, Lieferscheinen und
-      Rechnungen nicht benennbar. Es ist ausserdem der wichtigste Anhaltspunkt
+      Rechnungen nicht benennbar. Es ist außerdem der wichtigste Anhaltspunkt
       der Dublettenerkennung im Materialstamm.
     category: completeness
     severity: high
@@ -57,7 +57,7 @@ rules:
       fields:
         MARA: [MANDT, MATNR, MTART, MATKL, ERSDA, LVORM]
     params: {}
-    remediation: Warengruppe gemaess Warengruppenschluessel nachpflegen.
+    remediation: Warengruppe gemäß Warengruppenschlüssel nachpflegen.
     sql: |
       SELECT MANDT, MATNR, MTART, MATKL, ERSDA
       FROM MARA
@@ -67,7 +67,7 @@ rules:
   - id: MAT-COMP-003
     name: Material ohne Basismengeneinheit
     description: >
-      Die Basismengeneinheit ist Bezugsgroesse fuer Bestand, Bewertung und alle
+      Die Basismengeneinheit ist Bezugsgröße für Bestand, Bewertung und alle
       Mengenumrechnungen. Ohne sie ist das Material nicht bewegbar.
     category: completeness
     severity: critical
@@ -92,7 +92,7 @@ rules:
     name: Material ohne Werksdaten
     description: >
       Ein Material ohne Werkssicht kann nirgends beschafft, gelagert oder
-      gefertigt werden. Es ist entweder eine Fehlanlage oder eine unvollstaendig
+      gefertigt werden. Es ist entweder eine Fehlanlage oder eine unvollständig
       angelegte Neuanlage.
     category: completeness
     severity: medium
@@ -107,7 +107,7 @@ rules:
         MARA: [MANDT, MATNR, MTART, ERSDA, LVORM]
         MARC: [MATNR]
     params: {}
-    remediation: Werkssicht anlegen oder das Material zur Loeschung vormerken.
+    remediation: Werkssicht anlegen oder das Material zur Löschung vormerken.
     sql: |
       SELECT a.MANDT, a.MATNR, a.MTART, a.ERSDA
       FROM MARA a
@@ -132,7 +132,7 @@ rules:
       fields:
         MBEW: [MANDT, MATNR, BWKEY, BWTAR, BKLAS, LVORM]
     params: {}
-    remediation: Bewertungsklasse gemaess Materialart nachpflegen.
+    remediation: Bewertungsklasse gemäß Materialart nachpflegen.
     sql: |
       SELECT MANDT, MATNR, BWKEY, BWTAR, BKLAS
       FROM MBEW
@@ -143,7 +143,7 @@ rules:
     name: Werksdaten ohne Dispomerkmal
     description: >
       Ohne Dispomerkmal wird das Material von der Bedarfsplanung nicht
-      beruecksichtigt. Bedarfe entstehen dann nur ueber manuelle Bestellungen -
+      berücksichtigt. Bedarfe entstehen dann nur über manuelle Bestellungen -
       mit entsprechenden Fehlmengen.
     category: completeness
     severity: medium
@@ -166,10 +166,10 @@ rules:
 
   # -------------------------------------------------------------- Format
   - id: MAT-FMT-001
-    name: EAN mit falscher Laenge oder falscher Pruefziffer
+    name: EAN mit falscher Länge oder falscher Prüfziffer
     description: >
-      Die EAN wird nach dem Modulo-10-Verfahren der GS1 geprueft. Eine falsche
-      EAN fuehrt beim Scannen zu falschen Materialzuordnungen im Wareneingang
+      Die EAN wird nach dem Modulo-10-Verfahren der GS1 geprüft. Eine falsche
+      EAN führt beim Scannen zu falschen Materialzuordnungen im Wareneingang
       und im Handel zu Kassendifferenzen.
     category: format
     severity: medium
@@ -195,8 +195,8 @@ rules:
   - id: MAT-FMT-002
     name: Materialkurztext ist ein Platzhalter
     description: >
-      Kurztexte wie "TEST", "xxx" oder "noch offen" erfuellen die
-      Pflichtfeldpruefung, benennen das Material aber nicht. Sie machen die
+      Kurztexte wie "TEST", "xxx" oder "noch offen" erfüllen die
+      Pflichtfeldprüfung, benennen das Material aber nicht. Sie machen die
       Dublettenerkennung im Materialstamm wirkungslos.
     category: format
     severity: medium
@@ -210,7 +210,7 @@ rules:
       fields:
         MAKT: [MANDT, MATNR, SPRAS, MAKTX]
     params: {}
-    remediation: Aussagekraeftigen Kurztext nachtragen.
+    remediation: Aussagekräftigen Kurztext nachtragen.
     sql: |
       SELECT MANDT, MATNR, SPRAS, MAKTX
       FROM MAKT
@@ -220,11 +220,11 @@ rules:
   - id: MAT-CONS-001
     name: Bewertungsklasse passt nicht zur Materialart
     description: >
-      Materialart und Bewertungsklasse sind ueber die Kontenkategorie-Referenz
+      Materialart und Bewertungsklasse sind über die Kontenkategorie-Referenz
       verbunden: T134 nennt die Referenz der Materialart, T025 die der
-      Bewertungsklasse. Stimmen sie nicht ueberein, bucht die Warenbewegung auf
-      ein sachlich falsches Bestandskonto - der Fehler faellt erst bei der
-      Bilanzanalyse auf. Dies ist der in FA-403 ausdruecklich genannte
+      Bewertungsklasse. Stimmen sie nicht überein, bucht die Warenbewegung auf
+      ein sachlich falsches Bestandskonto - der Fehler fällt erst bei der
+      Bilanzanalyse auf. Dies ist der in FA-403 ausdrücklich genannte
       Zusammenhang.
     category: consistency
     severity: critical
@@ -243,7 +243,7 @@ rules:
     params: {}
     remediation: >
       Bewertungsklasse auf eine zur Materialart passende umstellen; bereits
-      gebuchte Bestaende gegebenenfalls umbuchen.
+      gebuchte Bestände gegebenenfalls umbuchen.
     sql: |
       SELECT
           b.MANDT, b.MATNR, b.BWKEY, b.BWTAR, b.BKLAS, a.MTART,
@@ -276,7 +276,7 @@ rules:
         MARA: [MATNR]
         MARC: [MANDT, MATNR, WERKS]
     params: {}
-    remediation: Lieferumfang pruefen; sonst Inkonsistenz im Quellsystem klaeren.
+    remediation: Lieferumfang prüfen; sonst Inkonsistenz im Quellsystem klären.
     sql: |
       SELECT c.MANDT, c.MATNR, c.WERKS
       FROM MARC c
@@ -340,7 +340,7 @@ rules:
     name: Bestandswert passt nicht zu Menge und Preis
     description: >
       Der Bestandswert muss sich aus Menge, Preis und Preiseinheit ergeben.
-      Weicht er ab, wurde entweder der Preis nachtraeglich geaendert, ohne den
+      Weicht er ab, wurde entweder der Preis nachträglich geändert, ohne den
       Bestand umzubewerten, oder es liegt eine Inkonsistenz in der
       Materialbewertung vor. Die Toleranz ist parametrisierbar, weil kleine
       Rundungsdifferenzen normal sind.
@@ -358,7 +358,7 @@ rules:
     params:
       tolerance_absolute: 1.0
       tolerance_relative: 0.01
-    remediation: Materialbewertung pruefen und den Bestandswert richtigstellen.
+    remediation: Materialbewertung prüfen und den Bestandswert richtigstellen.
     sql: |
       WITH bewertet AS (
           SELECT
@@ -381,7 +381,7 @@ rules:
         AND abs(SALK3 - erwarteter_wert) > abs(erwarteter_wert) * ${tolerance_relative}
 
   - id: MAT-CONS-006
-    name: Loeschvormerkung mandantenweit gesetzt, im Werk aber nicht
+    name: Löschvormerkung mandantenweit gesetzt, im Werk aber nicht
     description: >
       Ein mandantenweit vorgemerktes Material bleibt im Werk disponierbar. Die
       Vormerkung wirkt dann nicht wie beabsichtigt.
@@ -398,7 +398,7 @@ rules:
         MARA: [MATNR, MTART, LVORM]
         MARC: [MANDT, MATNR, WERKS, LVORM]
     params: {}
-    remediation: Loeschvormerkung im Werk nachziehen.
+    remediation: Löschvormerkung im Werk nachziehen.
     sql: |
       SELECT c.MANDT, c.MATNR, a.MTART, c.WERKS,
              a.LVORM AS lvorm_mandant, c.LVORM AS lvorm_werk
@@ -406,7 +406,7 @@ rules:
       JOIN MARA a ON c.MATNR = a.MATNR
       WHERE COALESCE(a.LVORM, '') = 'X' AND COALESCE(c.LVORM, '') <> 'X'
 
-  # ------------------------------------------------------ Referenzintegritaet
+  # ------------------------------------------------------ Referenzintegrität
   - id: MAT-REF-001
     name: Materialart ist im Customizing nicht definiert
     description: >
@@ -426,7 +426,7 @@ rules:
         MARA: [MANDT, MATNR, MTART]
         T134: [MTART]
     params: {}
-    remediation: Materialart pruefen und korrigieren.
+    remediation: Materialart prüfen und korrigieren.
     sql: |
       SELECT a.MANDT, a.MATNR, a.MTART
       FROM MARA a
@@ -437,7 +437,7 @@ rules:
     name: Warengruppe ist im Customizing nicht definiert
     description: >
       Eine unbekannte Warengruppe bricht die Kontenfindung im Einkauf und
-      verfaelscht jede Ausgabenanalyse.
+      verfälscht jede Ausgabenanalyse.
     category: referential
     severity: high
     version: "1.0.0"
@@ -451,7 +451,7 @@ rules:
         MARA: [MANDT, MATNR, MTART, MATKL]
         T023: [MATKL]
     params: {}
-    remediation: Warengruppe pruefen und korrigieren.
+    remediation: Warengruppe prüfen und korrigieren.
     sql: |
       SELECT a.MANDT, a.MATNR, a.MTART, a.MATKL
       FROM MARA a
@@ -461,7 +461,7 @@ rules:
   - id: MAT-REF-003
     name: Basismengeneinheit ist im Customizing nicht definiert
     description: >
-      Eine unbekannte Mengeneinheit macht jede Mengenumrechnung unmoeglich.
+      Eine unbekannte Mengeneinheit macht jede Mengenumrechnung unmöglich.
     category: referential
     severity: high
     version: "1.0.0"
@@ -485,7 +485,7 @@ rules:
   - id: MAT-REF-004
     name: Werk existiert nicht
     description: >
-      Werksdaten zu einem nicht vorhandenen Werk sind verwaist und stoeren jede
+      Werksdaten zu einem nicht vorhandenen Werk sind verwaist und stören jede
       Bestandsauswertung.
     category: referential
     severity: high
@@ -500,7 +500,7 @@ rules:
         MARC: [MANDT, MATNR, WERKS]
         T001W: [WERKS]
     params: {}
-    remediation: Verwaiste Werkssaetze bereinigen.
+    remediation: Verwaiste Werkssätze bereinigen.
     sql: |
       SELECT c.MANDT, c.MATNR, c.WERKS
       FROM MARC c
@@ -534,11 +534,11 @@ rules:
 
   # ---------------------------------------------------------- Lifecycle
   - id: MAT-LC-001
-    name: Loeschvormerkung gesetzt, Material aber weiterhin im Bestand
+    name: Löschvormerkung gesetzt, Material aber weiterhin im Bestand
     description: >
-      Ein zur Loeschung vorgemerktes Material, das nie archiviert wurde, belastet
-      Auswertungen und Dublettensuche. Traegt es zudem noch Bestand, ist die
-      Vormerkung fachlich fragwuerdig.
+      Ein zur Löschung vorgemerktes Material, das nie archiviert wurde, belastet
+      Auswertungen und Dublettensuche. Trägt es zudem noch Bestand, ist die
+      Vormerkung fachlich fragwürdig.
     category: lifecycle
     severity: medium
     version: "1.0.0"
@@ -552,7 +552,7 @@ rules:
         MARA: [MANDT, MATNR, MTART, ERSDA, LVORM]
     params:
       months_since_creation: 12
-    remediation: Archivierungslauf fuer vorgemerkte Materialien anstossen.
+    remediation: Archivierungslauf für vorgemerkte Materialien anstoßen.
     sql: |
       SELECT MANDT, MATNR, MTART, ERSDA,
              date_diff('month', ERSDA, current_date) AS monate_seit_anlage
@@ -562,9 +562,9 @@ rules:
         AND date_diff('month', ERSDA, current_date) >= ${months_since_creation}
 
   - id: MAT-LC-002
-    name: Material zur Loeschung vorgemerkt, aber mit Bestand
+    name: Material zur Löschung vorgemerkt, aber mit Bestand
     description: >
-      Ein Material mit Bestand laesst sich nicht archivieren. Die Vormerkung
+      Ein Material mit Bestand lässt sich nicht archivieren. Die Vormerkung
       bleibt wirkungslos stehen und der Bestand bleibt unbewirtschaftet.
     category: lifecycle
     severity: high
@@ -579,7 +579,7 @@ rules:
         MARA: [MATNR, MTART, LVORM]
         MBEW: [MANDT, MATNR, BWKEY, BWTAR, LBKUM, SALK3]
     params: {}
-    remediation: Bestand abbauen oder die Loeschvormerkung zuruecknehmen.
+    remediation: Bestand abbauen oder die Löschvormerkung zurücknehmen.
     sql: |
       SELECT b.MANDT, b.MATNR, a.MTART, b.BWKEY, b.BWTAR, b.LBKUM, b.SALK3
       FROM MBEW b
@@ -588,12 +588,12 @@ rules:
         AND COALESCE(b.LBKUM, 0) <> 0
 
   - id: MAT-LC-003
-    name: Material seit langem unveraendert und ohne Bestand
+    name: Material seit langem unverändert und ohne Bestand
     description: >
-      Ein Material, das seit Jahren weder geaendert wurde noch Bestand traegt,
-      ist ein Kandidat fuer die Stilllegung. Die Aussage stuetzt sich auf das
-      Aenderungsdatum im Stammsatz, nicht auf Bewegungsdaten - diese sind
-      ausdruecklich nicht im Umfang (Kapitel 2.3).
+      Ein Material, das seit Jahren weder geändert wurde noch Bestand trägt,
+      ist ein Kandidat für die Stilllegung. Die Aussage stützt sich auf das
+      Änderungsdatum im Stammsatz, nicht auf Bewegungsdaten - diese sind
+      ausdrücklich nicht im Umfang (Kapitel 2.3).
     category: lifecycle
     severity: low
     version: "1.0.0"

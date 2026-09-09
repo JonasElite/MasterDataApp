@@ -18,7 +18,7 @@ from sapmdq.findings.whitelist import Whitelist, WhitelistEntry, load_whitelist,
 def befunde_schreiben(con, pfad, saetze):
     """Legt eine Rohbefunddatei an."""
     zeilen = ", ".join(
-        f"('{fid}','{regel}','{version}','Regel {regel}','completeness','Vollstaendigkeit',"
+        f"('{fid}','{regel}','{version}','Regel {regel}','completeness','Vollständigkeit',"
         f"'FA-401','{schwere}',1,'vendor','Kreditor','{schluessel}','100',NULL,'{{}}')"
         for fid, regel, schluessel, schwere, version in saetze
     )
@@ -46,7 +46,7 @@ class TestWhitelist:
     def test_ausnahme_ohne_begruendung_wird_zurueckgewiesen(self, tmp_path):
         pfad = tmp_path / "w.yaml"
         pfad.write_text("entries:\n  - rule_id: VEN-COMP-001\n", encoding="utf-8")
-        with pytest.raises(ConfigError, match="Begruendung"):
+        with pytest.raises(ConfigError, match="Begründung"):
             load_whitelist(pfad)
 
     def test_ausnahme_ohne_bezug_wird_zurueckgewiesen(self, tmp_path):
@@ -90,7 +90,7 @@ class TestStatus:
 
     @pytest.mark.parametrize(
         "eingabe, erwartet",
-        [("offen", FindingStatus.OPEN), ("in Klaerung", FindingStatus.IN_CLARIFICATION),
+        [("offen", FindingStatus.OPEN), ("in Klärung", FindingStatus.IN_CLARIFICATION),
          ("in_klaerung", FindingStatus.IN_CLARIFICATION), ("In Klärung", FindingStatus.IN_CLARIFICATION),
          ("akzeptiert", FindingStatus.ACCEPTED), ("korrigiert", FindingStatus.CORRECTED),
          (None, FindingStatus.OPEN), ("Unsinn", FindingStatus.OPEN)],
@@ -101,11 +101,11 @@ class TestStatus:
     def test_schreiben_und_lesen(self, tmp_path):
         pfad = tmp_path / "status.csv"
         store = StatusStore()
-        store.set_status("f1", FindingStatus.IN_CLARIFICATION, note="Rueckfrage laeuft")
+        store.set_status("f1", FindingStatus.IN_CLARIFICATION, note="Rückfrage läuft")
         save_status(store, pfad)
         geladen = load_status(pfad)
         assert geladen.status_of("f1") is FindingStatus.IN_CLARIFICATION
-        assert geladen.get("f1").note == "Rueckfrage laeuft"
+        assert geladen.get("f1").note == "Rückfrage läuft"
 
     def test_unbekannter_befund_gilt_als_offen(self):
         assert StatusStore().status_of("gibtesnicht") is FindingStatus.OPEN
@@ -170,7 +170,7 @@ class TestAufbereitung:
         assert ergebnis.unused_whitelist
 
     def test_leere_ausnahmeliste_funktioniert(self, con, tmp_path, rohbefunde):
-        # Der haeufigste Fall - und der, in dem eine Typableitung schiefgeht.
+        # Der häufigste Fall - und der, in dem eine Typableitung schiefgeht.
         ergebnis = enrich_findings(
             con, rohbefunde, tmp_path / "auf.parquet", Whitelist(), StatusStore(), {}
         )
@@ -209,7 +209,7 @@ class TestDelta:
         assert bericht.rules_only_current == ["VEN-FMT-002"]
 
     def test_anerkannte_ausnahme_gilt_nicht_als_behoben(self, con, tmp_path):
-        """Anerkennung ist kein Fortschritt - der Unterschied gehoert in den Bericht."""
+        """Anerkennung ist kein Fortschritt - der Unterschied gehört in den Bericht."""
         roh_a = befunde_schreiben(con, tmp_path / "a_roh.parquet", [
             ("f1", "VEN-DUP-002", "0000004711", "critical", "1.0.0"),
         ])

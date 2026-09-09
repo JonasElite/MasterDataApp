@@ -21,9 +21,9 @@ def run_id(moment: datetime | None = None) -> str:
 
 
 def parse_date(value: str) -> date | None:
-    """Liest ein Datum in den gaengigen Lieferformaten.
+    """Liest ein Datum in den gängigen Lieferformaten.
 
-    Unterstuetzt SAP-intern (``YYYYMMDD``), ISO (``YYYY-MM-DD``) sowie die
+    Unterstützt SAP-intern (``YYYYMMDD``), ISO (``YYYY-MM-DD``) sowie die
     deutschen Schreibweisen ``DD.MM.YYYY`` und ``DD.MM.YY``.
     """
     text = (value or "").strip()

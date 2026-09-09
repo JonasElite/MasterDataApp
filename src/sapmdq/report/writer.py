@@ -1,7 +1,7 @@
 """Erzeugung aller konfigurierten Berichtsformen.
 
 Welche Formate entstehen, steuert ``report.formats`` in der
-Projektkonfiguration. Ein Format, das nicht erzeugt werden kann, fuehrt nicht
+Projektkonfiguration. Ein Format, das nicht erzeugt werden kann, führt nicht
 zum Abbruch des Laufs: die Befunde sind zu diesem Zeitpunkt bereits
 gesichert, und ein fehlgeschlagener Export darf sie nicht entwerten.
 """
@@ -31,12 +31,12 @@ def write_reports(con: duckdb.DuckDBPyConnection, result: RunResult) -> dict[str
                 outputs[name] = path
         except Exception as exc:  # pragma: no cover - Exportfehler
             logger.error(
-                "Der Export '%s' ist fehlgeschlagen: %s. Die Befunde stehen unveraendert "
-                "in %s zur Verfuegung.", name, exc, result.findings_path,
+                "Der Export '%s' ist fehlgeschlagen: %s. Die Befunde stehen unverändert "
+                "in %s zur Verfügung.", name, exc, result.findings_path,
             )
 
     # Die Zusammenfassung entsteht immer. Sie ist die Grundlage der
-    # Oberflaeche und kostet nichts, was der Lauf nicht ohnehin schon
+    # Oberfläche und kostet nichts, was der Lauf nicht ohnehin schon
     # berechnet hat.
     from sapmdq.report.laufbericht import SUMMARY_FILENAME, write_summary_json
 
@@ -66,8 +66,8 @@ def write_reports(con: duckdb.DuckDBPyConnection, result: RunResult) -> dict[str
         from sapmdq.report.machine import export_parquet
 
         # Die aufbereitete Befunddatei liegt bereits als Parquet im
-        # Laufverzeichnis; ein zweiter Export waere eine Kopie. Er entsteht
-        # nur, wenn ausdruecklich ein anderer Ablageort gewuenscht ist.
+        # Laufverzeichnis; ein zweiter Export wäre eine Kopie. Er entsteht
+        # nur, wenn ausdrücklich ein anderer Ablageort gewünscht ist.
         target = run_dir / "befunde_export.parquet"
         if target != result.findings_path:
             guard("parquet", lambda: export_parquet(con, result.findings_path, target))

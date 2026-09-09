@@ -1,8 +1,8 @@
 """Validierung der Datenlieferung (FA-201 bis FA-206).
 
-Der Bericht dieser Stufe steht spaeter im Ergebnisdokument vor allen
-fachlichen Befunden. Er entscheidet ausserdem, ob ueberhaupt geprueft wird:
-ein blockierender Fund fuehrt zum Abbruch mit klarer Fehlermeldung, nicht zu
+Der Bericht dieser Stufe steht später im Ergebnisdokument vor allen
+fachlichen Befunden. Er entscheidet außerdem, ob überhaupt geprüft wird:
+ein blockierender Fund führt zum Abbruch mit klarer Fehlermeldung, nicht zu
 einer stillen Teilverarbeitung (FA-206).
 """
 
@@ -29,33 +29,33 @@ logger = get_logger("validate.delivery")
 EXPORT_LIMITS = (500, 1_000, 5_000, 9_999, 10_000, 50_000, 65_535, 99_999, 100_000, 999_999, 1_000_000)
 
 #: Ab diesem Anteil gleich langer Maximalwerte gilt eine Spalte als
-#: abgeschnitten. Bei natuerlichen Texten liegt der Anteil weit darunter.
+#: abgeschnitten. Bei natürlichen Texten liegt der Anteil weit darunter.
 TRUNCATION_SHARE = 0.02
 
-#: Unterhalb dieser Anzahl ist der Anteil nicht aussagekraeftig.
+#: Unterhalb dieser Anzahl ist der Anteil nicht aussagekräftig.
 TRUNCATION_MIN_HITS = 5
 
-#: Mindestgroesse der Grundgesamtheit fuer den Verteilungsvergleich. Bei einer
-#: Customizing-Tabelle mit zwoelf Eintraegen sagt ein Anteil von 50 Prozent
+#: Mindestgröße der Grundgesamtheit für den Verteilungsvergleich. Bei einer
+#: Customizing-Tabelle mit zwölf Einträgen sagt ein Anteil von 50 Prozent
 #: nichts aus - dort ist es blosser Zufall, dass mehrere Bezeichnungen gleich
-#: lang sind. Die Pruefung gegen die bekannte DDIC-Feldlaenge bleibt davon
-#: unberuehrt; sie braucht keine Grundgesamtheit.
+#: lang sind. Die Prüfung gegen die bekannte DDIC-Feldlänge bleibt davon
+#: unberührt; sie braucht keine Grundgesamtheit.
 TRUNCATION_MIN_POPULATION = 100
 
-#: Um wieviel die Haeufigkeit auf der Maximallaenge die der darunter liegenden
-#: Laengen uebersteigen muss.
+#: Um wieviel die Häufigkeit auf der Maximallänge die der darunter liegenden
+#: Längen übersteigen muss.
 #:
-#: Der Anteil allein genuegt nicht. Namensfelder schoepfen ihre Laenge
-#: natuerlicherweise aus; dann liegen bei 33, 34 und 35 Zeichen aehnlich viele
-#: Werte. Beim Abschneiden entsteht dagegen ein Aufstau: alles, was laenger
-#: gewesen waere, sammelt sich auf der Grenze, waehrend die Laengen knapp
-#: darunter duenn besetzt bleiben. Genau diesen Aufstau sucht die Pruefung.
+#: Der Anteil allein genügt nicht. Namensfelder schöpfen ihre Länge
+#: natürlicherweise aus; dann liegen bei 33, 34 und 35 Zeichen ähnlich viele
+#: Werte. Beim Abschneiden entsteht dagegen ein Aufstau: alles, was länger
+#: gewesen wäre, sammelt sich auf der Grenze, während die Längen knapp
+#: darunter dünn besetzt bleiben. Genau diesen Aufstau sucht die Prüfung.
 TRUNCATION_SPIKE_FACTOR = 3.0
 
-#: Anzahl der Laengen unterhalb des Maximums, gegen die verglichen wird.
+#: Anzahl der Längen unterhalb des Maximums, gegen die verglichen wird.
 TRUNCATION_COMPARISON_WIDTH = 3
 
-#: Kuerzere Felder sind Schluessel und Codes, keine Freitexte. Dass dort alle
+#: Kürzere Felder sind Schlüssel und Codes, keine Freitexte. Dass dort alle
 #: Werte gleich lang sind, ist der Normalfall und kein Hinweis auf einen
 #: abgeschnittenen Export.
 TRUNCATION_MIN_FIELD_LENGTH = 10
@@ -82,7 +82,7 @@ class DeliveryCheck:
     #: Fertige Meldung auf Deutsch. Sie steht so im Bericht.
     message: str
     #: Dieselbe Meldung als Vorlage mit Platzhaltern, dazu die eingesetzten
-    #: Werte. Damit kann die Oberflaeche die Meldung in einer anderen Sprache
+    #: Werte. Damit kann die Oberfläche die Meldung in einer anderen Sprache
     #: neu bilden, statt den deutschen Satz anzuzeigen. Der Bericht bleibt
     #: deutsch - er wird nicht umgeschaltet, sondern als Ganzes ausgeliefert.
     message_template: str = ""
@@ -97,17 +97,17 @@ class DeliveryCheck:
 
 
 def meldung(vorlage: str, **werte: object) -> dict[str, object]:
-    """Baut die drei Meldungsfelder einer Pruefung aus einer Vorlage.
+    """Baut die drei Meldungsfelder einer Prüfung aus einer Vorlage.
 
     Aufruf::
 
-        DeliveryCheck(..., **meldung("{tabelle}: {ist} Saetze wie gemeldet.",
+        DeliveryCheck(..., **meldung("{tabelle}: {ist} Sätze wie gemeldet.",
                                      tabelle=table, ist=actual))
 
     Die Vorlage ist der deutsche Satz mit Platzhaltern und zugleich der
-    Schluessel, unter dem die Oberflaeche die englische Fassung nachschlaegt.
-    Beides an einer Stelle zu halten ist der Grund fuer diesen Umweg: ein
-    getrennt gefuehrter Schluessel laeuft mit der Zeit aus dem Text heraus.
+    Schlüssel, unter dem die Oberfläche die englische Fassung nachschlägt.
+    Beides an einer Stelle zu halten ist der Grund für diesen Umweg: ein
+    getrennt geführter Schlüssel läuft mit der Zeit aus dem Text heraus.
     """
     return {
         "message": vorlage.format(**werte),
@@ -148,8 +148,8 @@ class DeliveryReport:
         if self.usable:
             return
         lines = [
-            "Die Lieferung ist nicht verwertbar. Die Pruefung wurde nicht gestartet,",
-            "um keine Teilergebnisse zu erzeugen, die faelschlich als vollstaendig gelten.",
+            "Die Lieferung ist nicht verwertbar. Die Prüfung wurde nicht gestartet,",
+            "um keine Teilergebnisse zu erzeugen, die fälschlich als vollständig gelten.",
             "",
             "Blockierende Befunde:",
         ]
@@ -165,7 +165,7 @@ class DeliveryReport:
 
 
 def _expected_rows(table: str, config: ProjectConfig, manifest: DeliveryManifest) -> int | None:
-    """Vom Kunden gemeldete Satzanzahl - Konfiguration schlaegt Begleitzettel."""
+    """Vom Kunden gemeldete Satzanzahl - Konfiguration schlägt Begleitzettel."""
     configured = config.delivery.expected_row_counts.get(table)
     if configured is not None:
         return configured
@@ -178,7 +178,7 @@ def _check_row_counts(
     """Abgleich der eingelesenen gegen die gemeldete Satzanzahl (FA-201).
 
     Verglichen wird gegen die Satzanzahl vor der Mandanten- und
-    Buchungskreisfilterung: der Kunde hat gezaehlt, was er exportiert hat,
+    Buchungskreisfilterung: der Kunde hat gezählt, was er exportiert hat,
     nicht was wir davon behalten.
     """
     for table in sorted(ingestion.tables):
@@ -192,9 +192,9 @@ def _check_row_counts(
                     severity=Severity.WARNING,
                     table=table,
                     **meldung(
-                        "Fuer {tabelle} ist keine Satzanzahl gemeldet. Es wurden "
-                        "{gelesen} Saetze gelesen; ob die Lieferung vollstaendig ist, "
-                        "laesst sich nicht pruefen.",
+                        "Für {tabelle} ist keine Satzanzahl gemeldet. Es wurden "
+                        "{gelesen} Sätze gelesen; ob die Lieferung vollständig ist, "
+                        "lässt sich nicht prüfen.",
                         tabelle=table, gelesen=entry.row_count_before_filter,
                     ),
                     details={"gelesen": entry.row_count_before_filter},
@@ -212,7 +212,7 @@ def _check_row_counts(
                     requirement="Satzanzahlabgleich",
                     severity=Severity.INFO,
                     table=table,
-                    **meldung("{tabelle}: {gelesen} Saetze wie gemeldet.",
+                    **meldung("{tabelle}: {gelesen} Sätze wie gemeldet.",
                               tabelle=table, gelesen=actual),
                     details={"gemeldet": expected, "gelesen": actual},
                 )
@@ -225,8 +225,8 @@ def _check_row_counts(
                     severity=Severity.ERROR,
                     table=table,
                     **meldung(
-                        "{tabelle}: {gelesen} Saetze gelesen, aber {gemeldet} gemeldet "
-                        "(Abweichung {abweichung}). Die Lieferung ist unvollstaendig "
+                        "{tabelle}: {gelesen} Sätze gelesen, aber {gemeldet} gemeldet "
+                        "(Abweichung {abweichung}). Die Lieferung ist unvollständig "
                         "oder die Meldung falsch.",
                         tabelle=table, gelesen=actual, gemeldet=expected,
                         abweichung=f"{difference:+d}",
@@ -254,7 +254,7 @@ def _check_parse_errors(report: DeliveryReport, ingestion: IngestionResult, conf
                     table=source.table,
                     **meldung(
                         "{datei}: {abgewiesen} von {gesamt} Zeilen ({anteil}) sind "
-                        "strukturell defekt und wurden nicht gelesen. Haeufigste Ursache: "
+                        "strukturell defekt und wurden nicht gelesen. Häufigste Ursache: "
                         "ein nicht maskiertes Trennzeichen in einem Freitextfeld. "
                         "{beispiele}",
                         datei=source.relative_name, abgewiesen=source.rejected_rows,
@@ -273,7 +273,7 @@ def _check_parse_errors(report: DeliveryReport, ingestion: IngestionResult, conf
                     file=source.relative_name,
                     table=source.table,
                     **meldung(
-                        "{datei} endet ohne Zeilenumbruch. Der Export koennte an der "
+                        "{datei} endet ohne Zeilenumbruch. Der Export könnte an der "
                         "letzten Zeile abgebrochen worden sein.",
                         datei=source.relative_name,
                     ),
@@ -290,8 +290,8 @@ def _check_parse_errors(report: DeliveryReport, ingestion: IngestionResult, conf
                     severity=Severity.WARNING,
                     table=table,
                     **meldung(
-                        "{tabelle} enthaelt genau {saetze} Saetze. Das ist eine typische "
-                        "Exportgrenze - bitte pruefen, ob der Export abgeschnitten wurde.",
+                        "{tabelle} enthält genau {saetze} Sätze. Das ist eine typische "
+                        "Exportgrenze - bitte prüfen, ob der Export abgeschnitten wurde.",
                         tabelle=table, saetze=entry.row_count_before_filter,
                     ),
                     details={"saetze": entry.row_count_before_filter},
@@ -307,10 +307,10 @@ def _check_field_truncation(
 ) -> None:
     """Sucht abgeschnittene Feldinhalte (FA-202).
 
-    Zwei Wege: wo die Feldlaenge aus dem DDIC bekannt ist, faellt ein Wert
-    auf, der sie ueberschreitet oder auffaellig oft genau ausfuellt. Wo sie
-    nicht bekannt ist, greift der Verteilungsvergleich - bei natuerlichen
-    Texten enden nur wenige Werte exakt auf der laengsten vorkommenden Laenge,
+    Zwei Wege: wo die Feldlänge aus dem DDIC bekannt ist, fällt ein Wert
+    auf, der sie überschreitet oder auffällig oft genau ausfüllt. Wo sie
+    nicht bekannt ist, greift der Verteilungsvergleich - bei natürlichen
+    Texten enden nur wenige Werte exakt auf der längsten vorkommenden Länge,
     bei abgeschnittenen Werten dagegen sehr viele.
     """
     for table in sorted(ingestion.tables):
@@ -350,9 +350,9 @@ def _check_field_truncation(
                         severity=Severity.WARNING,
                         table=table,
                         **meldung(
-                            "{tabelle}.{spalte}: laengster Wert hat {laenge} Zeichen, das "
+                            "{tabelle}.{spalte}: längster Wert hat {laenge} Zeichen, das "
                             "Feld ist laut DDIC {ddic} Zeichen lang. Die Spalte wurde "
-                            "vermutlich falsch zugeordnet oder enthaelt Fremdinhalte.",
+                            "vermutlich falsch zugeordnet oder enthält Fremdinhalte.",
                             tabelle=table, spalte=column, laenge=max_length, ddic=declared,
                         ),
                         details={"max_laenge": max_length, "ddic_laenge": declared},
@@ -361,11 +361,11 @@ def _check_field_truncation(
                 continue
 
             # ALPHA-Felder sind nach der Konvertierung per Definition alle
-            # gleich lang - dort sagt die Laengenverteilung nichts aus.
+            # gleich lang - dort sagt die Längenverteilung nichts aus.
             if spec.field_spec(column).is_alpha:
                 continue
-            # Ebenso bei kurzen Code- und Schluesselfeldern: dass jeder
-            # Buchungskreis vier Zeichen hat, ist keine Auffaelligkeit.
+            # Ebenso bei kurzen Code- und Schlüsselfeldern: dass jeder
+            # Buchungskreis vier Zeichen hat, ist keine Auffälligkeit.
             if (declared or max_length) < TRUNCATION_MIN_FIELD_LENGTH:
                 continue
 
@@ -374,9 +374,9 @@ def _check_field_truncation(
 
             at_max, below = con.execute(
                 f"SELECT "
-                f"  count(*) FILTER (WHERE laenge = ?), "
-                f"  count(*) FILTER (WHERE laenge BETWEEN ? AND ?) "
-                f"FROM (SELECT length({quote_identifier(column)}) AS laenge FROM {relation})",
+                f"  count(*) FILTER (WHERE länge = ?), "
+                f"  count(*) FILTER (WHERE länge BETWEEN ? AND ?) "
+                f"FROM (SELECT length({quote_identifier(column)}) AS länge FROM {relation})",
                 [
                     max_length,
                     max_length - TRUNCATION_COMPARISON_WIDTH,
@@ -402,8 +402,8 @@ def _check_field_truncation(
                         table=table,
                         **meldung(
                             "{tabelle}.{spalte}: {treffer} von {gesamt} Werten ({anteil}) "
-                            "sind genau {laenge} Zeichen lang, waehrend auf den {breite} "
-                            "Laengen darunter zusammen nur {darunter} Werte liegen. Dieser "
+                            "sind genau {laenge} Zeichen lang, während auf den {breite} "
+                            "Längen darunter zusammen nur {darunter} Werte liegen. Dieser "
                             "Aufstau auf der Grenze deutet auf beim Export abgeschnittene "
                             "Feldinhalte hin.",
                             tabelle=table, spalte=column, treffer=at_max, gesamt=non_null,
@@ -424,8 +424,8 @@ def _check_partial_columns(report: DeliveryReport, ingestion: IngestionResult) -
     """Teillieferungen derselben Tabelle mit ungleichen Spalten (FA-202).
 
     Wird eine Tabelle in mehreren Dateien geliefert und fehlt in einer davon
-    eine Spalte, wird sie beim Zusammenfuehren mit NULL aufgefuellt. Fuer
-    Vollstaendigkeitsregeln sieht das aus wie ein ungepflegtes Feld, obwohl
+    eine Spalte, wird sie beim Zusammenführen mit NULL aufgefüllt. Für
+    Vollständigkeitsregeln sieht das aus wie ein ungepflegtes Feld, obwohl
     der Wert im Quellsystem gepflegt sein kann. Darauf muss hingewiesen
     werden, sonst entstehen Scheinbefunde.
     """
@@ -458,8 +458,8 @@ def _check_partial_columns(report: DeliveryReport, ingestion: IngestionResult) -
                 **meldung(
                     "{tabelle} wurde in {anzahl} Dateien mit unterschiedlichen Spalten "
                     "geliefert ({luecken}). Die fehlenden Spalten werden mit NULL "
-                    "aufgefuellt; Vollstaendigkeitsregeln melden fuer diese Saetze deshalb "
-                    "moeglicherweise Luecken, die im Quellsystem gepflegt sind.",
+                    "aufgefüllt; Vollständigkeitsregeln melden für diese Sätze deshalb "
+                    "möglicherweise Lücken, die im Quellsystem gepflegt sind.",
                     tabelle=table, anzahl=len(sources), luecken=detail,
                 ),
                 details={"luecken": gaps},
@@ -473,13 +473,13 @@ def _check_duplicate_keys(
     ingestion: IngestionResult,
     registry: TableRegistry,
 ) -> None:
-    """Sucht mehrfach vorkommende Schluesselwerte (FA-206).
+    """Sucht mehrfach vorkommende Schlüsselwerte (FA-206).
 
-    Der Tabellenschluessel ist im Quellsystem eindeutig. Kommt er in der
-    Lieferung mehrfach vor, ueberschneiden sich in aller Regel Teillieferungen
-    oder es wurde derselbe Export zweimal beigelegt. Die Folge waere, dass
-    jeder Befund auf diesen Saetzen doppelt erscheint und jede Zaehlung zu
-    hoch ausfaellt - deshalb ist das ein blockierender Befund.
+    Der Tabellenschlüssel ist im Quellsystem eindeutig. Kommt er in der
+    Lieferung mehrfach vor, überschneiden sich in aller Regel Teillieferungen
+    oder es wurde derselbe Export zweimal beigelegt. Die Folge wäre, dass
+    jeder Befund auf diesen Sätzen doppelt erscheint und jede Zählung zu
+    hoch ausfällt - deshalb ist das ein blockierender Befund.
     """
     for table in sorted(ingestion.tables):
         entry = ingestion.tables[table]
@@ -488,7 +488,7 @@ def _check_duplicate_keys(
             continue
         key_columns = [column for column in spec.key if column in entry.columns]
         if not key_columns or len(key_columns) < len(spec.key):
-            continue  # ohne vollstaendigen Schluessel ist die Aussage wertlos
+            continue  # ohne vollständigen Schlüssel ist die Aussage wertlos
 
         quoted = ", ".join(quote_identifier(column) for column in key_columns)
         relation = f"read_parquet({quote_literal(str(entry.parquet_path))})"
@@ -514,9 +514,9 @@ def _check_duplicate_keys(
                 severity=Severity.ERROR,
                 table=table,
                 **meldung(
-                    "{tabelle}: {betroffen} Schluesselwert(e) kommen mehrfach vor "
-                    "({ueberzaehlig} ueberzaehlige Saetze). Der Schluessel {schluessel} ist "
-                    "im Quellsystem eindeutig - die Lieferung enthaelt Ueberschneidungen. "
+                    "{tabelle}: {betroffen} Schlüsselwert(e) kommen mehrfach vor "
+                    "({ueberzaehlig} überzählige Sätze). Der Schlüssel {schluessel} ist "
+                    "im Quellsystem eindeutig - die Lieferung enthält Überschneidungen. "
                     "Beispiele: {beispiele}.",
                     tabelle=table, betroffen=affected, ueberzaehlig=extra,
                     schluessel="+".join(key_columns), beispiele=sample,
@@ -533,9 +533,9 @@ def _check_duplicate_keys(
 def _check_clients(
     report: DeliveryReport, ingestion: IngestionResult, config: ProjectConfig, registry: TableRegistry
 ) -> None:
-    """Plausibilitaet des Mandantenfilters (FA-203).
+    """Plausibilität des Mandantenfilters (FA-203).
 
-    Mehrere Mandanten in einer Lieferung sind zulaessig (FA-108), aber nur,
+    Mehrere Mandanten in einer Lieferung sind zulässig (FA-108), aber nur,
     wenn bewusst gefiltert wird. Unbemerkt vermischte Mandanten machen jede
     Auswertung wertlos, deshalb wird darauf deutlich hingewiesen.
     """
@@ -551,12 +551,12 @@ def _check_clients(
             report.add(
                 DeliveryCheck(
                     check_id="FA-203",
-                    requirement="Mandantenpruefung",
+                    requirement="Mandantenprüfung",
                     severity=Severity.WARNING,
                     table=table,
                     **meldung(
-                        "{tabelle} enthaelt kein Mandantenfeld. Ob die Lieferung genau "
-                        "einen Mandanten umfasst, laesst sich nicht pruefen.",
+                        "{tabelle} enthält kein Mandantenfeld. Ob die Lieferung genau "
+                        "einen Mandanten umfasst, lässt sich nicht prüfen.",
                         tabelle=table,
                     ),
                 )
@@ -571,12 +571,12 @@ def _check_clients(
             report.add(
                 DeliveryCheck(
                     check_id="FA-203",
-                    requirement="Mandantenpruefung",
+                    requirement="Mandantenprüfung",
                     severity=Severity.ERROR,
                     table=table,
                     **meldung(
-                        "{tabelle} enthaelt mehrere Mandanten ({mandanten}), ohne dass ein "
-                        "Mandantenfilter konfiguriert ist. Auswertungen ueber vermischte "
+                        "{tabelle} enthält mehrere Mandanten ({mandanten}), ohne dass ein "
+                        "Mandantenfilter konfiguriert ist. Auswertungen über vermischte "
                         "Mandanten sind nicht belastbar. Bitte delivery.expected_clients "
                         "setzen.",
                         tabelle=table, mandanten=", ".join(entry.clients),
@@ -588,11 +588,11 @@ def _check_clients(
             report.add(
                 DeliveryCheck(
                     check_id="FA-203",
-                    requirement="Mandantenpruefung",
+                    requirement="Mandantenprüfung",
                     severity=Severity.ERROR,
                     table=table,
                     **meldung(
-                        "{tabelle} enthaelt die Mandanten {mandanten}, erwartet wurde "
+                        "{tabelle} enthält die Mandanten {mandanten}, erwartet wurde "
                         "{erwartet}. Nach der Filterung bliebe die Tabelle leer.",
                         tabelle=table, mandanten=", ".join(entry.clients),
                         erwartet=", ".join(sorted(expected)),
@@ -605,7 +605,7 @@ def _check_clients(
         report.add(
             DeliveryCheck(
                 check_id="FA-203",
-                requirement="Mandantenpruefung",
+                requirement="Mandantenprüfung",
                 severity=Severity.INFO,
                 **meldung(
                     "Die Lieferung enthielt die Mandanten {geliefert}; verarbeitet wurde "
@@ -631,9 +631,9 @@ def _check_extraction_dates(report: DeliveryReport, ingestion: IngestionResult) 
                 requirement="Extraktionsstichtag",
                 severity=Severity.WARNING,
                 **meldung(
-                    "Fuer {anzahl} Datei(en) ist kein Extraktionsstichtag dokumentiert "
+                    "Für {anzahl} Datei(en) ist kein Extraktionsstichtag dokumentiert "
                     "({dateien}). Ersatzweise wird der Zeitstempel der Datei verwendet; er "
-                    "sagt nichts ueber den fachlichen Stichtag aus (A-04).",
+                    "sagt nichts über den fachlichen Stichtag aus (A-04).",
                     anzahl=len(undocumented), dateien=names,
                 ),
                 details={"dateien": sorted(s.relative_name for s in undocumented)},
@@ -649,7 +649,7 @@ def _check_extraction_dates(report: DeliveryReport, ingestion: IngestionResult) 
                 severity=Severity.WARNING,
                 **meldung(
                     "Die Dateien wurden zu unterschiedlichen Stichtagen extrahiert "
-                    "({stichtage}). Konsistenzpruefungen ueber Tabellen hinweg koennen "
+                    "({stichtage}). Konsistenzprüfungen über Tabellen hinweg können "
                     "dadurch Scheinbefunde erzeugen.",
                     stichtage=", ".join(sorted(str(d) for d in dates)),
                 ),
@@ -673,7 +673,7 @@ def _check_files(report: DeliveryReport, ingestion: IngestionResult, config: Pro
                     file=source.relative_name,
                     **meldung(
                         "{datei} ist inhaltsgleich mit {andere} (identischer SHA-256). "
-                        "Die Saetze wurden doppelt eingelesen.",
+                        "Die Sätze wurden doppelt eingelesen.",
                         datei=source.relative_name, andere=duplicate,
                     ),
                     details={"sha256": source.sha256, "gleich_wie": duplicate},
@@ -702,7 +702,7 @@ def _check_files(report: DeliveryReport, ingestion: IngestionResult, config: Pro
                 file=source.relative_name,
                 **meldung(
                     "{datei} wurde keiner Tabelle zugeordnet und bleibt "
-                    "unberuecksichtigt. {hinweis}",
+                    "unberücksichtigt. {hinweis}",
                     datei=source.relative_name,
                     hinweis=" ".join(source.notes) if source.notes else "",
                 ),
@@ -714,7 +714,7 @@ def _check_files(report: DeliveryReport, ingestion: IngestionResult, config: Pro
 def _check_table_usability(
     report: DeliveryReport, ingestion: IngestionResult, config: ProjectConfig, registry: TableRegistry
 ) -> None:
-    """Ist die einzelne Tabelle ueberhaupt auswertbar? (FA-206)"""
+    """Ist die einzelne Tabelle überhaupt auswertbar? (FA-206)"""
     for table in sorted(ingestion.tables):
         entry = ingestion.tables[table]
 
@@ -726,8 +726,8 @@ def _check_table_usability(
                     severity=Severity.ERROR,
                     table=table,
                     **meldung(
-                        "{tabelle} fehlen die Schluesselfelder {felder}. Ohne Schluessel "
-                        "laesst sich kein Befund einem Stammsatz zuordnen.",
+                        "{tabelle} fehlen die Schlüsselfelder {felder}. Ohne Schlüssel "
+                        "lässt sich kein Befund einem Stammsatz zuordnen.",
                         tabelle=table, felder=", ".join(entry.missing_key_fields),
                     ),
                     details={"fehlende_schluessel": entry.missing_key_fields},
@@ -736,10 +736,10 @@ def _check_table_usability(
 
         if entry.row_count == 0:
             severity = Severity.ERROR if entry.row_count_before_filter > 0 else Severity.WARNING
-            # Die Begruendung ist ein eigener uebersetzbarer Satz: sie wird in
-            # die Meldung eingesetzt, ist aber fuer sich genommen vollstaendig.
+            # Die Begründung ist ein eigener übersetzbarer Satz: sie wird in
+            # die Meldung eingesetzt, ist aber für sich genommen vollständig.
             reason = (
-                "Alle Saetze wurden vom Mandanten- bzw. Buchungskreisfilter entfernt."
+                "Alle Sätze wurden vom Mandanten- bzw. Buchungskreisfilter entfernt."
                 if entry.row_count_before_filter > 0
                 else "Die Tabelle wurde leer geliefert."
             )
@@ -749,7 +749,7 @@ def _check_table_usability(
                     requirement="Verwertbarkeit",
                     severity=severity,
                     table=table,
-                    **meldung("{tabelle} enthaelt keine Saetze. {grund}",
+                    **meldung("{tabelle} enthält keine Sätze. {grund}",
                               tabelle=table, grund=reason),
                     details={"vor_filter": entry.row_count_before_filter},
                 )
@@ -764,7 +764,7 @@ def _check_table_usability(
                     table=table,
                     **meldung(
                         "{tabelle} ist in den Tabellenmetadaten nicht beschrieben. Die "
-                        "Spalten werden als Text uebernommen; typabhaengige Pruefungen "
+                        "Spalten werden als Text übernommen; typabhängige Prüfungen "
                         "entfallen.",
                         tabelle=table,
                     ),
@@ -779,7 +779,7 @@ def _check_table_usability(
                     table=table,
                     **meldung(
                         "{tabelle}: {anzahl} Spalte(n) ohne bekannten Feldnamen "
-                        "({spalten}). Sie werden unveraendert uebernommen.",
+                        "({spalten}). Sie werden unverändert übernommen.",
                         tabelle=table, anzahl=len(entry.unknown_columns),
                         spalten=", ".join(entry.unknown_columns[:8]),
                     ),
@@ -809,7 +809,7 @@ def validate_delivery(
     config: ProjectConfig,
     manifest: DeliveryManifest,
 ) -> DeliveryReport:
-    """Fuehrt die gesamte Lieferungsvalidierung durch (FA-201 bis FA-206)."""
+    """Führt die gesamte Lieferungsvalidierung durch (FA-201 bis FA-206)."""
     registry = ingestion.registry
     assert registry is not None, "Ingestion ohne Tabellenregistry"
 

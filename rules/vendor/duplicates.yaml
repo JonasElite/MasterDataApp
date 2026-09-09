@@ -1,8 +1,8 @@
 # Dublettenerkennung Kreditor (FA-405, FA-501 bis FA-505).
 #
 # Die Regeln unterscheiden bewusst zwischen hartem und weichem Nachweis:
-# gleiche IBAN oder gleiche USt-IdNr. bei verschiedenen Stammsaetzen ist ein
-# Nachweis, aehnliche Namen sind ein begruendeter Verdacht. Beides gehoert in
+# gleiche IBAN oder gleiche USt-IdNr. bei verschiedenen Stammsätzen ist ein
+# Nachweis, ähnliche Namen sind ein begründeter Verdacht. Beides gehört in
 # den Bericht, aber mit unterschiedlichem Gewicht.
 rules:
 
@@ -12,7 +12,7 @@ rules:
     description: >
       Eine USt-IdNr. ist einem Unternehmen eindeutig zugeordnet. Tragen zwei
       Kreditoren dieselbe, handelt es sich um denselben Partner - oder um einen
-      Pflegefehler mit steuerlichen Folgen. Beides muss geklaert werden.
+      Pflegefehler mit steuerlichen Folgen. Beides muss geklärt werden.
     category: duplicate
     severity: high
     version: "1.0.0"
@@ -25,7 +25,7 @@ rules:
         LFA1: [LIFNR, NAME1, STCEG, STCD1, LOEVM]
     params: {}
     remediation: >
-      Fuehrenden Stammsatz bestimmen, die uebrigen sperren und zur Loeschung
+      Führenden Stammsatz bestimmen, die übrigen sperren und zur Löschung
       vormerken. Offene Posten vorher umbuchen.
     duplicate:
       source: |
@@ -42,7 +42,7 @@ rules:
     description: >
       Dieselbe Kontoverbindung bei mehreren Kreditoren ist entweder eine
       Dublette oder ein Zahlungsumleitungsrisiko. Bei Konzernstrukturen mit
-      zentraler Kasse kann es berechtigt sein - dann gehoert es dokumentiert
+      zentraler Kasse kann es berechtigt sein - dann gehört es dokumentiert
       und als Ausnahme gekennzeichnet.
     category: duplicate
     severity: critical
@@ -57,7 +57,7 @@ rules:
         LFBK: [LIFNR, IBAN, BANKS, BANKL, BANKN]
     params: {}
     remediation: >
-      Herkunft der Bankverbindung klaeren. Bei Konzernkasse dokumentieren und
+      Herkunft der Bankverbindung klären. Bei Konzernkasse dokumentieren und
       whitelisten, sonst die Dublette bereinigen.
     duplicate:
       source: |
@@ -74,17 +74,17 @@ rules:
       name_column: NAME1
 
   - id: VEN-DUP-003
-    name: Kreditoren mit aehnlichem Namen an derselben Anschrift
+    name: Kreditoren mit ähnlichem Namen an derselben Anschrift
     kind: duplicate
     description: >
-      Der unscharfe Abgleich findet Dubletten, die kein harter Schluessel
+      Der unscharfe Abgleich findet Dubletten, die kein harter Schlüssel
       verbindet: Schreibvarianten, Tippfehler, unterschiedliche
-      Rechtsformzusaetze. Verglichen wird nach Normalisierung von Umlauten,
-      Rechtsformen und Strassenabkuerzungen; geblockt wird nach Land und
+      Rechtsformzusätze. Verglichen wird nach Normalisierung von Umlauten,
+      Rechtsformen und Straßenabkürzungen; geblockt wird nach Land und
       Postleitzahl sowie nach Namensanfang, damit der Aufwand nicht
-      quadratisch waechst.
+      quadratisch wächst.
 
-      Ein Treffer ist ein begruendeter Verdacht, kein Nachweis. Der Score
+      Ein Treffer ist ein begründeter Verdacht, kein Nachweis. Der Score
       benennt, wie stark er ist.
     category: duplicate
     severity: high
@@ -98,7 +98,7 @@ rules:
         LFA1: [LIFNR, NAME1, STRAS, PSTLZ, ORT01, LAND1, LOEVM]
     params: {}
     remediation: >
-      Cluster sichten, fuehrenden Stammsatz bestimmen und die uebrigen
+      Cluster sichten, führenden Stammsatz bestimmen und die übrigen
       stilllegen. Bei berechtigten Mehrfachanlagen (etwa je Werk) als Ausnahme
       whitelisten.
     duplicate:

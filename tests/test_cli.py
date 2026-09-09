@@ -150,19 +150,19 @@ class TestWeitereBefehle:
     def test_whitelist_hinzufuegen_und_auflisten(self, arbeitsplatz, capsys):
         assert main([
             "whitelist", "-c", str(arbeitsplatz), "add", "--rule-id", "VEN-COMP-001",
-            "--object-key", "0000100001", "--reason", "Fachlich geklaert",
+            "--object-key", "0000100001", "--reason", "Fachlich geklärt",
             "--approved-by", "Testfall",
         ]) == EXIT_OK
         assert main(["whitelist", "-c", str(arbeitsplatz), "list"]) == EXIT_OK
-        assert "Fachlich geklaert" in capsys.readouterr().out
+        assert "Fachlich geklärt" in capsys.readouterr().out
 
     def test_status_setzen(self, arbeitsplatz, capsys):
         assert main([
-            "status", "-c", str(arbeitsplatz), "set", "abc123", "in Klaerung",
-            "--note", "Rueckfrage", "--by", "Testfall",
+            "status", "-c", str(arbeitsplatz), "set", "abc123", "in Klärung",
+            "--note", "Rückfrage", "--by", "Testfall",
         ]) == EXIT_OK
         assert main(["status", "-c", str(arbeitsplatz), "list"]) == EXIT_OK
-        assert "in Klaerung" in capsys.readouterr().out
+        assert "in Klärung" in capsys.readouterr().out
 
     def test_pseudonymize(self, arbeitsplatz, tmp_path, capsys):
         """DS-05."""
@@ -200,10 +200,10 @@ class TestWeitereBefehle:
         capsys.readouterr()
         laeufe = sorted((tmp_path / "out" / "runs").iterdir())
         assert main(["delta", str(laeufe[0]), str(laeufe[1]), "-q"]) == EXIT_OK
-        assert "unveraendert" in capsys.readouterr().out
+        assert "unverändert" in capsys.readouterr().out
 
     def test_delta_warnt_bei_abweichendem_regelkatalog(self, arbeitsplatz, tmp_path, capsys):
-        """Sonst liest sich eine Aenderung des Massstabs wie ein Fortschritt."""
+        """Sonst liest sich eine Änderung des Maßstabs wie ein Fortschritt."""
         main(["run", "-c", str(arbeitsplatz), "-q"])
         main(["run", "-c", str(arbeitsplatz), "-q"])
         laeufe = sorted((tmp_path / "out" / "runs").iterdir())

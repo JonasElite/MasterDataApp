@@ -1,12 +1,12 @@
-/* Sprachen der Oberflaeche.
+/* Sprachen der Oberfläche.
  *
- * Der deutsche Text ist die Quelle und zugleich der Schluessel. Das hat einen
- * praktischen Grund: fehlt eine Uebersetzung, erscheint der deutsche Satz -
- * unschoen, aber lesbar. Ein Schluesselwort wie "befunde.leer" erschiene
- * stattdessen als solches, und niemand koennte damit etwas anfangen.
+ * Der deutsche Text ist die Quelle und zugleich der Schlüssel. Das hat einen
+ * praktischen Grund: fehlt eine Übersetzung, erscheint der deutsche Satz -
+ * unschön, aber lesbar. Ein Schlüsselwort wie "befunde.leer" erschiene
+ * stattdessen als solches, und niemand könnte damit etwas anfangen.
  *
- * Damit daraus keine stille Nachlaessigkeit wird, prueft
- * ``tests/test_ui_sprachen.py``, dass jeder in der Oberflaeche verwendete Text
+ * Damit daraus keine stille Nachlässigkeit wird, prüft
+ * ``tests/test_ui_sprachen.py``, dass jeder in der Oberfläche verwendete Text
  * eine englische Fassung hat.
  *
  * Platzhalter stehen in geschweiften Klammern: t("{n} Befunde", {n: 5}).
@@ -16,43 +16,43 @@
 const SPRACHEN = { de: "Deutsch", en: "English" };
 const SPRACHE_SPEICHER = "sapmdq.sprache";
 
-/** Woerterbuch Deutsch -> Englisch. */
+/** Wörterbuch Deutsch -> Englisch. */
 const EN = {
   // ------------------------------------------------------------ Grundgeruest
-  "SAP-Stammdatenpruefung": "SAP Master Data Check",
-  "Stammdaten­pruefung": "Master Data Check",
+  "SAP-Stammdatenprüfung": "SAP Master Data Check",
+  "Stammdaten­prüfung": "Master Data Check",
   "Sitzungsmerkmal fehlt": "Session token missing",
-  "Die Oberflaeche wird ueber die Adresse aus der Startmeldung geoeffnet. Sie enthaelt das Merkmal dieser Sitzung. Ohne es antwortet der Server nicht.":
+  "Die Oberfläche wird über die Adresse aus der Startmeldung geöffnet. Sie enthält das Merkmal dieser Sitzung. Ohne es antwortet der Server nicht.":
     "Open the interface using the address printed at startup. It carries this session's token. Without it the server does not respond.",
   "Beispiel:": "Example:",
   "Bereiche": "Sections",
   "Sprache": "Language",
   "Angezeigter Lauf": "Selected run",
-  "Angezeigten Lauf waehlen": "Select the run to display",
-  "Praesentation": "Presentation",
-  "Pruefung starten": "Start check",
+  "Angezeigten Lauf wählen": "Select the run to display",
+  "Präsentation": "Presentation",
+  "Prüfung starten": "Start check",
 
   // ---------------------------------------------------------------- Ansichten
   "Lagebild": "Overview",
   "Befunde": "Findings",
   "Dubletten": "Duplicates",
-  "Pruefumfang": "Scope",
+  "Prüfumfang": "Scope",
   "Lieferung": "Delivery",
   "Ausnahmen": "Exceptions",
-  "Laeufe": "Runs",
+  "Läufe": "Runs",
 
   // ----------------------------------------------------------------- Lagebild
-  "Datenqualitaet": "Data quality",
+  "Datenqualität": "Data quality",
   "Auf einen Blick": "At a glance",
   "Befunde nach Schweregrad": "Findings by severity",
   "Befunde nach Objektbereich": "Findings by object area",
   "Zum Filtern auf eine Zeile klicken.": "Click a row to filter.",
-  "Woran es am haeufigsten liegt": "Most frequent causes",
-  "Was eine Nachlieferung braechte": "What a follow-up delivery would unlock",
-  "Nach Wirkung geordnet: wieviele zusaetzliche Pruefungen die Tabelle freischaltet.":
+  "Woran es am häufigsten liegt": "Most frequent causes",
+  "Was eine Nachlieferung brächte": "What a follow-up delivery would unlock",
+  "Nach Wirkung geordnet: wieviele zusätzliche Prüfungen die Tabelle freischaltet.":
     "Ordered by effect: how many additional checks each table unlocks.",
   "Bewertung je Bereich": "Score by area",
-  "Der Wert ist unter dem Vorbehalt des jeweils erreichten Pruefumfangs zu lesen. Was nicht geprueft werden konnte, geht nicht ein.":
+  "Der Wert ist unter dem Vorbehalt des jeweils erreichten Prüfumfangs zu lesen. Was nicht geprüft werden konnte, geht nicht ein.":
     "Read the score subject to the scope actually achieved. What could not be checked is not reflected in it.",
   "Befunde offen": "Open findings",
   "kritisch": "critical",
@@ -61,23 +61,23 @@ const EN = {
   "Regelfehler": "Rule failures",
   "gegen den Vorlauf": "vs. previous run",
   "Ohne die als Ausnahme anerkannten Befunde.": "Excluding findings accepted as exceptions.",
-  "Befunde, die mit Begruendung anerkannt wurden.": "Findings accepted with a documented reason.",
-  "Das Ergebnis ist unvollstaendig.": "The result is incomplete.",
+  "Befunde, die mit Begründung anerkannt wurden.": "Findings accepted with a documented reason.",
+  "Das Ergebnis ist unvollständig.": "The result is incomplete.",
   "Alle Regeln liefen durch.": "All rules completed.",
-  "Kein Lauf ausgewaehlt.": "No run selected.",
+  "Kein Lauf ausgewählt.": "No run selected.",
   "Keine Befunde.": "No findings.",
   "Nichts vorhanden.": "Nothing to show.",
-  "Die Lieferung ist vollstaendig - es fehlt nichts.":
+  "Die Lieferung ist vollständig - es fehlt nichts.":
     "The delivery is complete - nothing is missing.",
-  "unveraendert": "unchanged",
+  "unverändert": "unchanged",
   "von 100 Punkten": "out of 100 points",
 
   // ---------------------------------------------------------------- Lieferung
   "Dateien": "Files",
   "Tabellen": "Tables",
-  "Pruefungen der Lieferung": "Delivery checks",
+  "Prüfungen der Lieferung": "Delivery checks",
   "Die Lieferung ist verwertbar.": "The delivery is usable.",
-  "Die Lieferung ist nicht verwertbar. Der Lauf wurde nur mit ausdruecklicher Freigabe fortgesetzt; die Ergebnisse sind entsprechend eingeschraenkt.":
+  "Die Lieferung ist nicht verwertbar. Der Lauf wurde nur mit ausdrücklicher Freigabe fortgesetzt; die Ergebnisse sind entsprechend eingeschränkt.":
     "The delivery is not usable. The run continued only after explicit approval; the results are limited accordingly.",
   "Datei": "File",
   "Tabelle": "Table",
@@ -86,15 +86,15 @@ const EN = {
   "Zeilen": "Rows",
   "Abgewiesen": "Rejected",
   "Stichtag": "Extraction date",
-  "Groesse": "Size",
+  "Größe": "Size",
   "SHA-256": "SHA-256",
   "Bereich": "Area",
-  "Saetze": "Records",
+  "Sätze": "Records",
   "Vor Filter": "Before filter",
   "Spalten": "Columns",
   "Mandanten": "Clients",
   "Quelldateien": "Source files",
-  "Pruefung": "Check",
+  "Prüfung": "Check",
   "Gewicht": "Weight",
   "Gegenstand": "Subject",
   "Anforderung": "Requirement",
@@ -102,7 +102,7 @@ const EN = {
 
   // -------------------------------------------------------------- Pruefumfang
   "Nachforderung": "Follow-up request",
-  "Was zusaetzlich geliefert werden muesste, damit die entfallenen Regeln laufen koennen - nach Wirkung geordnet.":
+  "Was zusätzlich geliefert werden müsste, damit die entfallenen Regeln laufen können - nach Wirkung geordnet.":
     "What would need to be delivered so the skipped rules can run - ordered by effect.",
   "Regeln": "Rules",
   "Regel suchen": "Search rules",
@@ -118,19 +118,19 @@ const EN = {
   "Bezeichnung": "Name",
   "Kategorie": "Category",
   "Grad": "Severity",
-  "Ausfuehrbar": "Executable",
+  "Ausführbar": "Executable",
   "Grund": "Reason",
   "ja": "yes",
   "nein": "no",
   "unverzichtbar": "essential",
-  "Was geprueft wird": "What is checked",
+  "Was geprüft wird": "What is checked",
   "Handlungsempfehlung": "Recommended action",
   "Schweregrad": "Severity",
   "Regelversion": "Rule version",
-  "Keine Angaben zum Pruefumfang.": "No scope information available.",
+  "Keine Angaben zum Prüfumfang.": "No scope information available.",
 
   // ----------------------------------------------------------------- Befunde
-  "Schluessel, Regel oder Detail": "Key, rule or detail",
+  "Schlüssel, Regel oder Detail": "Key, rule or detail",
   "Befunde durchsuchen": "Search findings",
   "Schweregrad: alle": "Severity: all",
   "Bereich: alle": "Area: all",
@@ -140,15 +140,15 @@ const EN = {
   "Vergleich zum Vorlauf": "Comparison with previous run",
   "Vergleich: alle": "Comparison: all",
   "Ausnahmen zeigen": "Show exceptions",
-  "Filter loeschen": "Clear filters",
-  "Zurueck": "Back",
+  "Filter löschen": "Clear filters",
+  "Zurück": "Back",
   "Weiter": "Next",
   "Objekt": "Object",
   "Mandant": "Client",
   "Stand": "State",
   "Vergleich": "Comparison",
   "Ausnahme": "Exception",
-  "Zustaendig": "Owner",
+  "Zuständig": "Owner",
   "Buchungskreis": "Company code",
   "Befund": "Finding",
   "Befundangaben": "Finding details",
@@ -159,66 +159,66 @@ const EN = {
   "Als Ausnahme anerkannt": "Accepted as an exception",
   "Als Ausnahme vorgemerkt": "Exception pending",
   "Als Ausnahme anerkennen": "Accept as an exception",
-  "ohne Begruendung": "no reason given",
-  "Ausnahme zuruecknehmen": "Withdraw exception",
+  "ohne Begründung": "no reason given",
+  "Ausnahme zurücknehmen": "Withdraw exception",
   "vorgemerkt": "pending",
-  "Die Ausnahme steht in der Ausnahmeliste, ist aber in diesem Bericht noch nicht beruecksichtigt. Sie wirkt ab dem naechsten Lauf.":
+  "Die Ausnahme steht in der Ausnahmeliste, ist aber in diesem Bericht noch nicht berücksichtigt. Sie wirkt ab dem nächsten Lauf.":
     "The exception is on the list but is not yet reflected in this report. It takes effect from the next run.",
-  "Der Stand wird in der Statusdatei des Projekts gefuehrt und beim naechsten Lauf uebernommen (FA-603).":
+  "Der Stand wird in der Statusdatei des Projekts geführt und beim nächsten Lauf übernommen (FA-603).":
     "The state is kept in the project's status file and applied on the next run (FA-603).",
   "Bemerkung (freiwillig)": "Note (optional)",
   "Bearbeiter": "Handled by",
   "Stand speichern": "Save state",
-  "Die Ausnahme wird in der Ausnahmeliste des Projekts gefuehrt. Sie wirkt ab dem naechsten Lauf; der bereits geschriebene Bericht bleibt unveraendert (FA-602).":
+  "Die Ausnahme wird in der Ausnahmeliste des Projekts geführt. Sie wirkt ab dem nächsten Lauf; der bereits geschriebene Bericht bleibt unverändert (FA-602).":
     "The exception is kept in the project's exception list. It takes effect from the next run; the report already written stays unchanged (FA-602).",
-  "Begruendung - warum ist der Befund vertretbar?": "Reason - why is this finding acceptable?",
+  "Begründung - warum ist der Befund vertretbar?": "Reason - why is this finding acceptable?",
   "Freigegeben von": "Approved by",
   "Verweis (Ticket, Protokoll)": "Reference (ticket, minutes)",
-  "Laeuft ab": "Expires",
+  "Läuft ab": "Expires",
   "Geltungsbereich": "Scope",
   "nur dieser Befund": "this finding only",
   "dieses Objekt in dieser Regel": "this object within this rule",
   "alle Befunde dieser Regel": "all findings of this rule",
-  "laeuft ab am": "expires on",
+  "läuft ab am": "expires on",
   "Ausnahme aufnehmen": "Add exception",
-  "Gepflegt, aber noch nicht in den Bericht uebernommen - das geschieht beim naechsten Lauf.":
+  "Gepflegt, aber noch nicht in den Bericht übernommen - das geschieht beim nächsten Lauf.":
     "Maintained but not yet reflected in the report - that happens on the next run.",
   "Stand im Bericht": "State in the report",
 
   // --------------------------------------------------------------- Dubletten
   "Cluster": "Clusters",
   "Nach Regel": "By rule",
-  "Name oder Schluessel": "Name or key",
+  "Name oder Schlüssel": "Name or key",
   "Cluster durchsuchen": "Search clusters",
   "Art des Treffers": "Type of match",
   "Nachweis: alle": "Evidence: all",
-  "exakt - harter Schluessel": "exact - hard key",
-  "unscharf - Namensaehnlichkeit": "fuzzy - name similarity",
+  "exakt - harter Schlüssel": "exact - hard key",
+  "unscharf - Namensähnlichkeit": "fuzzy - name similarity",
   "Alle aufklappen": "Expand all",
   "Alle zuklappen": "Collapse all",
   "aufklappen": "expand",
   "zuklappen": "collapse",
-  "Betroffene Saetze": "Records affected",
-  "mutmasslich mehrfach angelegt": "presumed created more than once",
+  "Betroffene Sätze": "Records affected",
+  "mutmaßlich mehrfach angelegt": "presumed created more than once",
   "in allen Clustern zusammen": "across all clusters",
   "Bereinigungspotenzial": "Cleanup potential",
-  "Saetze entfallen, wenn je Cluster einer fuehrend wird":
+  "Sätze entfallen, wenn je Cluster einer führend wird":
     "records removed once one record per cluster becomes the leading one",
-  "harter Schluessel": "hard key",
+  "harter Schlüssel": "hard key",
   "Keine Dubletten gefunden.": "No duplicates found.",
   "Kein Cluster passt zu diesem Filter.": "No cluster matches this filter.",
-  "Befund oeffnen": "Open finding",
+  "Befund öffnen": "Open finding",
   "exakt": "exact",
   "unscharf": "fuzzy",
-  "weicht von den uebrigen Saetzen ab": "differs from the other records",
-  "in allen Saetzen gleich": "identical in all records",
+  "weicht von den übrigen Sätzen ab": "differs from the other records",
+  "in allen Sätzen gleich": "identical in all records",
   "Name": "Name",
 
   // --------------------------------------------------------------- Ausnahmen
   "Hinterlegte Ausnahmen": "Recorded exceptions",
   "In der Projektkonfiguration ist keine Ausnahmeliste hinterlegt.":
     "No exception list is configured in the project.",
-  "Begruendung": "Reason",
+  "Begründung": "Reason",
   "Am": "On",
   "Verweis": "Reference",
   "Wirksam": "In effect",
@@ -226,9 +226,9 @@ const EN = {
   "entfernen": "remove",
 
   // ------------------------------------------------------------------ Laeufe
-  "Zwei Laeufe vergleichen": "Compare two runs",
-  "Frueherer Lauf": "Earlier run",
-  "Spaeterer Lauf": "Later run",
+  "Zwei Läufe vergleichen": "Compare two runs",
+  "Früherer Lauf": "Earlier run",
+  "Späterer Lauf": "Later run",
   "gegen": "vs.",
   "Vergleichen": "Compare",
   "Lauf": "Run",
@@ -238,12 +238,12 @@ const EN = {
   "Punkte": "Points",
   "Katalog": "Catalogue",
   "Zustand": "State",
-  "unvollstaendig": "incomplete",
-  "vollstaendig": "complete",
+  "unvollständig": "incomplete",
+  "vollständig": "complete",
   "Wird berechnet ...": "Calculating ...",
   "Behoben": "Resolved",
   "Neu": "New",
-  "Unveraendert": "Unchanged",
+  "Unverändert": "Unchanged",
   "Anerkannte Ausnahmen": "Accepted exceptions",
   "nicht behoben, nur anerkannt": "not resolved, only accepted",
   "Vorher": "Before",
@@ -252,62 +252,62 @@ const EN = {
     "There is no summary for this run. It was probably aborted.",
 
   // ------------------------------------------------------------ Lauf starten
-  "Pruefungslauf": "Check run",
-  "Schliessen": "Close",
+  "Prüfungslauf": "Check run",
+  "Schließen": "Close",
   "Kein Lauf gestartet.": "No run started.",
   "Beenden": "Quit",
   "Als PDF": "As PDF",
   "Vorige Folie": "Previous slide",
-  "Naechste Folie": "Next slide",
+  "Nächste Folie": "Next slide",
 
   // ------------------------------------------------------- Praesentationsfolien
   "Titel": "Title",
-  "Analyse der Stammdatenqualitaet": "Master data quality analysis",
-  "Stammdatenpruefung": "Master data check",
-  "Was geprueft wurde": "What was checked",
-  "Worueber eine Aussage moeglich ist": "What can be stated at all",
+  "Analyse der Stammdatenqualität": "Master data quality analysis",
+  "Stammdatenprüfung": "Master data check",
+  "Was geprüft wurde": "What was checked",
+  "Worüber eine Aussage möglich ist": "What can be stated at all",
   "Ergebnis": "Result",
-  "Datenqualitaet insgesamt": "Overall data quality",
+  "Datenqualität insgesamt": "Overall data quality",
   "Wo die Befunde liegen": "Where the findings are",
   "Nach Kategorie": "By category",
-  "Mehrfach angelegte Stammsaetze": "Master records created more than once",
-  "Naechste Schritte": "Next steps",
-  "Ohne Lauf laesst sich nichts zeigen.": "There is nothing to show without a run.",
-  "Berechtigte Faelle als Ausnahme mit Begruendung vermerken, damit sie im Folgelauf nicht erneut als Befund erscheinen.":
+  "Mehrfach angelegte Stammsätze": "Master records created more than once",
+  "Nächste Schritte": "Next steps",
+  "Ohne Lauf lässt sich nichts zeigen.": "There is nothing to show without a run.",
+  "Berechtigte Fälle als Ausnahme mit Begründung vermerken, damit sie im Folgelauf nicht erneut als Befund erscheinen.":
     "Record legitimate cases as exceptions with a reason so they do not reappear as findings in the next run.",
   "Nach der Bereinigung erneut messen - die Aussage liegt im Verlauf, nicht im einzelnen Wert.":
     "Measure again after cleanup - the meaning lies in the trend, not in a single value.",
 
   // ------------------------------------------------------- Zusammengesetztes
   "{n} Befunde": "{n} findings",
-  "{n} Saetze": "{n} records",
+  "{n} Sätze": "{n} records",
   "{n} Cluster": "{n} clusters",
   "{n} von {gesamt} Clustern": "{n} of {gesamt} clusters",
   "{n} Regelfehler": "{n} rule failures",
   "{a} von {b}": "{a} of {b}",
   "{a} von {b} Regeln": "{a} of {b} rules",
   "Seite {a} von {b}": "Page {a} of {b}",
-  " - eingeschraenkt auf Regel {regel}": " - limited to rule {regel}",
-  "von 100 Punkten, aus {n} geprueften Saetzen.":
+  " - eingeschränkt auf Regel {regel}": " - limited to rule {regel}",
+  "von 100 Punkten, aus {n} geprüften Sätzen.":
     "out of 100 points, from {n} records checked.",
-  "{n} Befunde mit Schweregrad {grad} - klicken, um die Liste darauf einzuschraenken":
+  "{n} Befunde mit Schweregrad {grad} - klicken, um die Liste darauf einzuschränken":
     "{n} findings with severity {grad} - click to limit the list to them",
-  "{n} Befunde in {bereich} - klicken, um die Liste darauf einzuschraenken":
+  "{n} Befunde in {bereich} - klicken, um die Liste darauf einzuschränken":
     "{n} findings in {bereich} - click to limit the list to them",
-  "schaltet {n} weitere Pruefungen frei": "unlocks {n} further checks",
+  "schaltet {n} weitere Prüfungen frei": "unlocks {n} further checks",
   "{behoben} behoben, {neu} neu hinzugekommen": "{behoben} resolved, {neu} newly added",
   "{n} netto": "{n} net",
   "{n} weniger": "{n} fewer",
   "{n} mehr": "{n} more",
-  "Aehnlichkeit {n}": "Similarity {n}",
-  "{c} Cluster mit zusammen {s} Saetzen, Nachweis {art}, Schweregrad {grad}":
+  "Ähnlichkeit {n}": "Similarity {n}",
+  "{c} Cluster mit zusammen {s} Sätzen, Nachweis {art}, Schweregrad {grad}":
     "{c} clusters totalling {s} records, evidence {art}, severity {grad}",
   "{n} Ausnahme(n) entfernt.": "{n} exception(s) removed.",
-  "{n} Ausnahme(n) entfernt. Wirksam ab dem naechsten Lauf.":
+  "{n} Ausnahme(n) entfernt. Wirksam ab dem nächsten Lauf.":
     "{n} exception(s) removed. Effective from the next run.",
   "Ausnahme aufgenommen ({bereich}).": "Exception added ({bereich}).",
-  "Gefuehrt in {datei}": "Kept in {datei}",
-  "der gepflegte Stand ist neuer und wird beim naechsten Lauf uebernommen.":
+  "Geführt in {datei}": "Kept in {datei}",
+  "der gepflegte Stand ist neuer und wird beim nächsten Lauf übernommen.":
     "the maintained state is newer and will be applied on the next run.",
   "seit {lauf}": "since {lauf}",
   "in {lauf}": "in {lauf}",
@@ -315,9 +315,9 @@ const EN = {
     "Run {lauf} of {stand} - catalogue {katalog} - tool {version}",
   "Quellsystem {system} - {n} Datei(en) im Eingang":
     "Source system {system} - {n} file(s) in the inbox",
-  "Es liegt noch kein Lauf vor. Die Pruefung laesst sich links starten.":
+  "Es liegt noch kein Lauf vor. Die Prüfung lässt sich links starten.":
     "There is no run yet. You can start the check on the left.",
-  "Es liegt noch kein Lauf vor. Mit 'Pruefung starten' wird die Lieferung aus {pfad} geprueft.":
+  "Es liegt noch kein Lauf vor. Mit 'Prüfung starten' wird die Lieferung aus {pfad} geprüft.":
     "There is no run yet. 'Start check' will check the delivery in {pfad}.",
   "Aufruf fehlgeschlagen ({status}).": "Request failed ({status}).",
   "Der Lauf arbeitet seit {beginn} ...": "The run has been working since {beginn} ...",
@@ -328,115 +328,115 @@ const EN = {
   "unbekannt": "unknown",
 
   // ------------------------------------------------------- Praesentationstexte
-  "Quellsystem {system} \u2013 {n} Stammsaetze \u2013 Stand {stand}":
+  "Quellsystem {system} \u2013 {n} Stammsätze \u2013 Stand {stand}":
     "Source system {system} \u2013 {n} master records \u2013 as of {stand}",
-  "{dateien} Dateien mit zusammen {saetze} Saetzen aus {tabellen} Tabellen. Jede Datei ist ueber ihre Pruefsumme im Bericht nachweisbar.":
+  "{dateien} Dateien mit zusammen {saetze} Sätzen aus {tabellen} Tabellen. Jede Datei ist über ihre Prüfsumme im Bericht nachweisbar.":
     "{dateien} files totalling {saetze} records from {tabellen} tables. Every file is traceable through its checksum in the report.",
-  "{cluster} Cluster mit zusammen {saetze} Stammsaetzen. Bleibt je Cluster ein fuehrender Satz stehen, entfallen {einsparung} Saetze.":
+  "{cluster} Cluster mit zusammen {saetze} Stammsätzen. Bleibt je Cluster ein führender Satz stehen, entfallen {einsparung} Sätze.":
     "{cluster} clusters totalling {saetze} master records. Keeping one leading record per cluster removes {einsparung} records.",
   "Beispiel": "Example",
-  "ueber einen harten Schluessel nachgewiesen": "proven by a hard key",
-  "Namensaehnlichkeit {n} von 100": "name similarity {n} out of 100",
-  "{n} kritische Befunde zuerst klaeren - sie betreffen Zahlungsverkehr, Steuer oder Bilanz.":
+  "über einen harten Schlüssel nachgewiesen": "proven by a hard key",
+  "Namensähnlichkeit {n} von 100": "name similarity {n} out of 100",
+  "{n} kritische Befunde zürst klären - sie betreffen Zahlungsverkehr, Steuer oder Bilanz.":
     "Address the {n} critical findings first - they affect payments, tax or the balance sheet.",
-  "{n} Dublettencluster sichten und je Cluster den fuehrenden Stammsatz bestimmen.":
+  "{n} Dublettencluster sichten und je Cluster den führenden Stammsatz bestimmen.":
     "Review the {n} duplicate clusters and determine the leading master record for each.",
-  "Fehlende Tabellen nachfordern ({tabellen}), um den Pruefumfang von {anteil} anzuheben.":
+  "Fehlende Tabellen nachfordern ({tabellen}), um den Prüfumfang von {anteil} anzuheben.":
     "Request the missing tables ({tabellen}) to raise the scope of {anteil}.",
 
   // ---------------------------------------------------------------- Prosa
   // Wortgleich mit dem Bericht - wer die Management-Summary daneben liegen
   // hat, soll denselben Satz lesen.
-  "Es waren keine Regeln aktiv. Die Lieferung wurde nicht fachlich geprueft.":
+  "Es waren keine Regeln aktiv. Die Lieferung wurde nicht fachlich geprüft.":
     "No rules were active. The delivery was not checked against any business rule.",
-  "Alle {n} aktiven Regeln waren ausfuehrbar. Die Aussage stuetzt sich auf den vollstaendigen Regelkatalog.":
+  "Alle {n} aktiven Regeln waren ausführbar. Die Aussage stützt sich auf den vollständigen Regelkatalog.":
     "All {n} active rules were executable. The statement rests on the complete rule catalogue.",
-  "Von {gesamt} aktiven Regeln waren {ausfuehrbar} ausfuehrbar ({anteil}). {entfallen} Regeln konnten nicht laufen, weil Tabellen oder Felder fehlen (vor allem {tabellen}). Die Aussage dieses Berichts gilt ausschliesslich fuer die ausgefuehrten Pruefungen; zu den entfallenen Pruefungen ist keine Aussage moeglich - weder positiv noch negativ.":
+  "Von {gesamt} aktiven Regeln waren {ausfuehrbar} ausführbar ({anteil}). {entfallen} Regeln konnten nicht laufen, weil Tabellen oder Felder fehlen (vor allem {tabellen}). Die Aussage dieses Berichts gilt ausschließlich für die ausgeführten Prüfungen; zu den entfallenen Prüfungen ist keine Aussage möglich - weder positiv noch negativ.":
     "Of {gesamt} active rules, {ausfuehrbar} were executable ({anteil}). {entfallen} rules could not run because tables or fields are missing (chiefly {tabellen}). This report speaks only for the checks that were carried out; about the checks that were skipped no statement is possible - neither positive nor negative.",
-  "Fuer {bereich} war keine Regel ausfuehrbar. Es liegt keine Aussage zur Datenqualitaet vor - weder eine gute noch eine schlechte.":
+  "Für {bereich} war keine Regel ausführbar. Es liegt keine Aussage zur Datenqualität vor - weder eine gute noch eine schlechte.":
     "No rule was executable for {bereich}. There is no statement about data quality - neither good nor bad.",
-  "Der Wert stuetzt sich auf {a} von {b} Regeln ({anteil}). Er ist nur mit Laeufen vergleichbar, die denselben Umfang hatten.":
+  "Der Wert stützt sich auf {a} von {b} Regeln ({anteil}). Er ist nur mit Läufen vergleichbar, die denselben Umfang hatten.":
     "The value rests on {a} of {b} rules ({anteil}). It is comparable only with runs of the same scope.",
-  "Alle Regeln dieses Bereichs waren ausfuehrbar.": "All rules of this area were executable.",
+  "Alle Regeln dieses Bereichs waren ausführbar.": "All rules of this area were executable.",
   "gleiche {feld}: {wert}": "identical {feld}: {wert}",
-  "uebereinstimmender harter Schluessel": "matching hard key",
-  "Name sehr aehnlich ({n} von 100)": "names very similar ({n} out of 100)",
-  "{behoben} Befunde behoben, {neu} neu hinzugekommen, {unveraendert} unveraendert.":
+  "übereinstimmender harter Schlüssel": "matching hard key",
+  "Name sehr ähnlich ({n} von 100)": "names very similar ({n} out of 100)",
+  "{behoben} Befunde behoben, {neu} neu hinzugekommen, {unveraendert} unverändert.":
     "{behoben} findings resolved, {neu} newly added, {unveraendert} unchanged.",
-  "In Summe unveraendert.": "No net change.",
+  "In Summe unverändert.": "No net change.",
   "In Summe {n} Befunde weniger.": "{n} findings fewer in total.",
   "In Summe {n} Befunde mehr.": "{n} findings more in total.",
 
-  "Ein unscharfer Treffer ist ein begruendeter Verdacht, kein Nachweis. Berechtigte Mehrfachanlagen - etwa je Werk - gehoeren als Ausnahme vermerkt.":
+  "Ein unscharfer Treffer ist ein begründeter Verdacht, kein Nachweis. Berechtigte Mehrfachanlagen - etwa je Werk - gehören als Ausnahme vermerkt.":
     "A fuzzy match is a reasoned suspicion, not proof. Legitimate multiple records - one per plant, say - belong on the exception list.",
-  "Ein harter Schluessel ist ein Nachweis: dieselbe Nummer kann nicht zwei Partnern gehoeren.":
+  "Ein harter Schlüssel ist ein Nachweis: dieselbe Nummer kann nicht zwei Partnern gehören.":
     "A hard key is proof: the same number cannot belong to two partners.",
 
   // ------------------------------------------------ Lieferungsvalidierung
   // Die Vorlagen stammen aus validate/delivery.py und kommen mit ihren
   // Werten getrennt in lauf.json an.
-  "Fuer {tabelle} ist keine Satzanzahl gemeldet. Es wurden {gelesen} Saetze gelesen; ob die Lieferung vollstaendig ist, laesst sich nicht pruefen.":
+  "Für {tabelle} ist keine Satzanzahl gemeldet. Es wurden {gelesen} Sätze gelesen; ob die Lieferung vollständig ist, lässt sich nicht prüfen.":
     "No record count was reported for {tabelle}. {gelesen} records were read; whether the delivery is complete cannot be checked.",
-  "{tabelle}: {gelesen} Saetze wie gemeldet.": "{tabelle}: {gelesen} records as reported.",
-  "{tabelle}: {gelesen} Saetze gelesen, aber {gemeldet} gemeldet (Abweichung {abweichung}). Die Lieferung ist unvollstaendig oder die Meldung falsch.":
+  "{tabelle}: {gelesen} Sätze wie gemeldet.": "{tabelle}: {gelesen} records as reported.",
+  "{tabelle}: {gelesen} Sätze gelesen, aber {gemeldet} gemeldet (Abweichung {abweichung}). Die Lieferung ist unvollständig oder die Meldung falsch.":
     "{tabelle}: {gelesen} records read, but {gemeldet} reported (difference {abweichung}). Either the delivery is incomplete or the report is wrong.",
-  "{datei}: {abgewiesen} von {gesamt} Zeilen ({anteil}) sind strukturell defekt und wurden nicht gelesen. Haeufigste Ursache: ein nicht maskiertes Trennzeichen in einem Freitextfeld. {beispiele}":
+  "{datei}: {abgewiesen} von {gesamt} Zeilen ({anteil}) sind strukturell defekt und wurden nicht gelesen. Häufigste Ursache: ein nicht maskiertes Trennzeichen in einem Freitextfeld. {beispiele}":
     "{datei}: {abgewiesen} of {gesamt} lines ({anteil}) are structurally broken and were not read. Most common cause: an unescaped separator in a free-text field. {beispiele}",
-  "{datei} endet ohne Zeilenumbruch. Der Export koennte an der letzten Zeile abgebrochen worden sein.":
+  "{datei} endet ohne Zeilenumbruch. Der Export könnte an der letzten Zeile abgebrochen worden sein.":
     "{datei} ends without a line break. The export may have been cut off at the last line.",
-  "{tabelle} enthaelt genau {saetze} Saetze. Das ist eine typische Exportgrenze - bitte pruefen, ob der Export abgeschnitten wurde.":
+  "{tabelle} enthält genau {saetze} Sätze. Das ist eine typische Exportgrenze - bitte prüfen, ob der Export abgeschnitten wurde.":
     "{tabelle} contains exactly {saetze} records. That is a typical export limit - please check whether the export was truncated.",
-  "{tabelle}.{spalte}: laengster Wert hat {laenge} Zeichen, das Feld ist laut DDIC {ddic} Zeichen lang. Die Spalte wurde vermutlich falsch zugeordnet oder enthaelt Fremdinhalte.":
+  "{tabelle}.{spalte}: längster Wert hat {laenge} Zeichen, das Feld ist laut DDIC {ddic} Zeichen lang. Die Spalte wurde vermutlich falsch zugeordnet oder enthält Fremdinhalte.":
     "{tabelle}.{spalte}: the longest value has {laenge} characters, the field is {ddic} characters long according to the DDIC. The column was probably mapped wrongly or holds foreign content.",
-  "{tabelle}.{spalte}: {treffer} von {gesamt} Werten ({anteil}) sind genau {laenge} Zeichen lang, waehrend auf den {breite} Laengen darunter zusammen nur {darunter} Werte liegen. Dieser Aufstau auf der Grenze deutet auf beim Export abgeschnittene Feldinhalte hin.":
+  "{tabelle}.{spalte}: {treffer} von {gesamt} Werten ({anteil}) sind genau {laenge} Zeichen lang, während auf den {breite} Längen darunter zusammen nur {darunter} Werte liegen. Dieser Aufstau auf der Grenze deutet auf beim Export abgeschnittene Feldinhalte hin.":
     "{tabelle}.{spalte}: {treffer} of {gesamt} values ({anteil}) are exactly {laenge} characters long, while the {breite} lengths below hold only {darunter} values in total. This pile-up at the limit points to field content truncated during export.",
-  "{tabelle} wurde in {anzahl} Dateien mit unterschiedlichen Spalten geliefert ({luecken}). Die fehlenden Spalten werden mit NULL aufgefuellt; Vollstaendigkeitsregeln melden fuer diese Saetze deshalb moeglicherweise Luecken, die im Quellsystem gepflegt sind.":
+  "{tabelle} wurde in {anzahl} Dateien mit unterschiedlichen Spalten geliefert ({luecken}). Die fehlenden Spalten werden mit NULL aufgefüllt; Vollständigkeitsregeln melden für diese Sätze deshalb möglicherweise Lücken, die im Quellsystem gepflegt sind.":
     "{tabelle} was delivered in {anzahl} files with differing columns ({luecken}). The missing columns are filled with NULL; completeness rules may therefore report gaps for these records that are in fact maintained in the source system.",
-  "{tabelle}: {betroffen} Schluesselwert(e) kommen mehrfach vor ({ueberzaehlig} ueberzaehlige Saetze). Der Schluessel {schluessel} ist im Quellsystem eindeutig - die Lieferung enthaelt Ueberschneidungen. Beispiele: {beispiele}.":
+  "{tabelle}: {betroffen} Schlüsselwert(e) kommen mehrfach vor ({ueberzaehlig} überzählige Sätze). Der Schlüssel {schluessel} ist im Quellsystem eindeutig - die Lieferung enthält Überschneidungen. Beispiele: {beispiele}.":
     "{tabelle}: {betroffen} key value(s) occur more than once ({ueberzaehlig} surplus records). The key {schluessel} is unique in the source system - the delivery contains overlaps. Examples: {beispiele}.",
-  "{tabelle} enthaelt kein Mandantenfeld. Ob die Lieferung genau einen Mandanten umfasst, laesst sich nicht pruefen.":
+  "{tabelle} enthält kein Mandantenfeld. Ob die Lieferung genau einen Mandanten umfasst, lässt sich nicht prüfen.":
     "{tabelle} contains no client field. Whether the delivery covers exactly one client cannot be checked.",
-  "{tabelle} enthaelt mehrere Mandanten ({mandanten}), ohne dass ein Mandantenfilter konfiguriert ist. Auswertungen ueber vermischte Mandanten sind nicht belastbar. Bitte delivery.expected_clients setzen.":
+  "{tabelle} enthält mehrere Mandanten ({mandanten}), ohne dass ein Mandantenfilter konfiguriert ist. Auswertungen über vermischte Mandanten sind nicht belastbar. Bitte delivery.expected_clients setzen.":
     "{tabelle} contains several clients ({mandanten}) without a client filter being configured. Analyses across mixed clients do not hold up. Please set delivery.expected_clients.",
-  "{tabelle} enthaelt die Mandanten {mandanten}, erwartet wurde {erwartet}. Nach der Filterung bliebe die Tabelle leer.":
+  "{tabelle} enthält die Mandanten {mandanten}, erwartet wurde {erwartet}. Nach der Filterung bliebe die Tabelle leer.":
     "{tabelle} contains clients {mandanten}, but {erwartet} was expected. After filtering the table would be empty.",
   "Die Lieferung enthielt die Mandanten {geliefert}; verarbeitet wurde {verarbeitet}.":
     "The delivery contained clients {geliefert}; {verarbeitet} was processed.",
-  "Fuer {anzahl} Datei(en) ist kein Extraktionsstichtag dokumentiert ({dateien}). Ersatzweise wird der Zeitstempel der Datei verwendet; er sagt nichts ueber den fachlichen Stichtag aus (A-04).":
+  "Für {anzahl} Datei(en) ist kein Extraktionsstichtag dokumentiert ({dateien}). Ersatzweise wird der Zeitstempel der Datei verwendet; er sagt nichts über den fachlichen Stichtag aus (A-04).":
     "No extraction date is documented for {anzahl} file(s) ({dateien}). The file timestamp is used instead; it says nothing about the business cut-off date (A-04).",
-  "Die Dateien wurden zu unterschiedlichen Stichtagen extrahiert ({stichtage}). Konsistenzpruefungen ueber Tabellen hinweg koennen dadurch Scheinbefunde erzeugen.":
+  "Die Dateien wurden zu unterschiedlichen Stichtagen extrahiert ({stichtage}). Konsistenzprüfungen über Tabellen hinweg können dadurch Scheinbefunde erzeugen.":
     "The files were extracted on different dates ({stichtage}). Consistency checks across tables can therefore produce spurious findings.",
-  "{datei} ist inhaltsgleich mit {andere} (identischer SHA-256). Die Saetze wurden doppelt eingelesen.":
+  "{datei} ist inhaltsgleich mit {andere} (identischer SHA-256). Die Sätze wurden doppelt eingelesen.":
     "{datei} is identical in content to {andere} (same SHA-256). The records were read in twice.",
   "{datei} ist leer.": "{datei} is empty.",
-  "{datei} wurde keiner Tabelle zugeordnet und bleibt unberuecksichtigt. {hinweis}":
+  "{datei} wurde keiner Tabelle zugeordnet und bleibt unberücksichtigt. {hinweis}":
     "{datei} was not assigned to any table and is disregarded. {hinweis}",
-  "{tabelle} fehlen die Schluesselfelder {felder}. Ohne Schluessel laesst sich kein Befund einem Stammsatz zuordnen.":
+  "{tabelle} fehlen die Schlüsselfelder {felder}. Ohne Schlüssel lässt sich kein Befund einem Stammsatz zuordnen.":
     "{tabelle} is missing the key fields {felder}. Without a key no finding can be assigned to a master record.",
-  "{tabelle} enthaelt keine Saetze. {grund}": "{tabelle} contains no records. {grund}",
-  "Alle Saetze wurden vom Mandanten- bzw. Buchungskreisfilter entfernt.":
+  "{tabelle} enthält keine Sätze. {grund}": "{tabelle} contains no records. {grund}",
+  "Alle Sätze wurden vom Mandanten- bzw. Buchungskreisfilter entfernt.":
     "All records were removed by the client or company code filter.",
   "Die Tabelle wurde leer geliefert.": "The table was delivered empty.",
-  "{tabelle} ist in den Tabellenmetadaten nicht beschrieben. Die Spalten werden als Text uebernommen; typabhaengige Pruefungen entfallen.":
+  "{tabelle} ist in den Tabellenmetadaten nicht beschrieben. Die Spalten werden als Text übernommen; typabhängige Prüfungen entfallen.":
     "{tabelle} is not described in the table metadata. The columns are taken over as text; type-dependent checks are skipped.",
-  "{tabelle}: {anzahl} Spalte(n) ohne bekannten Feldnamen ({spalten}). Sie werden unveraendert uebernommen.":
+  "{tabelle}: {anzahl} Spalte(n) ohne bekannten Feldnamen ({spalten}). Sie werden unverändert übernommen.":
     "{tabelle}: {anzahl} column(s) without a known field name ({spalten}). They are taken over unchanged.",
   "Es fehlen als Pflicht vereinbarte Tabellen: {tabellen}":
     "Tables agreed as mandatory are missing: {tabellen}",
 
   // Regelkategorien (Category.label in rules/model.py)
-  "Vollstaendigkeit": "Completeness",
+  "Vollständigkeit": "Completeness",
   "Format / Syntax": "Format / syntax",
-  "Konsistenz ueber Sichten": "Consistency across views",
-  "Referenzintegritaet": "Referential integrity",
-  "Aktualitaet / Lifecycle": "Currency / lifecycle",
+  "Konsistenz über Sichten": "Consistency across views",
+  "Referenzintegrität": "Referential integrity",
+  "Aktualität / Lifecycle": "Currency / lifecycle",
   "Risiko- / Compliance-Indikatoren": "Risk / compliance indicators",
   "Externe Validierung": "External validation",
 
   // Anforderungen der Lieferungsvalidierung
   "Satzanzahlabgleich": "Record count reconciliation",
   "Truncation-Erkennung": "Truncation detection",
-  "Mandantenpruefung": "Client check",
+  "Mandantenprüfung": "Client check",
   "Extraktionsstichtag": "Extraction date",
   "Nachvollziehbarkeit": "Traceability",
   "Verwertbarkeit": "Usability",
@@ -448,12 +448,12 @@ const EN = {
 
   // ---------------------------------------------------------------- Abdeckung
   "Abdeckung": "Coverage",
-  "Was das Werkzeug ueberhaupt prueft - unabhaengig von dieser Lieferung. Je Prozess steht daneben, wieviel davon sich mit den gelieferten Tabellen tatsaechlich pruefen liess.":
+  "Was das Werkzeug überhaupt prüft - unabhängig von dieser Lieferung. Je Prozess steht daneben, wieviel davon sich mit den gelieferten Tabellen tatsächlich prüfen ließ.":
     "What the tool checks at all - independently of this delivery. For each process it also shows how much of that could actually be checked with the tables delivered.",
   "Kernprozesse": "Core processes",
   "Querschnittsthemen": "Cross-cutting topics",
   "Alle Tabellen": "All tables",
-  "Welche Tabelle wofuer gebraucht wird und an wievielen Regeln sie haengt.":
+  "Welche Tabelle wofür gebraucht wird und an wievielen Regeln sie hängt.":
     "What each table is needed for and how many rules depend on it.",
   "Tabelle suchen": "Search tables",
   "nur fehlende": "missing only",
@@ -461,10 +461,10 @@ const EN = {
   "{n} davon Kernprozesse": "{n} of them core processes",
   "im aktiven Katalog": "in the active catalogue",
   "{n} in dieser Lieferung vorhanden": "{n} present in this delivery",
-  "Vollstaendig pruefbar": "Fully checkable",
+  "Vollständig prüfbar": "Fully checkable",
   "von {n} Prozessen in dieser Lieferung": "of {n} processes in this delivery",
   "Nicht im Umfang:": "Out of scope:",
-  "Benoetigte Tabellen": "Tables required",
+  "Benötigte Tabellen": "Tables required",
   "in dieser Lieferung": "in this delivery",
   "in dieser Lieferung nicht enthalten": "not contained in this delivery",
   "Geliefert": "Delivered",
@@ -472,10 +472,10 @@ const EN = {
   "hilfreich": "helpful",
 
   // Folien zur Abdeckung
-  "Was das Werkzeug prueft": "What the tool checks",
-  "{regeln} Regeln ueber {prozesse} Geschaeftsprozesse, gestuetzt auf {tabellen} SAP-Tabellen. Geprueft werden die Stammdaten, auf denen die Prozesse aufsetzen - nicht die Prozessausfuehrung selbst.":
+  "Was das Werkzeug prüft": "What the tool checks",
+  "{regeln} Regeln über {prozesse} Geschäftsprozesse, gestützt auf {tabellen} SAP-Tabellen. Geprüft werden die Stammdaten, auf denen die Prozesse aufsetzen - nicht die Prozessausführung selbst.":
     "{regeln} rules across {prozesse} business processes, resting on {tabellen} SAP tables. What is checked is the master data the processes build on - not the execution of the processes themselves.",
-  "Was davon hier pruefbar war": "How much of that was checkable here",
+  "Was davon hier prüfbar war": "How much of that was checkable here",
   "Je Prozess: wieviele der Regeln mit den gelieferten Tabellen laufen konnten. Fehlende Tabellen stehen daneben.":
     "Per process: how many rules could run with the tables delivered. Missing tables are named alongside.",
   "Prozess": "Process",
@@ -483,7 +483,7 @@ const EN = {
   "Fehlende Tabellen": "Missing tables",
 
   // ------------------------------------------------- Prozesse (prozesse.yaml)
-  "Plan-to-Produce und Bestandsfuehrung": "Plan-to-Produce and inventory",
+  "Plan-to-Produce und Bestandsführung": "Plan-to-Produce and inventory",
   "Steuer und Compliance": "Tax and compliance",
   "Internes Kontrollsystem": "Internal control system",
   "Dublettenmanagement": "Duplicate management",
@@ -493,7 +493,7 @@ const EN = {
   "Lieferantenanlage": "Vendor creation",
   "Bestellung": "Purchase order",
   "Wareneingang": "Goods receipt",
-  "Rechnungspruefung": "Invoice verification",
+  "Rechnungsprüfung": "Invoice verification",
   "Zahllauf": "Payment run",
   "Kundenanlage": "Customer creation",
   "Auftrag": "Sales order",
@@ -503,7 +503,7 @@ const EN = {
   "Materialanlage": "Material creation",
   "Disposition": "Requirements planning",
   "Beschaffung oder Fertigung": "Procurement or production",
-  "Bestandsfuehrung": "Inventory management",
+  "Bestandsführung": "Inventory management",
   "Bewertung": "Valuation",
   "Nebenbuch": "Sub-ledger",
   "Kontenfindung": "Account determination",
@@ -511,23 +511,23 @@ const EN = {
   "Abschluss": "Closing",
 
   // Beschreibungen
-  "Von der Lieferantenanlage bis zur Zahlung. Geprueft werden die Stammdaten, ohne die eine Bestellung nicht buchbar und ein Zahllauf nicht ausfuehrbar ist.":
+  "Von der Lieferantenanlage bis zur Zahlung. Geprüft werden die Stammdaten, ohne die eine Bestellung nicht buchbar und ein Zahllauf nicht ausführbar ist.":
     "From vendor creation to payment. What is checked is the master data without which a purchase order cannot be posted and a payment run cannot be executed.",
-  "Vom Kundenstammsatz bis zum Zahlungseingang. Im Mittelpunkt stehen die Angaben, an denen Steuerfreiheit, Fakturierbarkeit und Mahnwesen haengen.":
+  "Vom Kundenstammsatz bis zum Zahlungseingang. Im Mittelpunkt stehen die Angaben, an denen Steuerfreiheit, Fakturierbarkeit und Mahnwesen hängen.":
     "From the customer master record to the incoming payment. The focus is on the entries that tax exemption, billing and dunning depend on.",
-  "Vom Materialstammsatz ueber die Disposition bis zur Bestandsbewertung. Geprueft wird, ob ein Material ueberhaupt disponierbar, bewegbar und bewertbar ist.":
+  "Vom Materialstammsatz über die Disposition bis zur Bestandsbewertung. Geprüft wird, ob ein Material überhaupt disponierbar, bewegbar und bewertbar ist.":
     "From the material master record through requirements planning to inventory valuation. What is checked is whether a material can be planned, moved and valued at all.",
-  "Die Stellen, an denen Stammdaten unmittelbar in den Abschluss wirken. Ein falsch zugeordnetes Bestandskonto faellt nicht beim Buchen auf, sondern erst in der Bilanzanalyse.":
+  "Die Stellen, an denen Stammdaten unmittelbar in den Abschluss wirken. Ein falsch zugeordnetes Bestandskonto fällt nicht beim Buchen auf, sondern erst in der Bilanzanalyse.":
     "The points where master data feed straight into the financial statements. A wrongly assigned stock account does not surface when posting, but only in the balance sheet analysis.",
-  "Angaben, an denen steuerliche Pflichten und aufsichtsrechtliche Sorgfaltspflichten haengen - quer ueber Kreditoren und Debitoren.":
+  "Angaben, an denen steuerliche Pflichten und aufsichtsrechtliche Sorgfaltspflichten hängen - quer über Kreditoren und Debitoren.":
     "Entries that tax obligations and regulatory due diligence depend on - across vendors and customers alike.",
-  "Konstellationen, die in der Abschlusspruefung regelmaessig zur Feststellung werden. Keine davon ist fuer sich genommen ein Nachweis - jede verlangt eine Klaerung und deren Dokumentation.":
+  "Konstellationen, die in der Abschlussprüfung regelmäßig zur Feststellung werden. Keine davon ist für sich genommen ein Nachweis - jede verlangt eine Klärung und deren Dokumentation.":
     "Constellations that regularly become audit findings. None of them is proof in itself - each calls for clarification and its documentation.",
-  "Mehrfach angelegte Stammsaetze ueber alle Bereiche. Unterschieden wird zwischen hartem Nachweis (gleiche USt-IdNr., gleiche Bankverbindung, gleiche EAN) und begruendetem Verdacht aus dem unscharfen Namens- und Adressabgleich.":
+  "Mehrfach angelegte Stammsätze über alle Bereiche. Unterschieden wird zwischen hartem Nachweis (gleiche USt-IdNr., gleiche Bankverbindung, gleiche EAN) und begründetem Verdacht aus dem unscharfen Namens- und Adressabgleich.":
     "Master records created more than once, across all areas. A distinction is made between hard proof (same VAT registration number, same bank details, same EAN) and a reasoned suspicion from the fuzzy name and address match.",
-  "Anlage, Sperre, Loeschvormerkung, Archivierung. Der haeufigste Befund ist die nie abgeschlossene Archivierung - sie belastet jede Auswertung und jede Dublettensuche.":
+  "Anlage, Sperre, Löschvormerkung, Archivierung. Der häufigste Befund ist die nie abgeschlossene Archivierung - sie belastet jede Auswertung und jede Dublettensuche.":
     "Creation, blocking, deletion flag, archiving. The most frequent finding is archiving that was never completed - it burdens every analysis and every duplicate search.",
-  "Der zentrale Geschaeftspartner, der in S/4HANA an die Stelle getrennter Kreditoren- und Debitorenstaemme tritt. Geprueft wird die Konsistenz seiner Grunddaten und Rollen.":
+  "Der zentrale Geschäftspartner, der in S/4HANA an die Stelle getrennter Kreditoren- und Debitorenstämme tritt. Geprüft wird die Konsistenz seiner Grunddaten und Rollen.":
     "The central business partner that replaces separate vendor and customer masters in S/4HANA. What is checked is the consistency of its basic data and roles.",
 
   // Pruefschwerpunkte
@@ -535,17 +535,17 @@ const EN = {
     "Prerequisites of the payment run - IBAN to ISO 13616, BIC, payment method per country, bank country against IBAN",
   "Buchbarkeit - Abstimmkonto vorhanden, im Buchungskreis angelegt und als Kreditorenkonto gekennzeichnet":
     "Postability - reconciliation account present, created in the company code and marked as a vendor account",
-  "Faelligkeit und Skonto - Zahlungsbedingung in Buchungskreis und Einkauf, widerspruchsfrei":
+  "Fälligkeit und Skonto - Zahlungsbedingung in Buchungskreis und Einkauf, widerspruchsfrei":
     "Due date and cash discount - payment terms in company code and purchasing, free of contradiction",
-  "Mehrfach angelegte Lieferanten ueber USt-IdNr., Bankverbindung und Namensaehnlichkeit":
+  "Mehrfach angelegte Lieferanten über USt-IdNr., Bankverbindung und Namensähnlichkeit":
     "Vendors created more than once, via VAT registration number, bank details and name similarity",
-  "Zahlungsumleitungsrisiken - kuerzlich geaenderte Bankdaten, fehlende Funktionstrennung, CpD mit fester Bankverbindung":
+  "Zahlungsumleitungsrisiken - kürzlich geänderte Bankdaten, fehlende Funktionstrennung, CpD mit fester Bankverbindung":
     "Payment diversion risks - recently changed bank details, missing segregation of duties, one-time account with fixed bank details",
-  "Steuerfreiheit innergemeinschaftlicher Lieferungen - USt-IdNr. vorhanden, formal richtig, ueber VIES bestaetigt":
+  "Steuerfreiheit innergemeinschaftlicher Lieferungen - USt-IdNr. vorhanden, formal richtig, über VIES bestätigt":
     "Exemption of intra-Community supplies - VAT registration number present, formally correct, confirmed through VIES",
-  "Fakturierbarkeit - Buchungskreis- und Vertriebsbereichsdaten vollstaendig, Verkaufsorganisation vorhanden":
+  "Fakturierbarkeit - Buchungskreis- und Vertriebsbereichsdaten vollständig, Verkaufsorganisation vorhanden":
     "Billability - company code and sales area data complete, sales organization present",
-  "Faelligkeit und Altersstruktur - Zahlungsbedingung im Buchungskreis":
+  "Fälligkeit und Altersstruktur - Zahlungsbedingung im Buchungskreis":
     "Due date and ageing - payment terms in the company code",
   "Wirksamkeit von Sperren - Vertriebssperre gegen offenen Buchungskreis":
     "Effectiveness of blocks - sales block against an open company code",
@@ -557,94 +557,94 @@ const EN = {
     "Valuability - valuation class present and matching the material type",
   "Bestandswert - Standardpreissteuerung ohne Preis, Bestand ohne Preis, Wert gegen Menge mal Preis":
     "Stock value - standard price control without a price, stock without a price, value against quantity times price",
-  "Identifikation - Kurztext, EAN mit gueltiger Pruefziffer":
+  "Identifikation - Kurztext, EAN mit gültiger Prüfziffer":
     "Identification - short text, EAN with a valid check digit",
   "Doppelt angelegte Materialien, die Bestand und Bedarf zersplittern":
     "Materials created twice that fragment stock and requirements",
   "Abstimmkonten - vorhanden, im Buchungskreis angelegt, richtige Kontoart":
     "Reconciliation accounts - present, created in the company code, correct account type",
-  "Kontenfindung im Materialstamm - Bewertungsklasse gegen Materialart ueber die Kontenkategorie-Referenz":
+  "Kontenfindung im Materialstamm - Bewertungsklasse gegen Materialart über die Kontenkategorie-Referenz":
     "Account determination in the material master - valuation class against material type via the account category reference",
-  "Bestandsbewertung - Wert, Menge und Preis muessen zueinander passen":
+  "Bestandsbewertung - Wert, Menge und Preis müssen züinander passen":
     "Inventory valuation - value, quantity and price must match",
-  "Verwaiste Nebenbuchsaetze ohne allgemeine Daten":
+  "Verwaiste Nebenbuchsätze ohne allgemeine Daten":
     "Orphaned sub-ledger records without general data",
-  "USt-IdNr. - Vorhandensein, laenderspezifischer Aufbau, Pruefziffer fuer DE, NL und IT":
+  "USt-IdNr. - Vorhandensein, länderspezifischer Aufbau, Prüfziffer für DE, NL und IT":
     "VAT registration number - presence, country-specific structure, check digit for DE, NL and IT",
-  "Qualifizierte Bestaetigung ueber das VIES-Verfahren der Europaeischen Kommission":
+  "Qualifizierte Bestätigung über das VIES-Verfahren der Europäischen Kommission":
     "Qualified confirmation through the European Commission's VIES procedure",
-  "Laenderkennzeichen der USt-IdNr. gegen das Land des Partners":
+  "Länderkennzeichen der USt-IdNr. gegen das Land des Partners":
     "Country code of the VAT registration number against the partner's country",
-  "Kennzeichen \"natuerliche Person\" - es steuert Quellensteuer und Meldepflichten":
+  "Kennzeichen \"natürliche Person\" - es steuert Quellensteuer und Meldepflichten":
     "The \"natural person\" indicator - it drives withholding tax and reporting obligations",
-  "Ladungsfaehige Anschrift statt reiner Postfachanschrift":
+  "Ladungsfähige Anschrift statt reiner Postfachanschrift":
     "A physical address rather than a PO box only",
-  "Zahlungsumleitung - kuerzlich geaenderte Bankdaten, Bankverbindung eines Mitarbeiters":
+  "Zahlungsumleitung - kürzlich geänderte Bankdaten, Bankverbindung eines Mitarbeiters":
     "Payment diversion - recently changed bank details, an employee's bank details",
-  "Funktionstrennung - derselbe Benutzer legt an und aendert Bankdaten":
+  "Funktionstrennung - derselbe Benutzer legt an und ändert Bankdaten":
     "Segregation of duties - the same user creates the record and changes the bank details",
   "CpD-Konto mit fest hinterlegter Bankverbindung":
     "One-time account with fixed bank details",
-  "Dieselbe Bankverbindung bei mehreren Partnern oder ueber Kreditor und Debitor hinweg":
+  "Dieselbe Bankverbindung bei mehreren Partnern oder über Kreditor und Debitor hinweg":
     "The same bank details with several partners, or across vendor and customer",
-  "Zur Loeschung vorgemerkte Kreditoren ohne Zahlsperre":
+  "Zur Löschung vorgemerkte Kreditoren ohne Zahlsperre":
     "Vendors flagged for deletion without a payment block",
-  "Harter Nachweis ueber USt-IdNr., Steuernummer, Bankverbindung und EAN":
+  "Harter Nachweis über USt-IdNr., Steuernummer, Bankverbindung und EAN":
     "Hard proof via VAT registration number, tax number, bank details and EAN",
-  "Unscharfer Abgleich nach Normalisierung von Umlauten, Rechtsformen und Strassenabkuerzungen":
+  "Unscharfer Abgleich nach Normalisierung von Umlauten, Rechtsformen und Straßenabkürzungen":
     "Fuzzy matching after normalising umlauts, legal forms and street abbreviations",
   "Cluster statt Paarlisten - ein Befund je Gruppe, in einem Zug bereinigbar":
     "Clusters instead of pair lists - one finding per group, cleanable in one go",
-  "Bereinigungspotenzial in Stammsaetzen, wenn je Cluster einer fuehrend wird":
+  "Bereinigungspotenzial in Stammsätzen, wenn je Cluster einer führend wird":
     "Cleanup potential in master records once one per cluster becomes the leading one",
-  "Loeschvormerkung gesetzt, Archivierungslauf nie ausgefuehrt":
+  "Löschvormerkung gesetzt, Archivierungslauf nie ausgeführt":
     "Deletion flag set, archiving run never executed",
   "Vormerkung zentral gesetzt, im Buchungskreis oder Werk aber nicht - sie wirkt dann nicht":
     "Flag set centrally but not in the company code or plant - it then has no effect",
-  "Dauerhafte Sperren als Zeichen beendeter Geschaeftsbeziehungen":
+  "Dauerhafte Sperren als Zeichen beendeter Geschäftsbeziehungen":
     "Permanent blocks as a sign of ended business relationships",
   "Fehlanlagen - kurz nach der Anlage wieder vorgemerkt":
     "Mistaken entries - flagged again shortly after creation",
-  "Material mit Loeschvormerkung, aber weiterhin mit Bestand":
+  "Material mit Löschvormerkung, aber weiterhin mit Bestand":
     "Material with a deletion flag but still carrying stock",
   "Identifizierbarkeit - Name je nach Partnertyp in den richtigen Feldern":
     "Identifiability - the name in the right fields for the partner category",
   "Rollen - ohne Rolle ist der Partner in keinem Prozess verwendbar":
     "Roles - without a role the partner is usable in no process",
-  "Adresszuordnung ueber die zentrale Adressverwaltung":
+  "Adresszuordnung über die zentrale Adressverwaltung":
     "Address assignment through central address management",
-  "Gueltigkeitszeitraeume und Loeschkennzeichen gegen aktive Rollen":
+  "Gültigkeitszeiträume und Löschkennzeichen gegen aktive Rollen":
     "Validity periods and deletion marks against active roles",
 
   // Grenzen
-  "Bestellungen, Wareneingaenge, Rechnungen und Zahlungen sind nicht im Umfang. Doppelte Rechnungen, Abweichungen im Drei-Wege-Abgleich und Bestellungen am Rahmenvertrag vorbei lassen sich damit nicht finden.":
+  "Bestellungen, Wareneingänge, Rechnungen und Zahlungen sind nicht im Umfang. Doppelte Rechnungen, Abweichungen im Drei-Wege-Abgleich und Bestellungen am Rahmenvertrag vorbei lassen sich damit nicht finden.":
     "Purchase orders, goods receipts, invoices and payments are out of scope. Duplicate invoices, three-way-match discrepancies and orders placed around the framework agreement cannot be found with this.",
-  "Auftraege, Lieferungen und Fakturen sind nicht im Umfang. Die Kreditausschoepfung gegen das Limit, die Umsatzverteilung und offene Posten lassen sich damit nicht bewerten - wohl aber der Umstand, dass ein Limit durch eine Dublette auf zwei Konten zerfaellt.":
+  "Aufträge, Lieferungen und Fakturen sind nicht im Umfang. Die Kreditausschöpfung gegen das Limit, die Umsatzverteilung und offene Posten lassen sich damit nicht bewerten - wohl aber der Umstand, dass ein Limit durch eine Dublette auf zwei Konten zerfällt.":
     "Sales orders, deliveries and billing documents are out of scope. Credit utilisation against the limit, revenue distribution and open items cannot be assessed with this - but the fact that a limit falls apart across two accounts through a duplicate can.",
-  "Warenbewegungen, Bestellungen und Fertigungsauftraege sind nicht im Umfang. \"Seit langem unbewegt\" stuetzt sich auf das Aenderungsdatum im Stammsatz, nicht auf die letzte Bewegung - ein Material mit regem Umschlag, aber unveraendertem Stammsatz erscheint darin als Kandidat fuer die Stilllegung.":
+  "Warenbewegungen, Bestellungen und Fertigungsaufträge sind nicht im Umfang. \"Seit langem unbewegt\" stützt sich auf das Änderungsdatum im Stammsatz, nicht auf die letzte Bewegung - ein Material mit regem Umschlag, aber unverändertem Stammsatz erscheint darin als Kandidat für die Stilllegung.":
     "Goods movements, purchase orders and production orders are out of scope. \"Unmoved for a long time\" rests on the change date in the master record, not on the last movement - a material with brisk turnover but an unchanged master record appears there as a candidate for retirement.",
   "Buchungen, Belege und Salden sind nicht im Umfang. Das Werkzeug zeigt, wo die Kontenfindung falsch aufgesetzt ist - nicht, welcher Betrag dadurch auf dem falschen Konto gelandet ist.":
     "Postings, documents and balances are out of scope. The tool shows where account determination is set up wrongly - not which amount ended up in the wrong account as a result.",
-  "Steuerkennzeichen, Steuerfindung und Quellensteuerarten sind noch nicht belegt, obwohl die Tabellen T007A, T059P und T059Z in den Metadaten bereits beschrieben sind. Der Abgleich \"natuerliche Person ohne Quellensteuerkennzeichen\" waere als reine Regeldatei nachzuziehen.":
+  "Steuerkennzeichen, Steuerfindung und Quellensteuerarten sind noch nicht belegt, obwohl die Tabellen T007A, T059P und T059Z in den Metadaten bereits beschrieben sind. Der Abgleich \"natürliche Person ohne Quellensteuerkennzeichen\" wäre als reine Regeldatei nachzuziehen.":
     "Tax codes, tax determination and withholding tax types are not covered yet, although tables T007A, T059P and T059Z are already described in the metadata. The check \"natural person without a withholding tax code\" could be added as a pure rule file.",
-  "Die Auswertung stuetzt sich auf Stammdaten und Aenderungsbelege. Ohne Zahllaufdaten laesst sich nicht sagen, ob eine auffaellige Konstellation auch tatsaechlich zu einer Zahlung gefuehrt hat.":
+  "Die Auswertung stützt sich auf Stammdaten und Änderungsbelege. Ohne Zahllaufdaten lässt sich nicht sagen, ob eine auffällige Konstellation auch tatsächlich zu einer Zahlung geführt hat.":
     "The analysis rests on master data and change documents. Without payment run data it cannot be said whether a conspicuous constellation actually led to a payment.",
-  "Ein unscharfer Treffer ist ein Verdacht mit Score, kein Nachweis. Geblockt wird nach Land und Postleitzahl sowie nach Namensanfang; ein Partner, der unter voellig anderem Namen an anderer Anschrift in einem anderen Land angelegt wurde, wird nur ueber einen harten Schluessel gefunden.":
+  "Ein unscharfer Treffer ist ein Verdacht mit Score, kein Nachweis. Geblockt wird nach Land und Postleitzahl sowie nach Namensanfang; ein Partner, der unter völlig anderem Namen an anderer Anschrift in einem anderen Land angelegt wurde, wird nur über einen harten Schlüssel gefunden.":
     "A fuzzy hit is a suspicion with a score, not proof. Blocking is by country and postal code as well as by name prefix; a partner created under a completely different name, at a different address, in a different country is found only through a hard key.",
-  "\"Seit langem unveraendert\" stuetzt sich auf die Aenderungshistorie (CDHDR/CDPOS) und auf das Aenderungsdatum im Stammsatz. Eine Buchung ohne Stammdatenaenderung bleibt unsichtbar; die Aussage ist ein Ersatzmass, kein Bewegungsnachweis.":
+  "\"Seit langem unverändert\" stützt sich auf die Änderungshistorie (CDHDR/CDPOS) und auf das Änderungsdatum im Stammsatz. Eine Buchung ohne Stammdatenänderung bleibt unsichtbar; die Aussage ist ein Ersatzmaß, kein Bewegungsnachweis.":
     "\"Unchanged for a long time\" rests on the change history (CDHDR/CDPOS) and on the change date in the master record. A posting without a master data change stays invisible; the statement is a proxy, not evidence of movement.",
-  "Der Abgleich zwischen Geschaeftspartner und den abgeleiteten Kreditoren- und Debitorensichten (Customer/Vendor Integration) ist noch nicht belegt. Eine eigene Dublettenregel auf Geschaeftspartnern gibt es ebenfalls noch nicht - Dubletten werden ueber die Rollensichten gefunden.":
+  "Der Abgleich zwischen Geschäftspartner und den abgeleiteten Kreditoren- und Debitorensichten (Customer/Vendor Integration) ist noch nicht belegt. Eine eigene Dublettenregel auf Geschäftspartnern gibt es ebenfalls noch nicht - Dubletten werden über die Rollensichten gefunden.":
     "The reconciliation between the business partner and the derived vendor and customer views (Customer/Vendor Integration) is not covered yet. There is no dedicated duplicate rule on business partners either - duplicates are found through the role views.",
 
   // -------------------------------------------------------------- Wortschatz
   "Kreditoren": "Vendors",
   "Debitoren": "Customers",
   "Material": "Materials",
-  "Geschaeftspartner": "Business partners",
+  "Geschäftspartner": "Business partners",
   "Bankdaten": "Bank data",
-  "Uebergreifend": "Cross-area",
+  "Übergreifend": "Cross-area",
   "offen": "open",
-  "in Klaerung": "in clarification",
+  "in Klärung": "in clarification",
   "akzeptiert": "accepted",
   "korrigiert": "corrected",
   "neu": "new",
@@ -684,10 +684,10 @@ function spracheSetzen(sprache) {
   document.documentElement.lang = sprache;
 }
 
-/** Uebersetzt einen Text und setzt Platzhalter ein.
+/** Übersetzt einen Text und setzt Platzhalter ein.
  *
- * Unbekannte Texte gehen unveraendert durch. Das ist beabsichtigt: Regelnamen,
- * Objektschluessel und Feldinhalte laufen durch dieselbe Funktion und duerfen
+ * Unbekannte Texte gehen unverändert durch. Das ist beabsichtigt: Regelnamen,
+ * Objektschlüssel und Feldinhalte laufen durch dieselbe Funktion und dürfen
  * nicht angetastet werden.
  */
 function t(text, werte) {
@@ -703,7 +703,7 @@ function t(text, werte) {
   return ergebnis;
 }
 
-/** Die Sprachkennung fuer Zahlen- und Datumsformate. */
+/** Die Sprachkennung für Zahlen- und Datumsformate. */
 function gebietsschema() {
   return SPRACHE === "de" ? "de-DE" : "en-GB";
 }

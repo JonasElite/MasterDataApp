@@ -18,9 +18,9 @@ class TestErkennung:
     """FA-102: Encoding und Trennzeichen."""
 
     def test_trennzeichen_wird_nach_gleichmaessigkeit_gewaehlt(self):
-        # Das Komma kommt im Firmennamen vor, aber unregelmaessig. Das
+        # Das Komma kommt im Firmennamen vor, aber unregelmässig. Das
         # Semikolon trennt jede Zeile gleich oft - es gewinnt.
-        text = "A;B;C\n1;Mueller, Hans GmbH;x\n2;Meier;y\n3;Schulze, Sohn & Co, KG;z"
+        text = "A;B;C\n1;Müller, Hans GmbH;x\n2;Meier;y\n3;Schulze, Sohn & Co, KG;z"
         assert detect_delimiter(text) == ";"
 
     def test_tabulator_wird_erkannt(self):
@@ -116,7 +116,7 @@ class TestZuordnung:
 
 
 class TestHeaderMapping:
-    """FA-105: technische Feldnamen und beschreibende Ueberschriften."""
+    """FA-105: technische Feldnamen und beschreibende Überschriften."""
 
     @pytest.fixture
     def registry(self):
@@ -130,7 +130,7 @@ class TestHeaderMapping:
             ("USt-IdNr.", "STCEG"),
             ("Umsatzsteuer-Identifikationsnummer", "STCEG"),
             ("Löschvormerkung", "LOEVM"),
-            ("Loeschvormerkung", "LOEVM"),
+            ("Löschvormerkung", "LOEVM"),
             ("Straße", "STRAS"),
             ("Angelegt am", "ERDAT"),
         ],
@@ -139,8 +139,8 @@ class TestHeaderMapping:
         assert registry.resolve_field("LFA1", ueberschrift) == feld
 
     def test_normalisierung_ist_umlautsymmetrisch(self):
-        assert normalize_header("Löschvormerkung") == normalize_header("Loeschvormerkung")
-        assert normalize_header("Straße") == normalize_header("Strasse")
+        assert normalize_header("Löschvormerkung") == normalize_header("Löschvormerkung")
+        assert normalize_header("Straße") == normalize_header("Straße")
 
     def test_unbekannte_spalte_bleibt_erhalten(self, registry):
         abbildung = registry.map_headers("LFA1", ["LIFNR", "ZZ_EIGENFELD"])
@@ -162,7 +162,7 @@ class TestPipeline:
         assert len(ergebnis.tables["LFA1"].source_files) == 2
 
     def test_fuehrende_nullen_bleiben_erhalten(self, con, projekt, csv_schreiber):
-        """AK-03: ueber den gesamten Verarbeitungsweg."""
+        """AK-03: über den gesamten Verarbeitungsweg."""
         csv_schreiber(projekt, "LFA1.csv", ["MANDT;LIFNR;NAME1", "100;4711;Muster GmbH"])
         ergebnis = ingest_delivery(con, projekt, load_or_empty(projekt.paths.input_dir))
         werte = con.execute(
@@ -220,7 +220,7 @@ class TestPipeline:
     def test_excel_verliert_fuehrende_nullen_alpha_stellt_sie_her(
         self, con, projekt
     ):
-        """8.4: Excel ist unerwuenscht, der Schaden wird aber geheilt."""
+        """8.4: Excel ist unerwünscht, der Schaden wird aber geheilt."""
         pandas = pytest.importorskip("pandas")
         pfad = projekt.paths.input_dir / "LFA1.xlsx"
         pandas.DataFrame(

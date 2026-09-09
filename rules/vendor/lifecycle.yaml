@@ -1,19 +1,19 @@
-# Aktualitaet und Lifecycle, Kreditor (FA-406).
+# Aktualität und Lifecycle, Kreditor (FA-406).
 #
-# Hinweis zur Abgrenzung: Bewegungsdaten sind ausdruecklich nicht im Umfang
-# (Kapitel 2.3). "Ohne Bewegung seit X Monaten" laesst sich deshalb nicht
-# unmittelbar bestimmen. Ersatzweise dient die Aenderungshistorie (CDHDR) als
-# Aktivitaetsnachweis - ein Stammsatz, der seit Jahren weder angefasst noch
-# geaendert wurde, ist ein starker Kandidat fuer eine Karteileiche. Wo CDHDR
-# fehlt, entfaellt die Regel und erscheint im Coverage-Report.
+# Hinweis zur Abgrenzung: Bewegungsdaten sind ausdrücklich nicht im Umfang
+# (Kapitel 2.3). "Ohne Bewegung seit X Monaten" lässt sich deshalb nicht
+# unmittelbar bestimmen. Ersatzweise dient die Änderungshistorie (CDHDR) als
+# Aktivitätsnachweis - ein Stammsatz, der seit Jahren weder angefasst noch
+# geändert wurde, ist ein starker Kandidat für eine Karteileiche. Wo CDHDR
+# fehlt, entfällt die Regel und erscheint im Coverage-Report.
 rules:
 
   - id: VEN-LC-001
-    name: Loeschvormerkung gesetzt, Satz aber weiterhin im Bestand
+    name: Löschvormerkung gesetzt, Satz aber weiterhin im Bestand
     description: >
-      Eine Loeschvormerkung ist der erste Schritt der Archivierung, nicht ihr
-      Abschluss. Bleibt sie ueber lange Zeit stehen, wurde der Archivierungslauf
-      nie ausgefuehrt. Die Saetze belasten Auswertungen und Dublettensuche.
+      Eine Löschvormerkung ist der erste Schritt der Archivierung, nicht ihr
+      Abschluss. Bleibt sie über lange Zeit stehen, wurde der Archivierungslauf
+      nie ausgeführt. Die Sätze belasten Auswertungen und Dublettensuche.
     category: lifecycle
     severity: medium
     version: "1.0.0"
@@ -27,7 +27,7 @@ rules:
         LFA1: [MANDT, LIFNR, NAME1, ERDAT, LOEVM]
     params:
       months_since_creation: 12
-    remediation: Archivierungslauf fuer vorgemerkte Kreditoren anstossen.
+    remediation: Archivierungslauf für vorgemerkte Kreditoren anstoßen.
     sql: |
       SELECT
           MANDT, LIFNR, NAME1, ERDAT,
@@ -40,9 +40,9 @@ rules:
   - id: VEN-LC-002
     name: Kreditor dauerhaft gesperrt
     description: >
-      Eine Sperre ist als voruebergehende Massnahme gedacht. Besteht sie seit
-      Jahren, ist die Geschaeftsbeziehung faktisch beendet und der Stammsatz
-      sollte zur Loeschung vorgemerkt werden.
+      Eine Sperre ist als vorübergehende Maßnahme gedacht. Besteht sie seit
+      Jahren, ist die Geschäftsbeziehung faktisch beendet und der Stammsatz
+      sollte zur Löschung vorgemerkt werden.
     category: lifecycle
     severity: low
     version: "1.0.0"
@@ -56,7 +56,7 @@ rules:
         LFA1: [MANDT, LIFNR, NAME1, ERDAT, SPERR, SPERM, LOEVM]
     params:
       months_since_creation: 24
-    remediation: Sperre aufheben oder den Stammsatz zur Loeschung vormerken.
+    remediation: Sperre aufheben oder den Stammsatz zur Löschung vormerken.
     sql: |
       SELECT
           MANDT, LIFNR, NAME1, ERDAT, SPERR, SPERM,
@@ -68,13 +68,13 @@ rules:
         AND date_diff('month', ERDAT, current_date) >= ${months_since_creation}
 
   - id: VEN-LC-003
-    name: Kreditor seit langem unveraendert und nie geaendert worden
+    name: Kreditor seit langem unverändert und nie geändert worden
     description: >
       Der Stammsatz wurde vor langer Zeit angelegt und seither in der
-      Aenderungshistorie nie beruehrt. In Verbindung mit fehlender Sperre und
-      fehlender Loeschvormerkung ist das der typische Befund einer Karteileiche.
-      Die Aussage stuetzt sich auf die Aenderungshistorie, nicht auf
-      Bewegungsdaten - eine Buchung ohne Stammdatenaenderung bleibt unsichtbar.
+      Änderungshistorie nie berührt. In Verbindung mit fehlender Sperre und
+      fehlender Löschvormerkung ist das der typische Befund einer Karteileiche.
+      Die Aussage stützt sich auf die Änderungshistorie, nicht auf
+      Bewegungsdaten - eine Buchung ohne Stammdatenänderung bleibt unsichtbar.
     category: lifecycle
     severity: low
     version: "1.0.0"
@@ -91,7 +91,7 @@ rules:
       months_inactive: 36
       change_object_class: KRED
     remediation: >
-      Geschaeftsbeziehung pruefen und den Stammsatz stilllegen, falls sie beendet ist.
+      Geschäftsbeziehung prüfen und den Stammsatz stilllegen, falls sie beendet ist.
     sql: |
       SELECT
           a.MANDT, a.LIFNR, a.NAME1, a.ERDAT,
@@ -108,11 +108,11 @@ rules:
       HAVING date_diff('month', COALESCE(max(c.UDATE), a.ERDAT), current_date) >= ${months_inactive}
 
   - id: VEN-LC-004
-    name: Kreditor kurz nach der Anlage zur Loeschung vorgemerkt
+    name: Kreditor kurz nach der Anlage zur Löschung vorgemerkt
     description: >
       Ein Stammsatz, der wenige Tage nach seiner Anlage wieder vorgemerkt wurde,
       war entweder eine Fehlanlage oder eine Dublette. Beides ist ein Hinweis auf
-      eine Luecke im Anlageprozess und lohnt die Ursachenbetrachtung.
+      eine Lücke im Anlageprozess und lohnt die Ursachenbetrachtung.
     category: lifecycle
     severity: low
     version: "1.0.0"
@@ -128,7 +128,7 @@ rules:
     params:
       days_threshold: 30
       change_object_class: KRED
-    remediation: Anlageprozess pruefen; Dublettenpruefung vor der Anlage einfuehren.
+    remediation: Anlageprozess prüfen; Dublettenprüfung vor der Anlage einführen.
     sql: |
       SELECT
           a.MANDT, a.LIFNR, a.NAME1, a.ERDAT, a.ERNAM,

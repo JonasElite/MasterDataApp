@@ -4,8 +4,8 @@ Alles, was die Management-Summary in Prosa sagt, steht hier als Datenstruktur:
 Kennzahlen, Lieferungsvalidierung, Coverage, Nachforderung, Regelstatus und
 Bewertung. Zwei Adressaten:
 
-* die Oberflaeche, die einen Lauf anzeigen soll, ohne ihn erneut zu rechnen,
-* die Weiterverarbeitung, etwa der spaeter geplante Zusammenschluss mit
+* die Oberfläche, die einen Lauf anzeigen soll, ohne ihn erneut zu rechnen,
+* die Weiterverarbeitung, etwa der später geplante Zusammenschluss mit
   Process-Mining-Auswertungen (offener Punkt OP-07).
 
 Feldinhalte aus Stammdaten stehen nicht darin - nur Metadaten und Zahlen.
@@ -74,7 +74,7 @@ def _lieferung(result: RunResult) -> dict[str, Any]:
                 "gewicht": str(pruefung.severity),
                 "gegenstand": pruefung.table or pruefung.file or "Lieferung",
                 "meldung": pruefung.message,
-                # Vorlage und Werte getrennt, damit die Oberflaeche die
+                # Vorlage und Werte getrennt, damit die Oberfläche die
                 # Meldung in einer anderen Sprache neu bilden kann.
                 "meldung_vorlage": pruefung.message_template,
                 "meldung_werte": pruefung.message_params,
@@ -98,8 +98,8 @@ def _coverage(result: RunResult) -> dict[str, Any]:
             for bereich, werte in result.coverage.coverage_by_area().items()
         },
         "fehlende_tabellen": result.coverage.missing_tables(),
-        # Die Tabellen, an denen die meisten Regeln haengen. Die Oberflaeche
-        # baut den Vorbehalt daraus in der gewaehlten Sprache neu auf.
+        # Die Tabellen, an denen die meisten Regeln hängen. Die Oberfläche
+        # baut den Vorbehalt daraus in der gewählten Sprache neu auf.
         "blockierende_tabellen": list(result.coverage.blocking_tables())[:5],
         "unvollstaendige_tabellen": {
             tabelle: list(felder)
@@ -133,8 +133,8 @@ def _coverage(result: RunResult) -> dict[str, Any]:
                 "version": faehigkeit.rule.version,
                 "ausfuehrbar": faehigkeit.executable,
                 "grund": faehigkeit.reason,
-                # Uebersetzungen des Regeltextes, je Sprachkuerzel. Die
-                # Oberflaeche greift darauf zu; fehlt eine, bleibt es beim
+                # Übersetzungen des Regeltextes, je Sprachkürzel. Die
+                # Oberfläche greift darauf zu; fehlt eine, bleibt es beim
                 # deutschen Wortlaut.
                 "uebersetzungen": faehigkeit.rule.translations,
             }
@@ -146,11 +146,11 @@ def _coverage(result: RunResult) -> dict[str, Any]:
 
 
 def _abdeckung(result: RunResult) -> dict[str, Any]:
-    """Welche Geschaeftsprozesse und Tabellen das Werkzeug abdeckt (FA-303).
+    """Welche Geschäftsprozesse und Tabellen das Werkzeug abdeckt (FA-303).
 
-    Zwei Lesarten stehen nebeneinander, und sie duerfen nicht verwechselt
-    werden: was der Katalog ueberhaupt abdeckt, und was in dieser Lieferung
-    davon ausfuehrbar war. Die erste Zahl ist ein Leistungsversprechen, die
+    Zwei Lesarten stehen nebeneinander, und sie dürfen nicht verwechselt
+    werden: was der Katalog überhaupt abdeckt, und was in dieser Lieferung
+    davon ausführbar war. Die erste Zahl ist ein Leistungsversprechen, die
     zweite ein Befund.
     """
     from sapmdq.rules.prozesse import assign, load_processes
@@ -207,9 +207,9 @@ def _abdeckung(result: RunResult) -> dict[str, Any]:
             }
         )
 
-    # Alle Tabellen des Katalogs, unabhaengig vom Prozess - fuer die
-    # Gesamtuebersicht. Genannt wird auch, welche Prozesse an ihr haengen:
-    # das ist die Begruendung, warum eine Nachlieferung sich lohnt.
+    # Alle Tabellen des Katalogs, unabhängig vom Prozess - für die
+    # Gesamtübersicht. Genannt wird auch, welche Prozesse an ihr hängen:
+    # das ist die Begründung, warum eine Nachlieferung sich lohnt.
     alle_tabellen: dict[str, dict[str, Any]] = {}
     for prozess in prozesse:
         for tabelle in prozess["tabellen"]:
@@ -238,7 +238,7 @@ def _abdeckung(result: RunResult) -> dict[str, Any]:
         "prozesse": prozesse,
         "tabellen": sorted(alle_tabellen.values(), key=lambda e: e["name"]),
         # Regeln ohne Prozesszuordnung. Sollte leer sein; steht hier, damit
-        # eine Luecke sichtbar wird statt stillschweigend zu fehlen.
+        # eine Lücke sichtbar wird statt stillschweigend zu fehlen.
         "ohne_zuordnung": sorted(
             regel.id for regel in result.catalog.rules if regel.id not in katalog.by_rule
         ),
@@ -387,7 +387,7 @@ def write_summary_json(
 
 
 def read_summary(run_dir: Path) -> dict[str, Any] | None:
-    """Liest die Zusammenfassung eines frueheren Laufs."""
+    """Liest die Zusammenfassung eines früheren Laufs."""
     pfad = Path(run_dir) / SUMMARY_FILENAME
     if not pfad.is_file():
         return None

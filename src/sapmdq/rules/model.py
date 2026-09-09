@@ -1,16 +1,16 @@
-"""Modell einer Pruefregel (FA-411, FA-412).
+"""Modell einer Prüfregel (FA-411, FA-412).
 
 Eine Regel ist eine YAML-Datei mit Metadaten und einer SQL-Abfrage. Sie ist
-damit fachlich lesbar und pruefbar, versionierbar und ohne Eingriff in den
+damit fachlich lesbar und prüfbar, versionierbar und ohne Eingriff in den
 Anwendungscode erweiterbar (FA-414, NFA-08, AK-07).
 
 Vertrag zwischen Regel und Engine
 ---------------------------------
 Die Abfrage liefert je beanstandetem Objekt genau eine Zeile. Sie muss die
 in ``key_columns`` genannten Spalten enthalten; daraus bildet die Engine den
-Objektschluessel. Alle uebrigen Spalten werden als Befunddetails uebernommen
-und erscheinen im Excel-Export. Die Engine ergaenzt Regel-ID, Regelversion,
-Schweregrad und Zeitstempel - eine Regel muss sich darum nicht kuemmern.
+Objektschlüssel. Alle übrigen Spalten werden als Befunddetails übernommen
+und erscheinen im Excel-Export. Die Engine ergänzt Regel-ID, Regelversion,
+Schweregrad und Zeitstempel - eine Regel muss sich darum nicht kümmern.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ class Severity(str, Enum):
 
     @property
     def rank(self) -> int:
-        """Sortierrang - kritisch zuerst."""
+        """Sortierrang - kritisch zürst."""
         return {"critical": 0, "high": 1, "medium": 2, "low": 3}[self.value]
 
     @classmethod
@@ -56,7 +56,7 @@ class Severity(str, Enum):
 
 
 class Category(str, Enum):
-    """Regelkategorie gemaess Kapitel 4.4."""
+    """Regelkategorie gemäß Kapitel 4.4."""
 
     COMPLETENESS = "completeness"
     FORMAT = "format"
@@ -70,12 +70,12 @@ class Category(str, Enum):
     @property
     def label(self) -> str:
         return {
-            "completeness": "Vollstaendigkeit",
+            "completeness": "Vollständigkeit",
             "format": "Format / Syntax",
-            "consistency": "Konsistenz ueber Sichten",
-            "referential": "Referenzintegritaet",
+            "consistency": "Konsistenz über Sichten",
+            "referential": "Referenzintegrität",
             "duplicate": "Dubletten",
-            "lifecycle": "Aktualitaet / Lifecycle",
+            "lifecycle": "Aktualität / Lifecycle",
             "risk": "Risiko- / Compliance-Indikatoren",
             "external": "Externe Validierung",
         }[self.value]
@@ -100,7 +100,7 @@ class Category(str, Enum):
 
 
 class RuleKind(str, Enum):
-    """Art der Regelausfuehrung."""
+    """Art der Regelausführung."""
 
     #: Regel ist eine SQL-Abfrage.
     SQL = "sql"
@@ -110,14 +110,14 @@ class RuleKind(str, Enum):
 
 @dataclass(frozen=True)
 class Dependencies:
-    """Was eine Regel braucht, um ueberhaupt laufen zu koennen (FA-301)."""
+    """Was eine Regel braucht, um überhaupt laufen zu können (FA-301)."""
 
     tables: tuple[str, ...] = ()
     fields: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
 
     @property
     def all_tables(self) -> frozenset[str]:
-        """Alle benoetigten Tabellen, auch die nur ueber Felder genannten."""
+        """Alle benötigten Tabellen, auch die nur über Felder genannten."""
         return frozenset(self.tables) | frozenset(self.fields)
 
     @classmethod
@@ -143,13 +143,13 @@ class Dependencies:
 class DuplicateSpec:
     """Beschreibung eines Dublettenabgleichs (FA-501 bis FA-505)."""
 
-    #: Tabelle bzw. SQL, die die zu vergleichenden Saetze liefert.
+    #: Tabelle bzw. SQL, die die zu vergleichenden Sätze liefert.
     source_sql: str = ""
     #: Spalten, die den Stammsatz eindeutig benennen.
     key_columns: tuple[str, ...] = ()
-    #: Felder fuer den exakten Abgleich auf harten Schluesseln (FA-502).
+    #: Felder für den exakten Abgleich auf harten Schlüsseln (FA-502).
     exact_keys: tuple[str, ...] = ()
-    #: Feld mit dem Namen fuer den unscharfen Abgleich (FA-503).
+    #: Feld mit dem Namen für den unscharfen Abgleich (FA-503).
     name_column: str | None = None
     #: Felder, die die Adresse bilden (FA-503).
     address_columns: tuple[str, ...] = ()
@@ -183,18 +183,18 @@ class DuplicateSpec:
         )
 
 
-#: Zulaessige Regel-IDs: Bereich, Kategorie, laufende Nummer (etwa VEN-COMP-001).
-#: Der Bereich darf einstellig sein, damit uebergreifende Regeln kurz mit "X-"
-#: beginnen koennen.
+#: Zulässige Regel-IDs: Bereich, Kategorie, laufende Nummer (etwa VEN-COMP-001).
+#: Der Bereich darf einstellig sein, damit übergreifende Regeln kurz mit "X-"
+#: beginnen können.
 RULE_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9]{0,9}(-[A-Z0-9]{1,10}){1,3}$")
 
-#: Platzhalter fuer Parameter in der SQL-Abfrage.
+#: Platzhalter für Parameter in der SQL-Abfrage.
 _PARAM_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 
 @dataclass
 class Rule:
-    """Eine Pruefregel mit allen Angaben nach FA-412."""
+    """Eine Prüfregel mit allen Angaben nach FA-412."""
 
     id: str
     name: str
@@ -206,25 +206,25 @@ class Rule:
     sql: str = ""
     kind: RuleKind = RuleKind.SQL
     description: str = ""
-    #: Was der Objektschluessel eines Befundes bezeichnet.
+    #: Was der Objektschlüssel eines Befundes bezeichnet.
     object_type: str = ""
-    #: Spalten der Abfrage, aus denen der Objektschluessel gebildet wird.
+    #: Spalten der Abfrage, aus denen der Objektschlüssel gebildet wird.
     key_columns: tuple[str, ...] = ()
     #: Spalte mit dem Mandanten, falls die Abfrage ihn liefert.
     client_column: str | None = None
     #: Spalte mit dem Buchungskreis, falls die Abfrage ihn liefert.
     company_code_column: str | None = None
-    #: Handlungsempfehlung fuer den Data Owner.
+    #: Handlungsempfehlung für den Data Owner.
     remediation: str = ""
-    #: Uebersetzungen je Sprachkuerzel, etwa
+    #: Übersetzungen je Sprachkürzel, etwa
     #: ``{"en": {"name": ..., "description": ..., "remediation": ...}}``.
-    #: Sie stehen in ``<Regelverzeichnis>/i18n/<sprache>.yaml`` und aendern
-    #: nichts an der Pruefung selbst.
+    #: Sie stehen in ``<Regelverzeichnis>/i18n/<sprache>.yaml`` und ändern
+    #: nichts an der Prüfung selbst.
     translations: dict[str, dict[str, str]] = field(default_factory=dict)
-    #: Parameter mit Vorgabewerten, je Projekt uebersteuerbar (FA-413).
+    #: Parameter mit Vorgabewerten, je Projekt übersteuerbar (FA-413).
     params: dict[str, Any] = field(default_factory=dict)
     enabled: bool = True
-    #: Regel benoetigt eine Netzwerkverbindung und ausdrueckliche Freigabe (FA-408).
+    #: Regel benötigt eine Netzwerkverbindung und ausdrückliche Freigabe (FA-408).
     external: bool = False
     duplicate: DuplicateSpec | None = None
     #: Herkunft - erscheint in Fehlermeldungen.
@@ -244,7 +244,7 @@ class Rule:
             raise ConfigError(f"Regel {self.id}: Abschnitt 'duplicate' fehlt")
         if not self.key_columns:
             raise ConfigError(
-                f"Regel {self.id}: 'key_columns' fehlt. Ohne Schluessel laesst sich ein "
+                f"Regel {self.id}: 'key_columns' fehlt. Ohne Schlüssel lässt sich ein "
                 "Befund keinem Stammsatz zuordnen."
             )
         if not self.requirement:
@@ -264,11 +264,11 @@ class Rule:
     ) -> "Rule":
         """Erzeugt eine Kopie mit projektspezifischen Anpassungen (FA-413).
 
-        Die Felder werden einzeln uebernommen und nicht ueber
-        ``dataclasses.replace`` kopiert, damit die Parameterpruefung oben
-        greift. Der Preis: ein neues Feld muss hier ergaenzt werden, sonst geht
+        Die Felder werden einzeln übernommen und nicht über
+        ``dataclasses.replace`` kopiert, damit die Parameterprüfung oben
+        greift. Der Preis: ein neues Feld muss hier ergänzt werden, sonst geht
         es bei jedem Lauf mit Projektkonfiguration still verloren.
-        ``tests/test_rules.py`` haelt das fest.
+        ``tests/test_rules.py`` hält das fest.
         """
         merged = dict(self.params)
         if params:
@@ -311,8 +311,8 @@ def render_params(sql: str, params: Mapping[str, Any], rule_id: str) -> str:
     """Setzt Parameterwerte in die Abfrage ein (FA-413).
 
     Werte werden als SQL-Literale eingesetzt: Zeichenketten maskiert, Listen
-    als Klammerausdruck, Wahrheitswerte und Zahlen unveraendert. Die Werte
-    stammen aus der Projektkonfiguration und damit aus vertrauenswuerdiger
+    als Klammerausdruck, Wahrheitswerte und Zahlen unverändert. Die Werte
+    stammen aus der Projektkonfiguration und damit aus vertrauenswürdiger
     Quelle; die Maskierung verhindert dennoch, dass ein Apostroph in einer
     Kontengruppe die Abfrage zerlegt.
     """

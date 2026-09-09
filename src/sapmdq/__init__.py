@@ -1,4 +1,4 @@
-"""sapmdq - automatisierte Pruefung von SAP-Stammdaten.
+"""sapmdq - automatisierte Prüfung von SAP-Stammdaten.
 
 Das Paket ist strikt in Schichten getrennt (Architekturprinzip Kapitel 7):
 

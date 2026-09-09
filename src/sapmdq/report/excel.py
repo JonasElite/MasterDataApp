@@ -1,14 +1,14 @@
 """Excel-Detailexport (FA-702).
 
 Adressat ist der Data Owner, der die Befunde abarbeitet. Danach richtet sich
-der Aufbau: je Regel eine Registerkarte mit den betroffenen Schluesseln und
-den Feldwerten, die den Befund ausgeloest haben. Wer eine Registerkarte
-oeffnet, soll ohne Rueckfrage arbeiten koennen - deshalb steht die
+der Aufbau: je Regel eine Registerkarte mit den betroffenen Schlüsseln und
+den Feldwerten, die den Befund ausgelöst haben. Wer eine Registerkarte
+öffnet, soll ohne Rückfrage arbeiten können - deshalb steht die
 Regelbeschreibung samt Handlungsempfehlung im Kopf jedes Blattes.
 
 Excel hat eine Zeilengrenze und wird bei sehr vielen Zeilen unhandlich.
-Registerkarten werden deshalb begrenzt; die vollstaendigen Daten stehen im
-maschinenlesbaren Export (FA-703). Dass gekuerzt wurde, steht im Blatt.
+Registerkarten werden deshalb begrenzt; die vollständigen Daten stehen im
+maschinenlesbaren Export (FA-703). Dass gekürzt wurde, steht im Blatt.
 """
 
 from __future__ import annotations
@@ -35,14 +35,14 @@ MAX_SHEET_NAME = 31
 
 #: Farbgebung der Schweregrade.
 #:
-#: Dieselben Werte gelten in der Oberflaeche (``ui/static/stil.css``). Wer eine
+#: Dieselben Werte gelten in der Oberfläche (``ui/static/stil.css``). Wer eine
 #: Auswertung auf dem Bildschirm gezeigt bekommen hat und danach die Mappe
-#: oeffnet, soll dieselben Farben wiederfinden.
+#: öffnet, soll dieselben Farben wiederfinden.
 #:
-#: Es ist eine Statusskala und keine Reihe frei waehlbarer Serienfarben: die
-#: vier Stufen sind fest belegt. Gelb und Orange liegen fuer das normale Sehen
-#: dichter beieinander, als es fuer eine reine Farbunterscheidung reichte -
-#: deshalb steht der Schweregrad ueberall auch als Wort daneben, in der Mappe
+#: Es ist eine Statusskala und keine Reihe frei wählbarer Serienfarben: die
+#: vier Stufen sind fest belegt. Gelb und Orange liegen für das normale Sehen
+#: dichter beieinander, als es für eine reine Farbunterscheidung reichte -
+#: deshalb steht der Schweregrad überall auch als Wort daneben, in der Mappe
 #: wie auf dem Bildschirm.
 SEVERITY_COLORS = {
     "critical": "#D03B3B",
@@ -53,7 +53,7 @@ SEVERITY_COLORS = {
 
 
 def safe_sheet_name(name: str, used: set[str]) -> str:
-    """Bildet einen zulaessigen, eindeutigen Blattnamen."""
+    """Bildet einen zulässigen, eindeutigen Blattnamen."""
     cleaned = _INVALID_SHEET_CHARS.sub("-", name).strip() or "Blatt"
     cleaned = cleaned[:MAX_SHEET_NAME]
     candidate = cleaned
@@ -67,12 +67,12 @@ def safe_sheet_name(name: str, used: set[str]) -> str:
 
 
 def _expand_details(frame: pd.DataFrame) -> pd.DataFrame:
-    """Loest die Befunddetails aus dem JSON-Feld in eigene Spalten auf.
+    """Löst die Befunddetails aus dem JSON-Feld in eigene Spalten auf.
 
-    Fuer Dublettenbefunde wird eine eigene Darstellung gewaehlt: je
+    Für Dublettenbefunde wird eine eigene Darstellung gewählt: je
     Clustermitglied eine Zeile. Der Data Owner sucht nach einer
     Kreditorennummer, nicht nach einer Clusterkennung - er muss seinen Satz in
-    der Spalte wiederfinden koennen.
+    der Spalte wiederfinden können.
     """
     if frame.empty or "detail" not in frame.columns:
         return frame
@@ -81,27 +81,27 @@ def _expand_details(frame: pd.DataFrame) -> pd.DataFrame:
     is_cluster = any(isinstance(entry.get("mitglieder"), list) for entry in parsed)
 
     if is_cluster:
-        # Je Clustermitglied eine Zeile. Der Schluessel des Befundes ist die
-        # Clusterkennung; als "Schluessel" steht in der Tabelle aber der
+        # Je Clustermitglied eine Zeile. Der Schlüssel des Befundes ist die
+        # Clusterkennung; als "Schlüssel" steht in der Tabelle aber der
         # Stammsatz, den der Data Owner sucht - beides in einer Spalte namens
-        # Schluessel waere irrefuehrend.
+        # Schlüssel wäre irreführend.
         rows: list[dict[str, Any]] = []
         for base, detail in zip(frame.to_dict("records"), parsed):
             for member in detail.get("mitglieder") or [{}]:
                 row = {
                     "Cluster": detail.get("cluster", ""),
-                    "Schluessel": member.get("schluessel", ""),
+                    "Schlüssel": member.get("schluessel", ""),
                     "Name": member.get("name", ""),
-                    "Saetze im Cluster": detail.get("anzahl_saetze", ""),
-                    "Aehnlichkeitsscore": detail.get("aehnlichkeitsscore", ""),
+                    "Sätze im Cluster": detail.get("anzahl_saetze", ""),
+                    "Ähnlichkeitsscore": detail.get("aehnlichkeitsscore", ""),
                     "Art des Treffers": detail.get("art_des_treffers", ""),
-                    "Begruendung": "; ".join(detail.get("begruendung", [])),
+                    "Begründung": "; ".join(detail.get("begruendung", [])),
                 }
                 row.update(
                     {
                         key: value
                         for key, value in base.items()
-                        if key not in ("detail", "Schluessel")
+                        if key not in ("detail", "Schlüssel")
                     }
                 )
                 rows.append(row)
@@ -110,14 +110,14 @@ def _expand_details(frame: pd.DataFrame) -> pd.DataFrame:
     details = pd.json_normalize(parsed)
     details.index = frame.index
     base = frame.drop(columns=["detail"])
-    # Spalten, die schon im Grundgeruest stehen, nicht doppelt aufnehmen.
+    # Spalten, die schon im Grundgerüst stehen, nicht doppelt aufnehmen.
     duplicate_columns = [column for column in details.columns if column in base.columns]
     details = details.drop(columns=duplicate_columns)
     return pd.concat([base, details], axis=1)
 
 
 class _Workbook:
-    """Duenne Huelle um XlsxWriter mit einheitlicher Formatierung."""
+    """Dünne Hülle um XlsxWriter mit einheitlicher Formatierung."""
 
     def __init__(self, path: Path) -> None:
         self.book = xlsxwriter.Workbook(str(path), {"constant_memory": True, "in_memory": False})
@@ -147,7 +147,7 @@ class _Workbook:
     ) -> int:
         """Schreibt einen DataFrame mit Kopfzeile, Filter und Spaltenbreiten."""
         if frame.empty:
-            worksheet.write(start_row, 0, "Keine Eintraege.", self.fmt_note)
+            worksheet.write(start_row, 0, "Keine Einträge.", self.fmt_note)
             return start_row + 1
 
         columns = list(frame.columns)
@@ -173,7 +173,7 @@ class _Workbook:
         for index, column in enumerate(columns):
             sample = frame[column].astype(str).head(200)
             # Bei einer durchweg leeren Spalte liefert max() NaN. Ein
-            # "or 0" traegt hier nicht, weil NaN als wahr gilt.
+            # "or 0" trägt hier nicht, weil NaN als wahr gilt.
             longest = sample.str.len().max()
             longest = int(longest) if pd.notna(longest) else 0
             width = max(len(str(column)), longest)
@@ -182,11 +182,11 @@ class _Workbook:
 
 
 def _kpi_sheet(workbook: _Workbook, result: RunResult, severity_counts: dict[str, int]) -> None:
-    """Uebersichtsblatt mit den Kennzahlen."""
-    sheet = workbook.sheet("Uebersicht")
+    """Übersichtsblatt mit den Kennzahlen."""
+    sheet = workbook.sheet("Übersicht")
     sheet.set_column(0, 0, 42)
     sheet.set_column(1, 1, 60)
-    sheet.write(0, 0, f"Stammdatenpruefung - {result.config.project.name}", workbook.fmt_title)
+    sheet.write(0, 0, f"Stammdatenprüfung - {result.config.project.name}", workbook.fmt_title)
 
     row = 2
     if result.coverage:
@@ -203,9 +203,9 @@ def _kpi_sheet(workbook: _Workbook, result: RunResult, severity_counts: dict[str
         ("Konfiguration (SHA-256)", result.config.config_hash[:16] if result.config.config_hash else "-"),
         ("", ""),
         ("Gelieferte Tabellen", len(result.ingestion.tables) if result.ingestion else 0),
-        ("Verarbeitete Saetze", result.rows_ingested),
+        ("Verarbeitete Sätze", result.rows_ingested),
         ("Aktive Regeln", result.coverage.total if result.coverage else 0),
-        ("Ausgefuehrt", executed),
+        ("Ausgeführt", executed),
         ("Entfallen (fehlende Daten)", len(result.coverage.blocked) if result.coverage else 0),
         ("Regelfehler", len(result.failed_rules)),
         ("Coverage-Grad", f"{result.coverage.coverage_ratio:.0%}" if result.coverage else "-"),
@@ -257,7 +257,7 @@ def write_workbook(con: duckdb.DuckDBPyConnection, result: RunResult, target: Pa
                 [
                     {
                         "Gewicht": str(check.severity),
-                        "Pruefung": check.check_id,
+                        "Prüfung": check.check_id,
                         "Anforderung": check.requirement,
                         "Gegenstand": check.table or check.file or "Lieferung",
                         "Befund": check.message,
@@ -279,7 +279,7 @@ def write_workbook(con: duckdb.DuckDBPyConnection, result: RunResult, target: Pa
                         "Bereich": c.rule.object_area,
                         "Schweregrad": c.rule.severity.label,
                         "Version": c.rule.version,
-                        "Ausfuehrbar": "ja" if c.executable else "nein",
+                        "Ausführbar": "ja" if c.executable else "nein",
                         "Grund des Entfalls": c.reason,
                     }
                     for c in sorted(result.coverage.capabilities, key=lambda c: c.rule.id)
@@ -295,7 +295,7 @@ def write_workbook(con: duckdb.DuckDBPyConnection, result: RunResult, target: Pa
                             "Nachforderung": candidate.request,
                             "Bedeutung": candidate.description,
                             "Einstufung": candidate.tier,
-                            "Zusaetzliche Pruefungen": candidate.direct_count,
+                            "Zusätzliche Prüfungen": candidate.direct_count,
                             "Kumuliert": candidate.cumulative_count,
                         }
                         for candidate in result.coverage.demand_list
@@ -310,7 +310,7 @@ def write_workbook(con: duckdb.DuckDBPyConnection, result: RunResult, target: Pa
                 f"""
                 SELECT rule_id AS Regel, rule_name AS Bezeichnung, category_label AS Kategorie,
                        severity AS Schweregrad, object_area AS Bereich, object_type AS Objektart,
-                       object_key AS Schluessel, mandt AS Mandant, bukrs AS Buchungskreis,
+                       object_key AS Schlüssel, mandt AS Mandant, bukrs AS Buchungskreis,
                        status AS Status, data_owner AS "Data Owner", delta_state AS "Vergleich"
                 FROM {findings} WHERE NOT whitelisted
                 ORDER BY severity_rank, rule_id, object_key LIMIT {int(max_rows)}
@@ -342,14 +342,14 @@ def write_workbook(con: duckdb.DuckDBPyConnection, result: RunResult, target: Pa
                 if count > max_rows:
                     note_lines.append(
                         f"Hinweis: {count} Befunde vorhanden, hier sind die ersten {max_rows} "
-                        "aufgefuehrt. Der vollstaendige Bestand steht im maschinenlesbaren Export."
+                        "aufgeführt. Der vollständige Bestand steht im maschinenlesbaren Export."
                     )
                 sheet.set_row(1, 74)
                 sheet.merge_range(1, 0, 1, 7, "\n".join(note_lines), workbook.fmt_note)
 
                 raw = con.execute(
                     f"""
-                    SELECT object_key AS Schluessel, mandt AS Mandant, bukrs AS Buchungskreis,
+                    SELECT object_key AS Schlüssel, mandt AS Mandant, bukrs AS Buchungskreis,
                            severity AS Schweregrad, status AS Status, data_owner AS "Data Owner",
                            delta_state AS Vergleich, detail
                     FROM {findings} WHERE NOT whitelisted AND rule_id = ?
@@ -362,8 +362,8 @@ def write_workbook(con: duckdb.DuckDBPyConnection, result: RunResult, target: Pa
             # ------------------------------------------------ Ausnahmen
             whitelisted = con.execute(
                 f"""
-                SELECT rule_id AS Regel, rule_name AS Bezeichnung, object_key AS Schluessel,
-                       severity AS Schweregrad, whitelist_reason AS "Begruendung der Ausnahme"
+                SELECT rule_id AS Regel, rule_name AS Bezeichnung, object_key AS Schlüssel,
+                       severity AS Schweregrad, whitelist_reason AS "Begründung der Ausnahme"
                 FROM {findings} WHERE whitelisted ORDER BY rule_id, object_key LIMIT {int(max_rows)}
                 """
             ).df()
@@ -383,7 +383,7 @@ def write_workbook(con: duckdb.DuckDBPyConnection, result: RunResult, target: Pa
                         "Jetzt": d.current,
                         "Neu": d.new,
                         "Behoben": d.resolved,
-                        "Veraenderung": d.change,
+                        "Veränderung": d.change,
                     }
                     for d in result.delta.by_rule
                 ]
@@ -392,7 +392,7 @@ def write_workbook(con: duckdb.DuckDBPyConnection, result: RunResult, target: Pa
 
         # ----------------------------------------------------- Score
         if result.score:
-            sheet = workbook.sheet("Datenqualitaet")
+            sheet = workbook.sheet("Datenqualität")
             frame = pd.DataFrame(
                 [
                     {
@@ -400,8 +400,8 @@ def write_workbook(con: duckdb.DuckDBPyConnection, result: RunResult, target: Pa
                         "Score": area.score if area.score is not None else "nicht bewertbar",
                         "Einordnung": area.grade,
                         "Befunde": area.findings,
-                        "Gepruefte Saetze": area.records,
-                        "Regeln ausfuehrbar": area.rules_executable,
+                        "Geprüfte Sätze": area.records,
+                        "Regeln ausführbar": area.rules_executable,
                         "Regeln gesamt": area.rules_total,
                         "Vorbehalt": area.qualification,
                     }

@@ -1,15 +1,15 @@
-"""Lasttest fuer NFA-01: Durchsatz auf einer Lieferung in Zielgroesse.
+"""Lasttest für NFA-01: Durchsatz auf einer Lieferung in Zielgröße.
 
-NFA-01 verlangt 5 Millionen Saetze ueber den vollen Regelkatalog in unter
-15 Minuten auf einem Standard-Notebook. Diese Zahl laesst sich nur auf der
-Zielhardware belegen. Das Skript erzeugt eine Lieferung in waehlbarer Groesse
-und misst den vollstaendigen Lauf.
+NFA-01 verlangt 5 Millionen Sätze über den vollen Regelkatalog in unter
+15 Minuten auf einem Standard-Notebook. Diese Zahl lässt sich nur auf der
+Zielhardware belegen. Das Skript erzeugt eine Lieferung in wählbarer Größe
+und misst den vollständigen Lauf.
 
 Aufruf:
     python tools/lasttest.py --vendors 1000000 --materials 500000
 
 Die Daten werden zeilenweise geschrieben und nicht im Speicher gehalten -
-sonst maesse man den Generator und nicht das Werkzeug.
+sonst mässe man den Generator und nicht das Werkzeug.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 SEED = 20260908
-ORTE = [("Berlin", "DE"), ("Hamburg", "DE"), ("Wien", "AT"), ("Zuerich", "CH"),
+ORTE = [("Berlin", "DE"), ("Hamburg", "DE"), ("Wien", "AT"), ("Zürich", "CH"),
         ("Amsterdam", "NL"), ("Paris", "FR"), ("Mailand", "IT")]
 FORMEN = ["GmbH", "AG", "KG", "OHG", "SE"]
 STAEMME = [
@@ -45,14 +45,14 @@ def schreibe_kreditoren(
 ) -> None:
     """Schreibt LFA1, LFB1, LFM1 und LFBK zeilenweise.
 
-    ``dublettenanteil`` bestimmt, welcher Anteil der Saetze einen Namen aus
-    einem bewusst kleinen Vorrat erhaelt. Der Aufwand der Dublettenerkennung
-    haengt an der Zahl der Treffer, nicht an der Satzanzahl - mit diesem
-    Schalter laesst sich beides getrennt messen.
+    ``dublettenanteil`` bestimmt, welcher Anteil der Sätze einen Namen aus
+    einem bewusst kleinen Vorrat erhält. Der Aufwand der Dublettenerkennung
+    hängt an der Zahl der Treffer, nicht an der Satzanzahl - mit diesem
+    Schalter lässt sich beides getrennt messen.
     """
-    with (ziel / "LFA1.csv").open("w", encoding="utf-8", newline="") as lfa1, \
-         (ziel / "LFB1.csv").open("w", encoding="utf-8", newline="") as lfb1, \
-         (ziel / "LFM1.csv").open("w", encoding="utf-8", newline="") as lfm1, \
+    with (ziel / "LFA1.csv").open("w", encoding="utf-8", newline="") as lfa1,\
+         (ziel / "LFB1.csv").open("w", encoding="utf-8", newline="") as lfb1,\
+         (ziel / "LFM1.csv").open("w", encoding="utf-8", newline="") as lfm1,\
          (ziel / "LFBK.csv").open("w", encoding="utf-8", newline="") as lfbk:
 
         lfa1.write("MANDT;LIFNR;NAME1;LAND1;ORT01;PSTLZ;STRAS;PFACH;KTOKK;ERDAT;ERNAM;"
@@ -67,9 +67,9 @@ def schreibe_kreditoren(
             plz = f"{10000 + (index * 7) % 89999}"
             # Der Name ist nahezu eindeutig. Zieht man aus einem kleinen
             # Vorrat, entsteht ein Bestand mit einem Dublettenanteil, den kein
-            # gewachsener Stamm hat - gemessen wuerde dann die Bewaeltigung
+            # gewachsener Stamm hat - gemessen würde dann die Bewältigung
             # eines Sonderfalls und nicht der Regelbetrieb. Wie sich das
-            # Werkzeug bei hoher Dublettendichte verhaelt, zeigt --dubletten.
+            # Werkzeug bei hoher Dublettendichte verhält, zeigt --dubletten.
             if dublettenanteil and (index % 1000) < dublettenanteil * 1000:
                 name = f"{STAEMME[index % len(STAEMME)]} Handel {FORMEN[index % 5]}"[:35]
             else:
@@ -89,9 +89,9 @@ def schreibe_kreditoren(
 
 def schreibe_material(ziel: Path, anzahl: int) -> None:
     """Schreibt MARA, MAKT, MARC und MBEW zeilenweise."""
-    with (ziel / "MARA.csv").open("w", encoding="utf-8", newline="") as mara, \
-         (ziel / "MAKT.csv").open("w", encoding="utf-8", newline="") as makt, \
-         (ziel / "MARC.csv").open("w", encoding="utf-8", newline="") as marc, \
+    with (ziel / "MARA.csv").open("w", encoding="utf-8", newline="") as mara,\
+         (ziel / "MAKT.csv").open("w", encoding="utf-8", newline="") as makt,\
+         (ziel / "MARC.csv").open("w", encoding="utf-8", newline="") as marc,\
          (ziel / "MBEW.csv").open("w", encoding="utf-8", newline="") as mbew:
 
         mara.write("MANDT;MATNR;MTART;MATKL;MEINS;ERSDA;LAEDA;ERNAM;LVORM;EAN11\n")
@@ -150,7 +150,7 @@ def main() -> None:
     parser.add_argument("--keep", action="store_true", help="Daten nach dem Lauf behalten")
     parser.add_argument(
         "--dubletten", type=float, default=0.0,
-        help="Anteil der Kreditoren mit absichtlich aehnlichem Namen (0.0 bis 1.0)",
+        help="Anteil der Kreditoren mit absichtlich ähnlichem Namen (0.0 bis 1.0)",
     )
     args = parser.parse_args()
 
@@ -170,7 +170,7 @@ def main() -> None:
 
     saetze = args.vendors * 4 + args.materials * 4
     groesse = sum(p.stat().st_size for p in eingang.iterdir()) / 1_048_576
-    print(f"  {saetze:,} Saetze in {groesse:,.0f} MB, erzeugt in {erzeugung:.0f}s".replace(",", "."))
+    print(f"  {saetze:,} Sätze in {groesse:,.0f} MB, erzeugt in {erzeugung:.0f}s".replace(",", "."))
 
     konfiguration = basis / "projekt.yaml"
     konfiguration.write_text(
@@ -200,17 +200,17 @@ report:
     dauer = time.perf_counter() - begonnen
 
     print()
-    print(f"Saetze verarbeitet   : {ergebnis.rows_ingested:,}".replace(",", "."))
-    print(f"Regeln ausgefuehrt   : "
+    print(f"Sätze verarbeitet   : {ergebnis.rows_ingested:,}".replace(",", "."))
+    print(f"Regeln ausgeführt   : "
           f"{len([e for e in ergebnis.all_executions if e.status.value == 'ausgefuehrt'])}"
           f" von {ergebnis.coverage.total}")
     print(f"Befunde              : {ergebnis.total_findings:,}".replace(",", "."))
     print(f"Laufzeit             : {dauer / 60:.1f} Minuten ({dauer:.0f}s)")
-    print(f"Durchsatz            : {ergebnis.rows_ingested / dauer:,.0f} Saetze/s".replace(",", "."))
+    print(f"Durchsatz            : {ergebnis.rows_ingested / dauer:,.0f} Sätze/s".replace(",", "."))
     print()
     grenze = 15 * 60
     hochrechnung = dauer / max(ergebnis.rows_ingested, 1) * 5_000_000
-    print(f"Hochrechnung auf 5 Mio. Saetze: {hochrechnung / 60:.1f} Minuten "
+    print(f"Hochrechnung auf 5 Mio. Sätze: {hochrechnung / 60:.1f} Minuten "
           f"({'unter' if hochrechnung < grenze else 'ueber'} der Vorgabe von 15 Minuten)")
 
     langsamste = sorted(ergebnis.all_executions, key=lambda e: -e.duration_seconds)[:5]
@@ -221,7 +221,7 @@ report:
 
     if not args.keep:
         shutil.rmtree(basis, ignore_errors=True)
-        print(f"\nTestdaten geloescht. Mit --keep bleiben sie in {basis}.")
+        print(f"\nTestdaten gelöscht. Mit --keep bleiben sie in {basis}.")
 
 
 if __name__ == "__main__":

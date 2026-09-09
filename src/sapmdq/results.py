@@ -1,7 +1,7 @@
-"""Ergebnisobjekt eines vollstaendigen Laufs.
+"""Ergebnisobjekt eines vollständigen Laufs.
 
 Steht bewusst in einem eigenen Modul: der Lauf erzeugt es, die Berichte lesen
-es. Laege es im Lauf selbst, muessten sich Lauf und Bericht gegenseitig
+es. Läge es im Lauf selbst, müssten sich Lauf und Bericht gegenseitig
 importieren.
 """
 
@@ -37,7 +37,7 @@ class RunResult:
     catalog: RuleCatalog | None = None
     coverage: CoverageReport | None = None
     engine: EngineResult | None = None
-    #: Ausfuehrungen der Dublettenregeln.
+    #: Ausführungen der Dublettenregeln.
     dedup_executions: list[RuleExecution] = field(default_factory=list)
     enrichment: EnrichmentResult | None = None
     score: ScoreReport | None = None
@@ -52,7 +52,7 @@ class RunResult:
 
     @property
     def all_executions(self) -> list[RuleExecution]:
-        """Ausfuehrungen aller Regeln, SQL- und Dublettenregeln zusammen."""
+        """Ausführungen aller Regeln, SQL- und Dublettenregeln zusammen."""
         engine_executions = self.engine.executions if self.engine else []
         return list(engine_executions) + list(self.dedup_executions)
 

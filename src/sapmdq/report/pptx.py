@@ -1,14 +1,14 @@
-"""Vorlage fuer die Ergebnispraesentation (FA-705).
+"""Vorlage für die Ergebnispräsentation (FA-705).
 
 Erzeugt eine PowerPoint-Datei mit vorbelegten Kernkennzahlen als
-Ausgangspunkt fuer die Ergebnisbesprechung. Die Anforderung ist mit "Could"
-eingestuft; entsprechend ist ``python-pptx`` eine optionale Abhaengigkeit.
-Fehlt sie, entfaellt der Export mit einem Hinweis, statt den Lauf zu
-gefaehrden.
+Ausgangspunkt für die Ergebnisbesprechung. Die Anforderung ist mit "Could"
+eingestuft; entsprechend ist ``python-pptx`` eine optionale Abhängigkeit.
+Fehlt sie, entfällt der Export mit einem Hinweis, statt den Lauf zu
+gefährden.
 
-Bewusst enthaelt die Vorlage keine Befunddetails, sondern nur verdichtete
-Zahlen und den Vorbehalt zur Aussagekraft. Eine Praesentation wird
-weitergereicht, oft ueber den Kreis hinaus, der die Daten sehen darf (DS-02).
+Bewusst enthält die Vorlage keine Befunddetails, sondern nur verdichtete
+Zahlen und den Vorbehalt zur Aussagekraft. Eine Präsentation wird
+weitergereicht, oft über den Kreis hinaus, der die Daten sehen darf (DS-02).
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ logger = get_logger("report.pptx")
 
 
 def is_available() -> bool:
-    """Prueft, ob die optionale Abhaengigkeit vorhanden ist."""
+    """Prüft, ob die optionale Abhängigkeit vorhanden ist."""
     try:
         import pptx  # noqa: F401
     except ImportError:
@@ -31,10 +31,10 @@ def is_available() -> bool:
 
 
 def write_presentation(result: RunResult, target: Path) -> Path | None:
-    """Erzeugt die Praesentationsvorlage."""
+    """Erzeugt die Präsentationsvorlage."""
     if not is_available():
         logger.info(
-            "python-pptx ist nicht installiert - die Praesentationsvorlage entfaellt. "
+            "python-pptx ist nicht installiert - die Präsentationsvorlage entfällt. "
             "Nachinstallation: pip install 'sapmdq[pptx]'"
         )
         return None
@@ -49,14 +49,14 @@ def write_presentation(result: RunResult, target: Path) -> Path | None:
 
     # ------------------------------------------------------- Titelfolie
     slide = presentation.slides.add_slide(title_layout)
-    slide.shapes.title.text = "Pruefung der SAP-Stammdaten"
+    slide.shapes.title.text = "Prüfung der SAP-Stammdaten"
     slide.placeholders[1].text = (
         f"{result.config.project.name}\n"
         f"{result.config.project.customer}\n"
         f"Lauf {result.run_id} | Quellsystem {result.config.project.source_system}"
     )
 
-    # ---------------------------------------------- Aussagekraft zuerst
+    # ---------------------------------------------- Aussagekraft zürst
     slide = presentation.slides.add_slide(bullet_layout)
     slide.shapes.title.text = "Aussagekraft dieses Ergebnisses"
     frame = slide.placeholders[1].text_frame
@@ -70,8 +70,8 @@ def write_presentation(result: RunResult, target: Path) -> Path | None:
     frame = slide.placeholders[1].text_frame
     executed = len([e for e in result.all_executions if e.status.value == "ausgefuehrt"])
     entries = [
-        f"Verarbeitete Saetze: {result.rows_ingested:,}".replace(",", "."),
-        f"Ausgefuehrte Pruefungen: {executed} von {result.coverage.total if result.coverage else 0}",
+        f"Verarbeitete Sätze: {result.rows_ingested:,}".replace(",", "."),
+        f"Ausgeführte Prüfungen: {executed} von {result.coverage.total if result.coverage else 0}",
         f"Coverage-Grad: {result.coverage.coverage_ratio:.0%}" if result.coverage else "",
         f"Befunde gesamt: {result.effective_findings}",
     ]
@@ -91,7 +91,7 @@ def write_presentation(result: RunResult, target: Path) -> Path | None:
     # ----------------------------------------------- Befunde je Kategorie
     if result.score:
         slide = presentation.slides.add_slide(bullet_layout)
-        slide.shapes.title.text = "Datenqualitaet je Objektbereich"
+        slide.shapes.title.text = "Datenqualität je Objektbereich"
         frame = slide.placeholders[1].text_frame
         first = True
         for area in result.score.areas:
@@ -108,11 +108,11 @@ def write_presentation(result: RunResult, target: Path) -> Path | None:
     # ------------------------------------------------ Nachforderung
     if result.coverage and result.coverage.demand_list:
         slide = presentation.slides.add_slide(bullet_layout)
-        slide.shapes.title.text = "Was zusaetzliche Lieferungen bringen"
+        slide.shapes.title.text = "Was zusätzliche Lieferungen bringen"
         frame = slide.placeholders[1].text_frame
         first = True
         for candidate in result.coverage.demand_list[:6]:
-            text = f"{candidate.request}: +{candidate.direct_count} Pruefungen"
+            text = f"{candidate.request}: +{candidate.direct_count} Prüfungen"
             if first:
                 frame.text = text
                 first = False
@@ -125,11 +125,11 @@ def write_presentation(result: RunResult, target: Path) -> Path | None:
     box.text_frame.word_wrap = True
     box.text_frame.text = (
         "Diese Datei ist eine Vorlage mit vorbelegten Kennzahlen und keine fertige "
-        "Praesentation. Befunddetails sind bewusst nicht enthalten: eine Praesentation "
-        "wird weitergereicht, oft ueber den Kreis hinaus, der die Daten sehen darf."
+        "Präsentation. Befunddetails sind bewusst nicht enthalten: eine Präsentation "
+        "wird weitergereicht, oft über den Kreis hinaus, der die Daten sehen darf."
     )
 
     target.parent.mkdir(parents=True, exist_ok=True)
     presentation.save(str(target))
-    logger.info("Praesentationsvorlage geschrieben: %s", target)
+    logger.info("Präsentationsvorlage geschrieben: %s", target)
     return target

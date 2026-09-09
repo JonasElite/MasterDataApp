@@ -1,9 +1,9 @@
-"""Leser fuer die unterstuetzten Lieferformate (FA-101, FA-106).
+"""Leser für die unterstützten Lieferformate (FA-101, FA-106).
 
-Jeder Leser hat dieselbe Aufgabe: den Dateiinhalt unveraendert als reine
+Jeder Leser hat dieselbe Aufgabe: den Dateiinhalt unverändert als reine
 Zeichenkettentabelle nach DuckDB bringen. Es wird hier nichts interpretiert -
-keine Zahlen, keine Datumswerte, keine fuehrenden Nullen entfernt. Die
-Typisierung folgt spaeter anhand der DDIC-Metadaten (FA-103).
+keine Zahlen, keine Datumswerte, keine führenden Nullen entfernt. Die
+Typisierung folgt später anhand der DDIC-Metadaten (FA-103).
 """
 
 from __future__ import annotations
@@ -37,9 +37,9 @@ class RawLoadResult:
     format_info: FormatInfo
     #: Zeilen, die strukturell nicht gelesen werden konnten (FA-202/FA-206).
     rejected_rows: int = 0
-    #: Wenige Beispiele der abgewiesenen Zeilen fuer die Fehlermeldung.
+    #: Wenige Beispiele der abgewiesenen Zeilen für die Fehlermeldung.
     reject_samples: list[str] = field(default_factory=list)
-    #: Spaltenbreiten aus dem SE16N-Rahmen - Grundlage der Truncation-Pruefung.
+    #: Spaltenbreiten aus dem SE16N-Rahmen - Grundlage der Truncation-Prüfung.
     column_widths: dict[str, int] = field(default_factory=dict)
     #: Encoding, aus dem vor dem Lesen umgeschrieben wurde.
     transcoded_from: str | None = None
@@ -53,7 +53,7 @@ def _transcode_to_utf8(path: Path, encoding: str, work_dir: Path) -> Path:
     """Schreibt eine Datei nach UTF-8 um, wenn DuckDB das Encoding nicht kennt.
 
     Betrifft vor allem cp1252: als Latin-1 gelesen gingen Euro-Zeichen und
-    typografische Anfuehrungszeichen in Firmennamen verloren.
+    typografische Anführungszeichen in Firmennamen verloren.
     """
     work_dir.mkdir(parents=True, exist_ok=True)
     target = work_dir / f"{path.stem}.utf8{path.suffix}"
@@ -67,13 +67,13 @@ def _transcode_to_utf8(path: Path, encoding: str, work_dir: Path) -> Path:
 def read_header_line(path: Path, encoding: str, delimiter: str) -> list[str]:
     """Liest die Kopfzeile einer Textdatei.
 
-    Die Kopfzeile bestimmt die verbindliche Spaltenzahl. Ohne sie wuerde der
+    Die Kopfzeile bestimmt die verbindliche Spaltenzahl. Ohne sie würde der
     CSV-Leser die Spaltenzahl selbst raten und eine Zeile mit einem
-    zusaetzlichen, nicht maskierten Trennzeichen als neue Spalte deuten,
+    zusätzlichen, nicht maskierten Trennzeichen als neue Spalte deuten,
     statt sie als defekt zu melden - genau die stille Teilverarbeitung, die
     FA-206 ausschliesst.
 
-    Doppelte und leere Ueberschriften werden eindeutig gemacht, damit sie sich
+    Doppelte und leere Überschriften werden eindeutig gemacht, damit sie sich
     als Spaltennamen verwenden lassen.
     """
     read_encoding = "utf-8-sig" if encoding == "utf-8" else encoding
@@ -100,10 +100,10 @@ def read_header_line(path: Path, encoding: str, delimiter: str) -> list[str]:
 
 
 def file_ends_with_newline(path: Path) -> bool:
-    """Prueft, ob die Datei mit einem Zeilenumbruch endet (FA-202).
+    """Prüft, ob die Datei mit einem Zeilenumbruch endet (FA-202).
 
-    Fehlt er, wurde der Export moeglicherweise abgeschnitten und die letzte
-    Zeile ist unvollstaendig.
+    Fehlt er, wurde der Export möglicherweise abgeschnitten und die letzte
+    Zeile ist unvollständig.
     """
     with path.open("rb") as handle:
         try:
@@ -120,12 +120,12 @@ def _load_csv(
     raw_name: str,
     work_dir: Path,
 ) -> RawLoadResult:
-    """Liest CSV/TXT ueber den CSV-Leser von DuckDB.
+    """Liest CSV/TXT über den CSV-Leser von DuckDB.
 
-    Der Leser arbeitet streamend und beherrscht Anfuehrungszeichen, damit
-    Freitextfelder mit Trennzeichen und Zeilenumbruechen korrekt ankommen
+    Der Leser arbeitet streamend und beherrscht Anführungszeichen, damit
+    Freitextfelder mit Trennzeichen und Zeilenumbrüchen korrekt ankommen
     (FA-106). Strukturell defekte Zeilen werden nicht stillschweigend
-    uebergangen, sondern in einer Rejects-Tabelle festgehalten und weiter
+    übergangen, sondern in einer Rejects-Tabelle festgehalten und weiter
     oben ausgewertet (FA-202, FA-206).
     """
     source_path = path
@@ -149,7 +149,7 @@ def _load_csv(
             quote_literal(str(source_path)),
             # Die Spaltenliste stammt aus der Kopfzeile, nicht aus einer
             # Stichprobe: nur so wird eine Zeile mit einem Feld zu viel
-            # abgewiesen statt zu einer erfundenen Spalte zu fuehren.
+            # abgewiesen statt zu einer erfundenen Spalte zu führen.
             f"columns = {columns_spec}",
             "auto_detect = false",
             "header = true",
@@ -157,9 +157,9 @@ def _load_csv(
             "quote = '\"'",
             "escape = '\"'",
             f"encoding = {quote_literal(encoding)}",
-            # Fehlende abschliessende Felder sind in SAP-Exporten ueblich und
-            # werden aufgefuellt; eine abgeschnittene letzte Zeile faellt
-            # ueber den Zeilenumbruch-Test und den Satzanzahlabgleich auf.
+            # Fehlende abschließende Felder sind in SAP-Exporten üblich und
+            # werden aufgefüllt; eine abgeschnittene letzte Zeile fällt
+            # über den Zeilenumbruch-Test und den Satzanzahlabgleich auf.
             "null_padding = true",
             "store_rejects = true",
             f"rejects_scan = {quote_literal(rejects_scan)}",
@@ -179,9 +179,9 @@ def _load_csv(
     rejected = 0
     samples: list[str] = []
     try:
-        # Gezaehlt werden Zeilen, nicht Fehlereintraege: DuckDB vermerkt bei
-        # einer Zeile mit zwei ueberzaehligen Feldern auch zwei Eintraege, und
-        # "zwei defekte Zeilen" waere im Bericht schlicht falsch.
+        # Gezählt werden Zeilen, nicht Fehlereinträge: DuckDB vermerkt bei
+        # einer Zeile mit zwei überzähligen Feldern auch zwei Einträge, und
+        # "zwei defekte Zeilen" wäre im Bericht schlicht falsch.
         rejected = con.execute(
             f"SELECT count(DISTINCT line) FROM {quote_identifier(rejects_error)}"
         ).fetchone()[0]
@@ -199,7 +199,7 @@ def _load_csv(
         rejected = 0
 
     if not file_ends_with_newline(path):
-        samples.append("Die Datei endet ohne Zeilenumbruch - letzte Zeile moeglicherweise abgeschnitten")
+        samples.append("Die Datei endet ohne Zeilenumbruch - letzte Zeile möglicherweise abgeschnitten")
 
     return RawLoadResult(
         row_count=row_count,
@@ -261,10 +261,10 @@ def _load_xlsx(
 ) -> RawLoadResult:
     """Liest Excel.
 
-    Excel ist als Lieferformat ausdruecklich unerwuenscht (8.4), weil es
-    fuehrende Nullen verwirft und Datumswerte eigenmaechtig umwandelt. Wo es
-    dennoch geliefert wird, wird alles als Text gelesen; die spaetere
-    ALPHA-Konvertierung stellt verlorene fuehrende Nullen wieder her.
+    Excel ist als Lieferformat ausdrücklich unerwünscht (8.4), weil es
+    führende Nullen verwirft und Datumswerte eigenmächtig umwandelt. Wo es
+    dennoch geliefert wird, wird alles als Text gelesen; die spätere
+    ALPHA-Konvertierung stellt verlorene führende Nullen wieder her.
     """
     try:
         frame = pd.read_excel(path, dtype=str, keep_default_na=False, na_filter=False)
@@ -272,7 +272,7 @@ def _load_xlsx(
         raise IngestionError(f"Excel-Datei {path.name} konnte nicht gelesen werden: {exc}") from exc
 
     logger.warning(
-        "%s ist eine Excel-Datei. Fuehrende Nullen und Datumswerte koennen bereits "
+        "%s ist eine Excel-Datei. Führende Nullen und Datumswerte können bereits "
         "beim Export verloren gegangen sein (Lieferformat 8.4).",
         path.name,
     )
@@ -296,7 +296,7 @@ def parse_se16n(text: str) -> tuple[list[str], list[list[str]], dict[str, int], 
 
     Der Export rahmt jede Zelle mit ``|`` und trennt Abschnitte durch Zeilen
     aus Bindestrichen. Die Spaltenbreiten des Rahmens werden mitgegeben: ein
-    Wert, der seine Spalte exakt ausfuellt, ist ein Kandidat fuer eine
+    Wert, der seine Spalte exakt ausfüllt, ist ein Kandidat für eine
     abgeschnittene Feldangabe (FA-202).
     """
     header: list[str] = []
@@ -363,7 +363,7 @@ def load_raw(
     raw_name: str,
     work_dir: Path,
 ) -> RawLoadResult:
-    """Laedt eine Eingangsdatei unveraendert als Zeichenkettentabelle."""
+    """Lädt eine Eingangsdatei unverändert als Zeichenkettentabelle."""
     if info.format is FileFormat.PARQUET:
         return _load_parquet(con, path, info, raw_name)
     if info.format is FileFormat.XLSX:

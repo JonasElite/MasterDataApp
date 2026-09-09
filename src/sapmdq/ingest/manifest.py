@@ -67,7 +67,7 @@ def _parse_date_field(value: Any, context: str) -> date | None:
         return value
     parsed = parse_date(str(value))
     if parsed is None:
-        raise ConfigError(f"{context}: '{value}' ist kein gueltiges Datum")
+        raise ConfigError(f"{context}: '{value}' ist kein gültiges Datum")
     return parsed
 
 
@@ -129,7 +129,7 @@ def load_or_empty(input_dir: Path) -> DeliveryManifest:
     if path is None:
         logger.info(
             "Kein Begleitzettel im Eingangsverzeichnis. Satzanzahlabgleich und "
-            "Stichtag stuetzen sich auf die Projektkonfiguration (FA-201, FA-204)."
+            "Stichtag stützen sich auf die Projektkonfiguration (FA-201, FA-204)."
         )
         return DeliveryManifest()
     return load_manifest(path)

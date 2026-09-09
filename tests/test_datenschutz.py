@@ -18,7 +18,7 @@ class TestLogRedaction:
     @pytest.mark.parametrize(
         "text, verdaechtig",
         [
-            ("Konto DE89370400440532013000 geprueft", "DE89370400440532013000"),
+            ("Konto DE89370400440532013000 geprüft", "DE89370400440532013000"),
             ("Kontakt hans.meier@firma.de", "hans.meier@firma.de"),
             ("Steuernummer DE136695976 falsch", "DE136695976"),
             ("Konto 1234567890123", "1234567890123"),
@@ -29,13 +29,13 @@ class TestLogRedaction:
         assert "redacted" in redact(text)
 
     def test_unverfaengliche_texte_bleiben_lesbar(self):
-        text = "Tabelle LFA1 mit 4711 Saetzen gelesen"
+        text = "Tabelle LFA1 mit 4711 Sätzen gelesen"
         assert redact(text) == text
 
     def test_logdatei_enthaelt_keine_iban(self, tmp_path):
         logdatei = tmp_path / "lauf.log"
         logger = setup_logging(log_file=logdatei, level=logging.INFO, quiet=True)
-        logger.info("Bankverbindung DE89370400440532013000 wurde geprueft")
+        logger.info("Bankverbindung DE89370400440532013000 wurde geprüft")
         for handler in logger.handlers:
             handler.flush()
         assert "DE89370400440532013000" not in logdatei.read_text(encoding="utf-8")
@@ -50,18 +50,18 @@ class TestPseudonymisierung:
 
     def test_gleiche_eingabe_ergibt_gleiches_pseudonym(self, pseudonymisierer):
         # Sonst zerfielen alle Beziehungen zwischen den Tabellen.
-        assert pseudonymisierer.company_name("Mueller GmbH") == pseudonymisierer.company_name(
-            "Mueller GmbH"
+        assert pseudonymisierer.company_name("Müller GmbH") == pseudonymisierer.company_name(
+            "Müller GmbH"
         )
 
     def test_verschiedene_eingaben_ergeben_verschiedene_pseudonyme(self, pseudonymisierer):
-        assert pseudonymisierer.company_name("Mueller GmbH") != pseudonymisierer.company_name(
+        assert pseudonymisierer.company_name("Müller GmbH") != pseudonymisierer.company_name(
             "Meier AG"
         )
 
     def test_anderes_salt_ergibt_andere_pseudonyme(self):
-        eins = Pseudonymizer(salt="a").company_name("Mueller GmbH")
-        zwei = Pseudonymizer(salt="b").company_name("Mueller GmbH")
+        eins = Pseudonymizer(salt="a").company_name("Müller GmbH")
+        zwei = Pseudonymizer(salt="b").company_name("Müller GmbH")
         assert eins != zwei
 
     def test_iban_bleibt_gueltig(self, pseudonymisierer):
@@ -81,8 +81,8 @@ class TestPseudonymisierung:
         assert postal_code_valid("NL", pseudonymisierer.postal_code("1012 AB"))
 
     def test_bankschluessel_der_iban_folgt_dem_feld_bankl(self, pseudonymisierer):
-        # IBAN und Bankschluessel muessen zusammenpassen, sonst meldet die
-        # Demofassung fuer jede Bankverbindung eine Abweichung.
+        # IBAN und Bankschlüssel müssen zusammenpassen, sonst meldet die
+        # Demofassung für jede Bankverbindung eine Abweichung.
         from sapmdq.rules.validators import iban_bank_identifier
 
         original_blz = "37040044"
@@ -162,7 +162,7 @@ class TestExterneValidierung:
         client = ViesClient(cache_path=tmp_path / "cache.json", offline=True)
         ergebnis = client.check("DE", "DE136695976")
         assert client.requests_made == 0
-        assert ergebnis.status == "nicht geprueft"
+        assert ergebnis.status == "nicht geprüft"
 
     def test_stoerung_erzeugt_keinen_befund(self, tmp_path):
         # Ein Netzwerkausfall darf keine tausend Scheinbefunde erzeugen.
@@ -179,7 +179,7 @@ class TestExterneValidierung:
         pfad = tmp_path / "cache.json"
         pfad.write_text(
             json.dumps({"DE136695976": {"status": "ungueltig", "checked_on": "2026-01-01",
-                                        "message": "VIES bestaetigt die Nummer nicht"}}),
+                                        "message": "VIES bestätigt die Nummer nicht"}}),
             encoding="utf-8",
         )
         client = ViesClient(cache_path=pfad, offline=True)

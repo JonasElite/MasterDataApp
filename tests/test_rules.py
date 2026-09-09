@@ -91,17 +91,17 @@ class TestKatalog:
     def test_jede_regel_deklariert_ihre_abhaengigkeiten(self):
         """FA-301: Grundlage der Capability-Matrix."""
         for rule in load_catalog([RULES_DIR], RuleConfig(allow_external_validation=True)):
-            assert rule.requires.all_tables, f"{rule.id} ohne Abhaengigkeiten"
+            assert rule.requires.all_tables, f"{rule.id} ohne Abhängigkeiten"
 
     def test_jede_regel_hat_die_pflichtangaben(self):
         """FA-412."""
         for rule in load_catalog([RULES_DIR], RuleConfig(allow_external_validation=True)):
-            assert rule.name and rule.description, f"{rule.id} unvollstaendig beschrieben"
+            assert rule.name and rule.description, f"{rule.id} unvollständig beschrieben"
             assert rule.remediation, f"{rule.id} ohne Handlungsempfehlung"
             assert rule.version and rule.requirement
 
     def test_undeklariertes_feld_wird_zurueckgewiesen(self, tmp_path):
-        """FA-301: sonst gilt die Regel bei einer Teillieferung faelschlich als ausfuehrbar."""
+        """FA-301: sonst gilt die Regel bei einer Teillieferung fälschlich als ausführbar."""
         (tmp_path / "r.yaml").write_text(
             "id: VEN-TEST-001\nname: Test\ncategory: completeness\nseverity: high\n"
             "object_area: vendor\nkey_columns: [LIFNR]\n"
@@ -123,7 +123,7 @@ class TestKatalog:
             load_catalog([tmp_path], registry=load_registry())
 
     def test_kundenspezifische_regeln_ohne_eingriff_in_den_kern(self, tmp_path):
-        """FA-414, AK-07: neue Regel allein durch eine zusaetzliche Datei."""
+        """FA-414, AK-07: neue Regel allein durch eine zusätzliche Datei."""
         eigen = tmp_path / "eigene_regeln"
         eigen.mkdir()
         (eigen / "kunde.yaml").write_text(
@@ -184,19 +184,19 @@ class TestCapabilityMatrix:
         """FA-305."""
         coverage = build_coverage(RuleCatalog(rules=[regel()]), {}, load_registry())
         text = coverage.qualification()
-        assert "keine Aussage moeglich" in text
+        assert "keine Aussage möglich" in text
         assert "LFA1" in text
 
 
 class TestEngine:
-    """Ausfuehrung und Befundbildung."""
+    """Ausführung und Befundbildung."""
 
     def test_befundkennung_ist_stabil(self):
         """NFA-05: dieselbe Regel und derselbe Satz ergeben dieselbe Kennung."""
         assert build_finding_query(regel()) == build_finding_query(regel())
 
     def test_regelversion_geht_in_die_kennung_ein(self):
-        # Eine neue Regelversion prueft etwas anderes; alte Ausnahmen sollen
+        # Eine neue Regelversion prüft etwas anderes; alte Ausnahmen sollen
         # nicht stillschweigend weitergelten.
         assert build_finding_query(regel()) != build_finding_query(regel(version="2.0.0"))
 

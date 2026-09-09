@@ -1,17 +1,17 @@
-# Vollstaendigkeitsregeln Kreditor (FA-401).
+# Vollständigkeitsregeln Kreditor (FA-401).
 #
-# Pflichtfelder haengen von der Kontengruppe ab: ein CpD-Konto braucht keine
-# Bankverbindung, ein regulaerer Lieferant sehr wohl. Die Kontengruppen sind
+# Pflichtfelder hängen von der Kontengruppe ab: ein CpD-Konto braucht keine
+# Bankverbindung, ein regulärer Lieferant sehr wohl. Die Kontengruppen sind
 # je Projekt parametrisierbar (FA-413), weil ihre Bezeichnungen kundeneigen sind.
 rules:
 
   - id: VEN-COMP-001
     name: Kreditor ohne Umsatzsteuer-Identifikationsnummer
     description: >
-      Kreditoren mit Sitz in einem EU-Land benoetigen fuer den innergemeinschaftlichen
+      Kreditoren mit Sitz in einem EU-Land benötigen für den innergemeinschaftlichen
       Waren- und Dienstleistungsverkehr eine USt-IdNr. Fehlt sie, ist der Steuerausweis
-      nicht belegbar und der Vorsteuerabzug gefaehrdet. Natuerliche Personen, CpD-Konten
-      und zur Loeschung vorgemerkte Saetze sind ausgenommen.
+      nicht belegbar und der Vorsteuerabzug gefährdet. Natürliche Personen, CpD-Konten
+      und zur Löschung vorgemerkte Sätze sind ausgenommen.
     category: completeness
     severity: high
     version: "1.0.0"
@@ -28,8 +28,8 @@ rules:
                      IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK]
       excluded_account_groups: [CPD, CPDL]
     remediation: >
-      USt-IdNr. beim Kreditor erfragen und im Feld STCEG pflegen, anschliessend
-      ueber den VIES-Abgleich bestaetigen lassen.
+      USt-IdNr. beim Kreditor erfragen und im Feld STCEG pflegen, anschließend
+      über den VIES-Abgleich bestätigen lassen.
     sql: |
       SELECT MANDT, LIFNR, NAME1, LAND1, KTOKK, STCEG
       FROM LFA1
@@ -43,8 +43,8 @@ rules:
   - id: VEN-COMP-002
     name: Kreditor ohne Ort oder Postleitzahl
     description: >
-      Ohne vollstaendige Anschrift lassen sich weder Rechnungen zustellen noch
-      Dubletten zuverlaessig erkennen. Die Anschrift ist ausserdem
+      Ohne vollständige Anschrift lassen sich weder Rechnungen zustellen noch
+      Dubletten zuverlässig erkennen. Die Anschrift ist außerdem
       umsatzsteuerliche Rechnungspflichtangabe.
     category: completeness
     severity: medium
@@ -73,11 +73,11 @@ rules:
              OR PSTLZ IS NULL OR is_placeholder_text(PSTLZ))
 
   - id: VEN-COMP-003
-    name: Kreditor ohne Strasse oder ohne Hausnummer
+    name: Kreditor ohne Straße oder ohne Hausnummer
     description: >
-      Eine Strassenangabe ohne Ziffer enthaelt in aller Regel keine Hausnummer.
-      Fuer die Zustellung und fuer den Adressabgleich bei der Dublettensuche ist
-      die vollstaendige Strasse noetig. Reine Postfachanschriften sind ausgenommen
+      Eine Straßenangabe ohne Ziffer enthält in aller Regel keine Hausnummer.
+      Für die Zustellung und für den Adressabgleich bei der Dublettensuche ist
+      die vollständige Straße nötig. Reine Postfachanschriften sind ausgenommen
       und werden getrennt bewertet (VEN-RISK-002).
     category: completeness
     severity: low
@@ -91,13 +91,13 @@ rules:
       fields:
         LFA1: [MANDT, LIFNR, NAME1, STRAS, PFACH, LOEVM, XCPDK]
     params: {}
-    remediation: Strasse mit Hausnummer nachpflegen oder Postfachanschrift kennzeichnen.
+    remediation: Straße mit Hausnummer nachpflegen oder Postfachanschrift kennzeichnen.
     sql: |
       SELECT
           MANDT, LIFNR, NAME1, STRAS,
           CASE
-              WHEN STRAS IS NULL OR is_placeholder_text(STRAS) THEN 'Strasse fehlt'
-              ELSE 'Strasse ohne Hausnummer'
+              WHEN STRAS IS NULL OR is_placeholder_text(STRAS) THEN 'Straße fehlt'
+              ELSE 'Straße ohne Hausnummer'
           END AS befund
       FROM LFA1
       WHERE COALESCE(LOEVM, '') <> 'X'
@@ -108,9 +108,9 @@ rules:
   - id: VEN-COMP-004
     name: Kreditor ohne Steuernummer und ohne USt-IdNr.
     description: >
-      Traegt ein Kreditor weder eine Steuernummer noch eine USt-IdNr., fehlt jede
-      steuerliche Identifikation. Das betrifft auch Inlandskreditoren, fuer die
-      keine USt-IdNr. noetig waere, wohl aber eine Steuernummer.
+      Trägt ein Kreditor weder eine Steuernummer noch eine USt-IdNr., fehlt jede
+      steuerliche Identifikation. Das betrifft auch Inlandskreditoren, für die
+      keine USt-IdNr. nötig wäre, wohl aber eine Steuernummer.
     category: completeness
     severity: high
     version: "1.0.0"
@@ -139,8 +139,8 @@ rules:
     name: Kreditor ohne Buchungskreisdaten
     description: >
       Ein Kreditor ohne Buchungskreissicht kann nicht bebucht werden. Solche
-      Saetze entstehen bei abgebrochener Anlage und bleiben als Karteileichen
-      liegen - sie belasten die Dublettensuche und die Pflegequalitaet.
+      Sätze entstehen bei abgebrochener Anlage und bleiben als Karteileichen
+      liegen - sie belasten die Dublettensuche und die Pflegequalität.
     category: completeness
     severity: medium
     version: "1.0.0"
@@ -155,7 +155,7 @@ rules:
         LFB1: [LIFNR]
     params: {}
     remediation: >
-      Buchungskreissicht anlegen oder den Stammsatz zur Loeschung vormerken und
+      Buchungskreissicht anlegen oder den Stammsatz zur Löschung vormerken und
       archivieren.
     sql: |
       SELECT a.MANDT, a.LIFNR, a.NAME1, a.KTOKK, a.ERDAT
@@ -168,7 +168,7 @@ rules:
     name: Buchungskreisdaten ohne Abstimmkonto
     description: >
       Das Abstimmkonto verbindet die Kreditorenbuchhaltung mit dem Hauptbuch.
-      Ohne Abstimmkonto ist keine Buchung moeglich; der Satz ist unbrauchbar.
+      Ohne Abstimmkonto ist keine Buchung möglich; der Satz ist unbrauchbar.
     category: completeness
     severity: critical
     version: "1.0.0"
@@ -182,7 +182,7 @@ rules:
       fields:
         LFB1: [MANDT, LIFNR, BUKRS, AKONT, LOEVM]
     params: {}
-    remediation: Abstimmkonto gemaess Kontenplan nachpflegen.
+    remediation: Abstimmkonto gemäß Kontenplan nachpflegen.
     sql: |
       SELECT MANDT, LIFNR, BUKRS, AKONT
       FROM LFB1
@@ -193,8 +193,8 @@ rules:
     name: Buchungskreisdaten ohne Zahlungsbedingung
     description: >
       Ohne Zahlungsbedingung wird beim Buchen der Standardwert gezogen oder das
-      Faelligkeitsdatum manuell gesetzt. Beides fuehrt zu falschen
-      Faelligkeitsanalysen und zu verschenkten Skontoertraegen.
+      Fälligkeitsdatum manuell gesetzt. Beides führt zu falschen
+      Fälligkeitsanalysen und zu verschenkten Skontörträgen.
     category: completeness
     severity: high
     version: "1.0.0"
@@ -218,9 +218,9 @@ rules:
   - id: VEN-COMP-008
     name: Zahlweg erfordert Bankverbindung, es ist aber keine hinterlegt
     description: >
-      Ist ein Zahlweg fuer die Ueberweisung gepflegt, muss eine Bankverbindung
+      Ist ein Zahlweg für die Überweisung gepflegt, muss eine Bankverbindung
       vorliegen. Andernfalls scheitert der Zahllauf und die Verbindlichkeit
-      bleibt offen, ohne dass es auffaellt.
+      bleibt offen, ohne dass es auffällt.
     category: completeness
     severity: critical
     version: "1.0.0"

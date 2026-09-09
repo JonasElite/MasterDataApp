@@ -2,12 +2,12 @@
 
 Der Katalog besteht aus YAML-Dateien in einem oder mehreren Verzeichnissen.
 Ein Projekt kann ein eigenes Verzeichnis mit kundenspezifischen Regeln
-hinzunehmen, ohne den mitgelieferten Katalog zu veraendern (FA-414).
+hinzunehmen, ohne den mitgelieferten Katalog zu verändern (FA-414).
 
 Die Katalogversion setzt sich aus zwei Angaben zusammen: der gepflegten
-Versionsnummer aus ``catalog.yaml`` und einem Inhaltshash ueber alle
+Versionsnummer aus ``catalog.yaml`` und einem Inhaltshash über alle
 Regeldateien. Die Nummer sagt, was gemeint war; der Hash sagt, was
-tatsaechlich gelaufen ist (FA-415, NFA-06).
+tatsächlich gelaufen ist (FA-415, NFA-06).
 """
 
 from __future__ import annotations
@@ -36,10 +36,10 @@ from sapmdq.util.hashing import sha256_text
 logger = get_logger("rules.catalog")
 
 #: Name der Datei mit den Katalogmetadaten.
-#: Unterverzeichnis mit den Uebersetzungen des Katalogs.
+#: Unterverzeichnis mit den Übersetzungen des Katalogs.
 I18N_DIR = "i18n"
 
-#: Datei mit der Zuordnung der Regeln zu Geschaeftsprozessen.
+#: Datei mit der Zuordnung der Regeln zu Geschäftsprozessen.
 #: Sie steht neben den Regeln, ist aber keine.
 PROCESS_FILE = "prozesse.yaml"
 
@@ -53,10 +53,10 @@ class RuleCatalog:
     rules: list[Rule] = field(default_factory=list)
     version: str = "0"
     name: str = "Regelkatalog"
-    #: Hash ueber den Inhalt aller Regeldateien.
+    #: Hash über den Inhalt aller Regeldateien.
     content_hash: str = ""
     directories: list[Path] = field(default_factory=list)
-    #: Regeln, die die Konfiguration abgeschaltet hat - mit Begruendung.
+    #: Regeln, die die Konfiguration abgeschaltet hat - mit Begründung.
     disabled: dict[str, str] = field(default_factory=dict)
 
     def __iter__(self):
@@ -67,7 +67,7 @@ class RuleCatalog:
 
     @property
     def full_version(self) -> str:
-        """Vollstaendige Versionsangabe fuer das Protokoll."""
+        """Vollständige Versionsangabe für das Protokoll."""
         return f"{self.version}+{self.content_hash[:12]}"
 
     def by_id(self, rule_id: str) -> Rule | None:
@@ -142,14 +142,14 @@ def _rule_from_dict(raw: Mapping[str, Any], source: Path) -> Rule:
 def _rules_from_file(path: Path) -> list[Rule]:
     """Liest alle Regeln einer Datei.
 
-    Eine Datei enthaelt entweder genau eine Regel oder eine Liste unter
-    ``rules:``. Beides ist erlaubt, damit zusammengehoerige Regeln in einer
-    Datei stehen koennen, ohne dass eine einzelne Regel Umstaende macht.
+    Eine Datei enthält entweder genau eine Regel oder eine Liste unter
+    ``rules:``. Beides ist erlaubt, damit zusammengehörige Regeln in einer
+    Datei stehen können, ohne dass eine einzelne Regel Umstände macht.
     """
     try:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
-        raise ConfigError(f"{path}: kein gueltiges YAML: {exc}") from exc
+        raise ConfigError(f"{path}: kein gültiges YAML: {exc}") from exc
     if raw is None:
         return []
     if isinstance(raw, Mapping) and "rules" in raw:
@@ -165,7 +165,7 @@ def _rules_from_file(path: Path) -> list[Rule]:
 
 
 
-#: Woerter, die in SQL eine eigene Bedeutung haben und deshalb nicht als
+#: Wörter, die in SQL eine eigene Bedeutung haben und deshalb nicht als
 #: Feldbezug gewertet werden, auch wenn eine Tabelle ein gleichnamiges Feld hat.
 _SQL_KEYWORDS = frozenset({
     "SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "NULL", "CASE", "WHEN", "THEN",
@@ -178,21 +178,21 @@ _SQL_KEYWORDS = frozenset({
     "TABLE", "VALUES", "ROW", "FILTER", "WITHIN", "QUALIFY", "EXCLUDE", "LATERAL",
 })
 
-#: Wortartige Bezeichner in Grossschreibung - Kandidaten fuer Feldbezuege.
+#: Wortartige Bezeichner in Grossschreibung - Kandidaten für Feldbezüge.
 _IDENTIFIER_PATTERN = re.compile(r"\b[A-Z][A-Z0-9_]{1,}\b")
 
 
 def _lint_declared_fields(rule: Rule, registry: TableRegistry) -> None:
-    """Prueft, ob die Abfrage nur deklarierte Felder verwendet (FA-301).
+    """Prüft, ob die Abfrage nur deklarierte Felder verwendet (FA-301).
 
     Das ist keine Formalie. Die Capability-Matrix entscheidet allein anhand
     der Deklaration, ob eine Regel laufen darf. Greift die Abfrage auf ein
     Feld zu, das nicht deklariert ist, gilt sie bei einer Teillieferung ohne
-    dieses Feld faelschlich als ausfuehrbar und faellt zur Laufzeit aus -
+    dieses Feld fälschlich als ausführbar und fällt zur Laufzeit aus -
     genau der Fall, den FA-301 verhindern soll.
 
-    Geprueft wird nur gegen Felder der Tabellen, die die Regel ohnehin
-    benoetigt; unbekannte Bezeichner bleiben unbeanstandet.
+    Geprüft wird nur gegen Felder der Tabellen, die die Regel ohnehin
+    benötigt; unbekannte Bezeichner bleiben unbeanstandet.
     """
     tokens = set(_IDENTIFIER_PATTERN.findall(rule.sql)) - _SQL_KEYWORDS
     declared = {
@@ -217,16 +217,16 @@ def _lint_declared_fields(rule: Rule, registry: TableRegistry) -> None:
     )
     raise ConfigError(
         f"Regel {rule.id}: Die Abfrage verwendet Felder, die unter 'requires.fields' "
-        f"nicht deklariert sind ({detail}). Ohne Deklaration haelt die Capability-Matrix "
-        "die Regel auch dann fuer ausfuehrbar, wenn das Feld gar nicht geliefert wurde. "
-        "Bitte die Felder ergaenzen."
+        f"nicht deklariert sind ({detail}). Ohne Deklaration hält die Capability-Matrix "
+        "die Regel auch dann für ausführbar, wenn das Feld gar nicht geliefert wurde. "
+        "Bitte die Felder ergänzen."
     )
 
 
 def _validate_rule(rule: Rule, registry: TableRegistry | None = None) -> None:
-    """Prueft eine Regel auf innere Stimmigkeit.
+    """Prüft eine Regel auf innere Stimmigkeit.
 
-    Die Pruefung greift beim Laden, nicht erst bei der Ausfuehrung. Ein
+    Die Prüfung greift beim Laden, nicht erst bei der Ausführung. Ein
     Tippfehler in einer Regel soll sofort auffallen und nicht erst nach
     zwanzig Minuten Laufzeit.
     """
@@ -246,13 +246,13 @@ def _validate_rule(rule: Rule, registry: TableRegistry | None = None) -> None:
 
     if not rule.requires.all_tables:
         raise ConfigError(
-            f"{context}: 'requires' fehlt. Ohne deklarierte Abhaengigkeiten kann die "
-            "Capability-Matrix nicht entscheiden, ob die Regel ausfuehrbar ist (FA-301)."
+            f"{context}: 'requires' fehlt. Ohne deklarierte Abhängigkeiten kann die "
+            "Capability-Matrix nicht entscheiden, ob die Regel ausführbar ist (FA-301)."
         )
 
-    # Felder, die den Schluessel bilden, sollten auch als Abhaengigkeit
-    # genannt sein - sonst laeuft die Regel auf einer Lieferung an, in der
-    # ihr Schluessel fehlt.
+    # Felder, die den Schlüssel bilden, sollten auch als Abhängigkeit
+    # genannt sein - sonst läuft die Regel auf einer Lieferung an, in der
+    # ihr Schlüssel fehlt.
     if registry is not None and rule.kind is RuleKind.SQL:
         _lint_declared_fields(rule, registry)
 
@@ -264,7 +264,7 @@ def _validate_rule(rule: Rule, registry: TableRegistry | None = None) -> None:
         ]
         if missing_key_fields:
             logger.debug(
-                "%s: Schluesselspalten %s sind nicht als Abhaengigkeit deklariert",
+                "%s: Schlüsselspalten %s sind nicht als Abhängigkeit deklariert",
                 context, ", ".join(missing_key_fields),
             )
 
@@ -288,7 +288,7 @@ def load_catalog(
     rule_config: RuleConfig | None = None,
     registry: TableRegistry | None = None,
 ) -> RuleCatalog:
-    """Laedt den Regelkatalog aus den angegebenen Verzeichnissen."""
+    """Lädt den Regelkatalog aus den angegebenen Verzeichnissen."""
     catalog = RuleCatalog(directories=list(directories))
     if registry is None:
         registry = load_registry()
@@ -306,15 +306,15 @@ def load_catalog(
             catalog.name = name
 
         # Sortierte Reihenfolge: der Inhaltshash und damit die Katalogversion
-        # muessen unabhaengig von der Reihenfolge des Dateisystems sein (NFA-05).
+        # müssen unabhängig von der Reihenfolge des Dateisystems sein (NFA-05).
         for path in sorted(directory.rglob("*.y*ml")):
             if path.name in (CATALOG_META, PROCESS_FILE):
                 continue
-            # Uebersetzungen und die Prozesszuordnung sind keine Regeln. Sie
+            # Übersetzungen und die Prozesszuordnung sind keine Regeln. Sie
             # gehen auch nicht in den Inhaltshash ein: eine korrigierte
-            # Formulierung darf die Katalogversion nicht veraendern, sonst
-            # saehe ein Vergleich zweier Laeufe nach einer Aenderung des
-            # Massstabs aus (FA-605).
+            # Formulierung darf die Katalogversion nicht verändern, sonst
+            # sähe ein Vergleich zweier Läufe nach einer Änderung des
+            # Maßstabs aus (FA-605).
             if I18N_DIR in path.parts:
                 continue
             text = path.read_text(encoding="utf-8")
@@ -337,7 +337,7 @@ def load_catalog(
 
     catalog.content_hash = sha256_text("\n".join(contents))
     catalog.rules = _apply_config(rules, rule_config, catalog)
-    # Stabile Reihenfolge fuer reproduzierbare Berichte (NFA-05).
+    # Stabile Reihenfolge für reproduzierbare Berichte (NFA-05).
     catalog.rules.sort(key=lambda r: (r.object_area, r.category.value, r.id))
 
     logger.info(
@@ -348,7 +348,7 @@ def load_catalog(
 
 
 def _load_translations(directories: Sequence[Path]) -> dict[str, dict[str, dict[str, str]]]:
-    """Liest die Uebersetzungsdateien aus ``<Verzeichnis>/i18n/<sprache>.yaml``.
+    """Liest die Übersetzungsdateien aus ``<Verzeichnis>/i18n/<sprache>.yaml``.
 
     Aufbau je Datei::
 
@@ -359,8 +359,8 @@ def _load_translations(directories: Sequence[Path]) -> dict[str, dict[str, dict[
             remediation: ...
 
     Fehlt eine Datei oder ein Eintrag, bleibt es beim deutschen Wortlaut. Das
-    ist der stille, aber unschaedliche Fall - ein fehlender Satz ist besser als
-    ein Schluesselwort auf dem Bildschirm. Dass er auffaellt, stellt
+    ist der stille, aber unschädliche Fall - ein fehlender Satz ist besser als
+    ein Schlüsselwort auf dem Bildschirm. Dass er auffällt, stellt
     ``tests/test_regeluebersetzung.py`` sicher.
     """
     ergebnis: dict[str, dict[str, dict[str, str]]] = {}
@@ -399,8 +399,8 @@ def _apply_config(
     """Wendet die Projektkonfiguration auf den Katalog an (FA-413)."""
     if rule_config is None:
         # Ohne Projektkonfiguration gilt die sichere Vorgabe: Regeln mit
-        # externer Validierung bleiben abgeschaltet. Eine Uebertragung von
-        # Kundendaten an einen externen Dienst braucht eine ausdrueckliche
+        # externer Validierung bleiben abgeschaltet. Eine Übertragung von
+        # Kundendaten an einen externen Dienst braucht eine ausdrückliche
         # Freigabe und darf nicht dadurch entstehen, dass eine Konfiguration
         # vergessen wurde (DS-04, FA-408).
         active: list[Rule] = []
@@ -409,7 +409,7 @@ def _apply_config(
                 catalog.disabled[rule.id] = "im Katalog als inaktiv gekennzeichnet"
             elif rule.external:
                 catalog.disabled[rule.id] = (
-                    "externe Validierung ohne ausdrueckliche Freigabe "
+                    "externe Validierung ohne ausdrückliche Freigabe "
                     "(rules.allow_external_validation, siehe DS-04 und FA-408)"
                 )
             else:
@@ -436,14 +436,14 @@ def _apply_config(
         if rule.id in deny_list:
             reason = "durch rules.disabled abgeschaltet"
         elif allow_list and rule.id not in allow_list:
-            reason = "nicht in rules.enabled aufgefuehrt"
+            reason = "nicht in rules.enabled aufgeführt"
         elif rule.category.value in denied_categories:
             reason = f"Kategorie '{rule.category.value}' ist abgeschaltet"
         elif not rule.enabled:
             reason = "im Katalog als inaktiv gekennzeichnet"
         elif rule.external and not rule_config.allow_external_validation:
             reason = (
-                "externe Validierung ohne ausdrueckliche Freigabe "
+                "externe Validierung ohne ausdrückliche Freigabe "
                 "(rules.allow_external_validation, siehe DS-04 und FA-408)"
             )
 

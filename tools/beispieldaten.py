@@ -1,15 +1,15 @@
-"""Erzeugt eine Beispiellieferung mit absichtlich eingebauten Maengeln.
+"""Erzeugt eine Beispiellieferung mit absichtlich eingebauten Mängeln.
 
 Zweck ist zweierlei: eine Lieferung zum Ausprobieren des Werkzeugs ohne
-Kundendaten, und eine belastbare Grundlage fuer die Tests. Jeder eingebaute
-Mangel ist unten benannt, damit sich pruefen laesst, ob die zugehoerige Regel
-ihn tatsaechlich findet.
+Kundendaten, und eine belastbare Grundlage für die Tests. Jeder eingebaute
+Mangel ist unten benannt, damit sich prüfen lässt, ob die zugehörige Regel
+ihn tatsächlich findet.
 
 Aufruf:
     python tools/beispieldaten.py ziel/verzeichnis [--vendors 500]
 
 Die Daten sind frei erfunden. Firmennamen, Anschriften und Bankverbindungen
-sind konstruiert; die IBANs sind rechnerisch gueltig, gehoeren aber zu keinem
+sind konstruiert; die IBANs sind rechnerisch gültig, gehören aber zu keinem
 realen Konto.
 """
 
@@ -25,34 +25,34 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 # Die Beispieldaten werden gegen dieselben Verfahren erzeugt, gegen die das
-# Werkzeug spaeter prueft. Andernfalls entstehen Befunde, die nur von der
-# Nachlaessigkeit des Generators zeugen und nicht von einem eingebauten Mangel.
+# Werkzeug später prüft. Andernfalls entstehen Befunde, die nur von der
+# Nachlässigkeit des Generators zeugen und nicht von einem eingebauten Mangel.
 from sapmdq.rules.validators import IBAN_LENGTHS, iban_valid, vat_id_valid
 
-# Der Zufallsgenerator wird fest angesaet: dieselbe Beispiellieferung soll bei
-# jedem Aufruf entstehen, sonst waeren die Tests nicht reproduzierbar.
+# Der Zufallsgenerator wird fest angesät: dieselbe Beispiellieferung soll bei
+# jedem Aufruf entstehen, sonst wären die Tests nicht reproduzierbar.
 SEED = 20260908
 
 ORTE = [
-    ("Berlin", "10115", "DE"), ("Hamburg", "20095", "DE"), ("Muenchen", "80331", "DE"),
-    ("Koeln", "50667", "DE"), ("Frankfurt", "60311", "DE"), ("Stuttgart", "70173", "DE"),
-    ("Wien", "1010", "AT"), ("Salzburg", "5020", "AT"), ("Zuerich", "8001", "CH"),
+    ("Berlin", "10115", "DE"), ("Hamburg", "20095", "DE"), ("München", "80331", "DE"),
+    ("Köln", "50667", "DE"), ("Frankfurt", "60311", "DE"), ("Stuttgart", "70173", "DE"),
+    ("Wien", "1010", "AT"), ("Salzburg", "5020", "AT"), ("Zürich", "8001", "CH"),
     ("Amsterdam", "1012 AB", "NL"), ("Paris", "75001", "FR"), ("Mailand", "20121", "IT"),
 ]
 BRANCHEN = ["Handel", "Technik", "Logistik", "Bau", "Pharma", "Textil", "Metall", "Chemie"]
 
-#: Namensbestandteile. Firmennamen werden aus zwei verschiedenen Stammwoertern
-#: gebildet und ohne Zuruecklegen gezogen. Zwei Namen, die sich nur in einer
-#: laufenden Nummer unterscheiden, waeren fuer den unscharfen Abgleich zu
-#: aehnlich - die Dublettenerkennung meldete sie zu Recht, und die absichtlich
+#: Namensbestandteile. Firmennamen werden aus zwei verschiedenen Stammwörtern
+#: gebildet und ohne Zurücklegen gezogen. Zwei Namen, die sich nur in einer
+#: laufenden Nummer unterscheiden, wären für den unscharfen Abgleich zu
+#: ähnlich - die Dublettenerkennung meldete sie zu Recht, und die absichtlich
 #: eingebauten Cluster gingen darin unter.
 STAMMWOERTER = [
     "Baumann", "Kessler", "Lindner", "Hoffmann", "Wagner", "Brandt", "Ziegler",
     "Kaufmann", "Roth", "Sommer", "Winkler", "Faber", "Gerber", "Hartmann",
-    "Krueger", "Lehmann", "Mayer", "Neumann", "Ostermann", "Pfeiffer", "Quandt",
+    "Krüger", "Lehmann", "Mayer", "Neumann", "Ostermann", "Pfeiffer", "Quandt",
     "Reinhardt", "Schuster", "Thiel", "Ulrich", "Vogel", "Wendt", "Zimmer",
     "Ahrens", "Bergmann", "Clausen", "Dietrich", "Engel", "Fischer", "Grabowski",
-    "Huber", "Ingwer", "Jansen", "Koehler", "Lorenz", "Moser", "Nolte",
+    "Huber", "Ingwer", "Jansen", "Köhler", "Lorenz", "Moser", "Nolte",
     "Petersen", "Richter", "Stein", "Voigt", "Werner", "Adler", "Busch",
     "Cordes", "Dohme", "Ehlers",
 ]
@@ -71,10 +71,10 @@ def mod97(text: str) -> int:
 
 
 def make_iban(country: str, rng: random.Random, bank_key: str = "") -> str:
-    """Baut eine rechnerisch gueltige IBAN in der Laenge des Landes.
+    """Baut eine rechnerisch gültige IBAN in der Länge des Landes.
 
-    Wo bekannt, wird die Bankleitzahl des Stammsatzes uebernommen - sonst
-    meldet die Regel VEN-FMT-005 zu Recht, dass IBAN und Bankschluessel nicht
+    Wo bekannt, wird die Bankleitzahl des Stammsatzes übernommen - sonst
+    meldet die Regel VEN-FMT-005 zu Recht, dass IBAN und Bankschlüssel nicht
     zusammenpassen.
     """
     length = IBAN_LENGTHS.get(country, 22)
@@ -90,11 +90,11 @@ def make_iban(country: str, rng: random.Random, bank_key: str = "") -> str:
 
 
 def make_vat(country: str, rng: random.Random) -> str:
-    """Erzeugt eine syntaktisch gueltige USt-IdNr. des Landes.
+    """Erzeugt eine syntaktisch gültige USt-IdNr. des Landes.
 
-    Erzeugt und geprueft wird gegen dieselbe Funktion, die spaeter beurteilt -
-    fuer Laender mit Pruefziffernverfahren durch Ausprobieren, was bei
-    einstelligen Pruefziffern in wenigen Versuchen gelingt.
+    Erzeugt und geprüft wird gegen dieselbe Funktion, die später beurteilt -
+    für Länder mit Prüfziffernverfahren durch Ausprobieren, was bei
+    einstelligen Prüfziffern in wenigen Versuchen gelingt.
     """
     if country not in ("DE", "AT", "NL", "FR", "IT"):
         return ""
@@ -113,7 +113,7 @@ def make_vat(country: str, rng: random.Random) -> str:
 
 
 def vat_de(rng: random.Random) -> str:
-    """Deutsche USt-IdNr. mit gueltiger Pruefziffer."""
+    """Deutsche USt-IdNr. mit gültiger Prüfziffer."""
     while True:
         digits = [rng.randint(0, 9) for _ in range(8)]
         product = 10
@@ -127,12 +127,12 @@ def vat_de(rng: random.Random) -> str:
 
 
 def eindeutige_namen(rng: random.Random, anzahl: int) -> list[str]:
-    """Zieht paarweise verschiedene Firmennamen ohne Zuruecklegen.
+    """Zieht paarweise verschiedene Firmennamen ohne Zurücklegen.
 
-    Jeder Name traegt einen vierstelligen Zusatz, wie er in gewachsenen
-    Stammdaten haeufig vorkommt. Er ist hier kein Schmuck: ohne ihn
+    Jeder Name trägt einen vierstelligen Zusatz, wie er in gewachsenen
+    Stammdaten häufig vorkommt. Er ist hier kein Schmuck: ohne ihn
     unterscheiden sich zwei Namen aus dem Wortvorrat schnell nur in einem von
-    drei Bestandteilen, was der unscharfe Abgleich zu Recht als moegliche
+    drei Bestandteilen, was der unscharfe Abgleich zu Recht als mögliche
     Dublette meldet. Die absichtlich eingebauten Cluster gingen darin unter.
     """
     paare = [
@@ -154,17 +154,17 @@ def eindeutige_namen(rng: random.Random, anzahl: int) -> list[str]:
 
 
 def eindeutige_kurztexte(rng: random.Random, anzahl: int) -> list[str]:
-    """Zieht paarweise verschiedene Materialkurztexte ohne Zuruecklegen.
+    """Zieht paarweise verschiedene Materialkurztexte ohne Zurücklegen.
 
-    Die Bestandteile unterscheiden sich in ganzen Woertern, nicht nur in einer
-    Ziffer. Sonst laegen die Texte so nah beieinander, dass MAT-DUP-001 sie zu
-    Recht als moegliche Dubletten meldet - was die absichtlich eingebaute
+    Die Bestandteile unterscheiden sich in ganzen Wörtern, nicht nur in einer
+    Ziffer. Sonst lägen die Texte so nah beieinander, dass MAT-DUP-001 sie zu
+    Recht als mögliche Dubletten meldet - was die absichtlich eingebaute
     Dublette unkenntlich machte.
     """
     gegenstaende = [
         "Schraube", "Blech", "Rohr", "Kabel", "Ventil", "Flansch", "Dichtung",
         "Lager", "Welle", "Zahnrad", "Feder", "Buchse", "Mutter", "Scheibe",
-        "Winkel", "Traeger", "Profil", "Platte", "Stange", "Kupplung",
+        "Winkel", "Träger", "Profil", "Platte", "Stange", "Kupplung",
     ]
     werkstoffe = ["Stahl", "Edelstahl", "Messing", "Alu", "Kunststoff", "Kupfer", "Guss"]
     ausfuehrungen = ["verzinkt", "poliert", "lackiert", "gehaertet", "roh", "beschichtet"]
@@ -178,8 +178,8 @@ def eindeutige_kurztexte(rng: random.Random, anzahl: int) -> list[str]:
         raise ValueError(
             f"Es lassen sich nur {len(kombinationen)} verschiedene Kurztexte bilden."
         )
-    # Der Sachnummernzusatz ist in technischen Materialstaemmen ueblich und
-    # sorgt zugleich dafuer, dass sich zwei Kurztexte in mehr als einem von
+    # Der Sachnummernzusatz ist in technischen Materialstämmen üblich und
+    # sorgt zugleich dafür, dass sich zwei Kurztexte in mehr als einem von
     # drei Bestandteilen unterscheiden.
     return [
         f"{text} {rng.choice('ABCDEFGH')}{rng.randint(100, 999)}"
@@ -187,16 +187,16 @@ def eindeutige_kurztexte(rng: random.Random, anzahl: int) -> list[str]:
     ]
 
 
-#: Feldlaenge von NAME1 laut DDIC.
+#: Feldlänge von NAME1 laut DDIC.
 NAME1_LAENGE = 35
 
 
 def kuerzbarer_name(basis: str, rechtsform: str) -> str:
-    """Setzt Namen und Rechtsform zusammen, ohne die Feldlaenge zu sprengen.
+    """Setzt Namen und Rechtsform zusammen, ohne die Feldlänge zu sprengen.
 
-    Passt beides nicht, entfaellt die Rechtsform. Ein hart abgeschnittener
-    Name wuerde die Truncation-Pruefung der Vorstufe ausloesen - voellig zu
-    Recht, aber es waere ein Mangel des Generators und keiner der Daten.
+    Passt beides nicht, entfällt die Rechtsform. Ein hart abgeschnittener
+    Name würde die Truncation-Prüfung der Vorstufe auslösen - völlig zu
+    Recht, aber es wäre ein Mangel des Generators und keiner der Daten.
     """
     voll = f"{basis} {rechtsform}"
     if len(voll) <= NAME1_LAENGE:
@@ -223,26 +223,26 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     lfm1: list[dict] = []
     lfbk: list[dict] = []
 
-    # Ein einziger Namensvorrat fuer regulaere Kreditoren und Mangelfaelle.
-    # Zwei getrennte Ziehungen koennten dieselbe Namenskombination liefern -
-    # und zwei Kreditoren mit gleichem Namensstamm sind fuer den unscharfen
-    # Abgleich zu Recht eine moegliche Dublette.
+    # Ein einziger Namensvorrat für reguläre Kreditoren und Mangelfälle.
+    # Zwei getrennte Ziehungen könnten dieselbe Namenskombination liefern -
+    # und zwei Kreditoren mit gleichem Namensstamm sind für den unscharfen
+    # Abgleich zu Recht eine mögliche Dublette.
     MANGELNAMEN_ANZAHL = 90
     namen = eindeutige_namen(rng, vendor_count + MANGELNAMEN_ANZAHL)
 
     def anschrift(vorgabe: str | None = None) -> tuple[str, str, str, str]:
-        """Erzeugt eine Anschrift mit landesueblicher Postleitzahl.
+        """Erzeugt eine Anschrift mit landesüblicher Postleitzahl.
 
         Die Postleitzahl wird gestreut und nicht aus einer kurzen Liste
-        gezogen: sie ist der Blockschluessel der Dublettenerkennung. Traegen
+        gezogen: sie ist der Blockschlüssel der Dublettenerkennung. Trägen
         hunderte Kreditoren dieselbe Postleitzahl, landen sie alle im selben
-        Block, und aehnliche Namen an vermeintlich gleicher Anschrift werden
-        zu Recht als moegliche Dubletten gemeldet.
+        Block, und ähnliche Namen an vermeintlich gleicher Anschrift werden
+        zu Recht als mögliche Dubletten gemeldet.
 
-        Mit ``vorgabe`` laesst sich das Land festlegen. Das ist noetig, wenn
-        ein Mangelfall ein bestimmtes Land braucht: sonst traegt der Satz eine
-        oesterreichische Postleitzahl bei deutschem Laenderschluessel und
-        loest einen Formatbefund aus, der gar nicht eingebaut war.
+        Mit ``vorgabe`` lässt sich das Land festlegen. Das ist nötig, wenn
+        ein Mangelfall ein bestimmtes Land braucht: sonst trägt der Satz eine
+        österreichische Postleitzahl bei deutschem Länderschlüssel und
+        löst einen Formatbefund aus, der gar nicht eingebaut war.
         """
         moeglich = [eintrag for eintrag in ORTE if vorgabe is None or eintrag[2] == vorgabe]
         ort, _, land = rng.choice(moeglich or ORTE)
@@ -259,23 +259,23 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         strasse = f"{rng.choice(STRASSEN)} {rng.randint(1, 199)}"
         return strasse, plz, ort, land
 
-    # ------------------------------------------------ regulaere Kreditoren
+    # ------------------------------------------------ reguläre Kreditoren
     for index in range(1, vendor_count + 1):
         lifnr = f"{100000 + index}"
         strasse, plz, ort, land = anschrift()
         # Der Name muss in NAME1 passen (35 Zeichen laut DDIC). Statt zu
-        # kuerzen entfaellt die Rechtsform, wenn es sonst nicht reicht -
-        # abgeschnittene Namen wuerden die Truncation-Pruefung ausloesen, und
+        # kürzen entfällt die Rechtsform, wenn es sonst nicht reicht -
+        # abgeschnittene Namen würden die Truncation-Prüfung auslösen, und
         # zwar zu Recht.
         name = kuerzbarer_name(namen[index - 1], rng.choice(FORMEN))
         angelegt = heute - timedelta(days=rng.randint(30, 2600))
 
-        # Zahlungsbedingung gilt fuer beide Sichten gleich - abweichende Werte
+        # Zahlungsbedingung gilt für beide Sichten gleich - abweichende Werte
         # sind ein eigener Mangel (VEN-CONS-006) und kein Grundrauschen.
         zahlungsbedingung = rng.choice(["ZB01", "ZB02", "ZB03"])
         bankland = land if land in IBAN_LENGTHS else "DE"
-        # Die Bankleitzahl muss die Laenge haben, die das Land in der IBAN
-        # vorsieht - sonst meldet VEN-FMT-005 fuer jeden auslaendischen
+        # Die Bankleitzahl muss die Länge haben, die das Land in der IBAN
+        # vorsieht - sonst meldet VEN-FMT-005 für jeden ausländischen
         # Kreditor eine Abweichung, die nur der Generator verursacht hat.
         stellen = BANK_KEY_LENGTHS.get(bankland, 8)
         bankleitzahl = "".join(str(rng.randint(0, 9)) for _ in range(stellen))
@@ -286,8 +286,8 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
             "KTOKK": "KRED", "ERDAT": angelegt.strftime("%Y%m%d"),
             "ERNAM": f"USER{rng.randint(1, 12):02d}",
             "STCEG": make_vat(land, rng),
-            # Laender ohne USt-IdNr. tragen wenigstens eine Steuernummer,
-            # sonst meldet VEN-COMP-004 fuer jeden Schweizer Kreditor.
+            # Länder ohne USt-IdNr. tragen wenigstens eine Steuernummer,
+            # sonst meldet VEN-COMP-004 für jeden Schweizer Kreditor.
             "STCD1": "" if land in ("DE", "AT", "NL", "FR", "IT") else f"{rng.randint(100000000, 999999999)}",
             "LOEVM": "", "SPERR": "", "SPERM": "", "XCPDK": "", "STKZN": "",
             "ADRNR": "", "NAME2": "", "STCD2": "", "KUNNR": "", "TELF1": "",
@@ -313,11 +313,11 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
 
     defekte: list[str] = []
     naechste = vendor_count
-    # Namen fuer die Mangelfaelle aus dem hinteren Teil desselben Vorrats. Ein
-    # sprechender Name wie "Adresslos GmbH" waere bequem zu lesen, aber
-    # unbrauchbar: alle Saetze einer Mangelgruppe traegen dann einen langen
+    # Namen für die Mangelfälle aus dem hinteren Teil desselben Vorrats. Ein
+    # sprechender Name wie "Adresslos GmbH" wäre bequem zu lesen, aber
+    # unbrauchbar: alle Sätze einer Mangelgruppe trägen dann einen langen
     # gemeinsamen Namensbestandteil, und die Dublettenerkennung meldete sie
-    # voellig zu Recht als Cluster. Welcher Satz welchen Mangel traegt, steht
+    # völlig zu Recht als Cluster. Welcher Satz welchen Mangel trägt, steht
     # stattdessen in EINGEBAUTE_MAENGEL.md.
     mangelnamen = namen[vendor_count:][::-1]
 
@@ -330,9 +330,9 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     def neuer_kreditor(eindeutig: bool = True, **felder) -> dict:
         """Legt einen Kreditor mit einem gezielt eingebauten Mangel an.
 
-        ``eindeutig`` haengt an den Namen einen unterscheidungskraeftigen
-        Zusatz. Ohne ihn traegen alle Saetze einer Mangelgruppe denselben
-        Namen und die Dublettenerkennung meldet sie voellig zu Recht als
+        ``eindeutig`` hängt an den Namen einen unterscheidungskräftigen
+        Zusatz. Ohne ihn trägen alle Sätze einer Mangelgruppe denselben
+        Namen und die Dublettenerkennung meldet sie völlig zu Recht als
         Cluster - was den einen absichtlich eingebauten Dublettenfall
         unkenntlich machte.
         """
@@ -355,22 +355,22 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         lfa1.append(satz)
         return satz
 
-    # ------------------------------------------------ eingebaute Maengel
+    # ------------------------------------------------ eingebaute Mängel
     # VEN-COMP-001: EU-Kreditor ohne USt-IdNr.
     gruppe(
         "VEN-COMP-001 und VEN-COMP-004: 6 EU-Kreditoren ohne USt-IdNr. und ohne Steuernummer",
         [neuer_kreditor(LAND1="DE", STCEG="", STCD1="") for _ in range(6)],
     )
 
-    # VEN-FMT-001: USt-IdNr. mit falscher Pruefziffer.
+    # VEN-FMT-001: USt-IdNr. mit falscher Prüfziffer.
     #
-    # Jeder Satz bekommt eine andere falsche Nummer. Traegen alle vier dieselbe,
-    # meldet VEN-DUP-001 sie nebenher als Dublettencluster - voellig zu Recht,
+    # Jeder Satz bekommt eine andere falsche Nummer. Trägen alle vier dieselbe,
+    # meldet VEN-DUP-001 sie nebenher als Dublettencluster - völlig zu Recht,
     # aber es steht dann ein unbenanntes Cluster im Bericht, das die
-    # absichtlich eingebauten Dubletten verwaessert.
+    # absichtlich eingebauten Dubletten verwässert.
     falsche_ustid = [f"DE1111111{ziffer}1" for ziffer in range(4)]
     gruppe(
-        "VEN-FMT-001: 4 Kreditoren mit falscher USt-IdNr.-Pruefziffer",
+        "VEN-FMT-001: 4 Kreditoren mit falscher USt-IdNr.-Prüfziffer",
         [neuer_kreditor(LAND1="DE", STCEG=nummer) for nummer in falsche_ustid],
     )
 
@@ -398,9 +398,9 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         [neuer_kreditor(STRAS="", PFACH="10 20 30") for _ in range(4)],
     )
 
-    # VEN-CONS-007: natuerliche Person mit Rechtsform im Namen
+    # VEN-CONS-007: natürliche Person mit Rechtsform im Namen
     gruppe(
-        "VEN-CONS-007: 3 Kreditoren als natuerliche Person mit Rechtsform im Namen",
+        "VEN-CONS-007: 3 Kreditoren als natürliche Person mit Rechtsform im Namen",
         [neuer_kreditor(STKZN="X") for _ in range(3)],
     )
 
@@ -408,7 +408,7 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     dubletten = [
         ("Mueller & Sohn GmbH", "Hauptstrasse 12", "10115", "Berlin"),
         ("Müller und Sohn G.m.b.H.", "Hauptstr. 12", "10115", "Berlin"),
-        ("MUELLER U SOHN GMBH", "Haupt-Strasse 12", "10115", "Berlin"),
+        ("MUELLER U SOHN GMBH", "Haupt-Straße 12", "10115", "Berlin"),
     ]
     gruppe(
         "VEN-DUP-003: 1 Cluster aus 3 Namensdubletten mit Schreibvarianten",
@@ -427,9 +427,9 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         [neuer_kreditor(LAND1="DE", STCEG=geteilte_ustid) for _ in range(2)],
     )
 
-    # VEN-LC-001: Loeschvormerkung ohne Archivierung
+    # VEN-LC-001: Löschvormerkung ohne Archivierung
     gruppe(
-        "VEN-LC-001: 7 Kreditoren mit alter Loeschvormerkung ohne Archivierung",
+        "VEN-LC-001: 7 Kreditoren mit alter Löschvormerkung ohne Archivierung",
         [
             neuer_kreditor(
                 LOEVM="X", ERDAT=(heute - timedelta(days=1500)).strftime("%Y%m%d")
@@ -438,12 +438,12 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         ],
     )
 
-    # Kreditoren, denen anschliessend die Buchungskreissicht entzogen wird.
+    # Kreditoren, denen anschließend die Buchungskreissicht entzogen wird.
     ohne_buchungskreis = [neuer_kreditor() for _ in range(4)]
 
-    # Buchungskreis-, Einkaufs- und Bankdaten fuer die Mangelfaelle ergaenzen.
-    # Ohne sie meldeten Regeln wie VEN-COMP-005 oder VEN-COMP-008 fuer jeden
-    # eingebauten Mangelfall zusaetzlich eine fehlende Sicht.
+    # Buchungskreis-, Einkaufs- und Bankdaten für die Mangelfälle ergänzen.
+    # Ohne sie meldeten Regeln wie VEN-COMP-005 oder VEN-COMP-008 für jeden
+    # eingebauten Mangelfall zusätzlich eine fehlende Sicht.
     vorhanden_bukrs = {satz["LIFNR"] for satz in lfb1}
     vorhanden_bank = {satz["LIFNR"] for satz in lfbk}
     for satz in lfa1:
@@ -469,44 +469,44 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     # VEN-COMP-006: Buchungskreisdaten ohne Abstimmkonto
     for satz in lfb1[:5]:
         satz["AKONT"] = ""
-    defekte.append("VEN-COMP-006: 5 Buchungskreissaetze ohne Abstimmkonto")
+    defekte.append("VEN-COMP-006: 5 Buchungskreissätze ohne Abstimmkonto")
 
     # VEN-COMP-007: ohne Zahlungsbedingung
     for satz in lfb1[5:11]:
         satz["ZTERM"] = ""
-    defekte.append("VEN-COMP-007: 6 Buchungskreissaetze ohne Zahlungsbedingung")
+    defekte.append("VEN-COMP-007: 6 Buchungskreissätze ohne Zahlungsbedingung")
 
     # VEN-REF-003: Zahlungsbedingung, die es im Customizing nicht gibt
     for satz in lfb1[11:15]:
         satz["ZTERM"] = "ZZ99"
     defekte.append("VEN-REF-003: 4 Verweise auf unbekannte Zahlungsbedingung")
 
-    # VEN-COMP-005: Kreditoren ganz ohne Buchungskreissicht. Die Saetze werden
-    # ausdruecklich dafuer angelegt: naehme man die zuletzt entstandenen, waeren
-    # es die zur Loeschung vorgemerkten, und die Regel schliesst diese zu Recht
-    # aus - der Mangel entstuende gar nicht.
+    # VEN-COMP-005: Kreditoren ganz ohne Buchungskreissicht. Die Sätze werden
+    # ausdrücklich dafür angelegt: nähme man die zuletzt entstandenen, wären
+    # es die zur Löschung vorgemerkten, und die Regel schließt diese zu Recht
+    # aus - der Mangel entstünde gar nicht.
     ohne_bukrs = {satz["LIFNR"] for satz in ohne_buchungskreis}
     lfb1 = [satz for satz in lfb1 if satz["LIFNR"] not in ohne_bukrs]
     gruppe(
         "VEN-COMP-005: 4 Kreditoren ohne Buchungskreisdaten", ohne_buchungskreis
     )
 
-    # VEN-FMT-003: ungueltige IBAN
+    # VEN-FMT-003: ungültige IBAN
     for satz in lfbk[:5]:
         satz["IBAN"] = satz["IBAN"][:-1] + ("0" if satz["IBAN"][-1] != "0" else "1")
-    defekte.append("VEN-FMT-003: 5 ungueltige IBAN")
+    defekte.append("VEN-FMT-003: 5 ungültige IBAN")
 
     # VEN-FMT-004: IBAN-Land weicht vom Bankland ab. Das Bankland wird
-    # ausdruecklich auf ein anderes Land als das der IBAN gesetzt - ein fest
-    # gewaehlter Wert traefe sonst gelegentlich das Land der IBAN und der
-    # Mangel entstuende gar nicht.
+    # ausdrücklich auf ein anderes Land als das der IBAN gesetzt - ein fest
+    # gewählter Wert träfe sonst gelegentlich das Land der IBAN und der
+    # Mangel entstünde gar nicht.
     for satz in lfbk[5:8]:
         satz["BANKS"] = "IT" if satz["IBAN"][:2] != "IT" else "PL"
     defekte.append("VEN-FMT-004: 3 Bankverbindungen mit abweichendem Bankland")
 
-    # VEN-DUP-002: gleiche Bankverbindung bei zwei Kreditoren. Uebernommen wird
-    # die vollstaendige Verbindung: kopierte man nur die IBAN, passten Bankland
-    # und Bankschluessel nicht mehr dazu und es entstuenden nebenher zwei
+    # VEN-DUP-002: gleiche Bankverbindung bei zwei Kreditoren. Übernommen wird
+    # die vollständige Verbindung: kopierte man nur die IBAN, passten Bankland
+    # und Bankschlüssel nicht mehr dazu und es entstünden nebenher zwei
     # Formatbefunde, die gar nicht eingebaut waren.
     if len(lfbk) > 20:
         for feld in ("BANKS", "BANKL", "BANKN", "IBAN"):
@@ -569,10 +569,10 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         satz["SALK3"] = "5000.00"
     defekte.append("MAT-CONS-005: 4 Materialien mit falschem Bestandswert")
 
-    # MAT-FMT-001: EAN mit falscher Pruefziffer
+    # MAT-FMT-001: EAN mit falscher Prüfziffer
     for satz in mara[13:17]:
         satz["EAN11"] = "4006381333930"
-    defekte.append("MAT-FMT-001: 4 Materialien mit falscher EAN-Pruefziffer")
+    defekte.append("MAT-FMT-001: 4 Materialien mit falscher EAN-Prüfziffer")
 
     # MAT-COMP-001: Material ohne Kurztext
     ohne_text = {satz["MATNR"] for satz in mara[17:21]}
@@ -586,9 +586,9 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
 
     # ======================================================== Debitoren
     #
-    # Der Debitorenstamm traegt dieselben Mangelarten wie der Kreditorenstamm,
-    # dazu die Dublettenfaelle als Schaustueck: derselbe Kunde mehrfach
-    # angelegt, einmal ueber Schreibvarianten erkennbar und einmal nur ueber
+    # Der Debitorenstamm trägt dieselben Mangelarten wie der Kreditorenstamm,
+    # dazu die Dublettenfälle als Schaustück: derselbe Kunde mehrfach
+    # angelegt, einmal über Schreibvarianten erkennbar und einmal nur über
     # die USt-IdNr. Dazu ein Gegenbeispiel, das nicht gemeldet werden darf.
     kna1: list[dict] = []
     knb1: list[dict] = []
@@ -646,7 +646,7 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
             })
         return allgemein
 
-    # ------------------------------------------------- regulaere Debitoren
+    # ------------------------------------------------- reguläre Debitoren
     for index in range(1, customer_count + 1):
         strasse, plz, ort, land = anschrift()
         debitor_saetze(
@@ -663,8 +663,8 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     def neuer_debitor(eindeutig: bool = True, **felder) -> dict:
         """Legt einen Debitor mit einem gezielt eingebauten Mangel an.
 
-        Wie bei den Kreditoren traegt der Name einen unterscheidungskraeftigen
-        Zusatz, damit die Saetze einer Mangelgruppe nicht selbst als Cluster
+        Wie bei den Kreditoren trägt der Name einen unterscheidungskräftigen
+        Zusatz, damit die Sätze einer Mangelgruppe nicht selbst als Cluster
         gemeldet werden und die eingebauten Dubletten darin untergehen.
         """
         nonlocal naechster_kunde
@@ -691,11 +691,11 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         weiter = " ..." if len(saetze) > 8 else ""
         defekte.append(f"{beschreibung} | betroffen: {schluessel}{weiter}")
 
-    # ------------------------------------------- Dubletten als Schaustueck
+    # ------------------------------------------- Dubletten als Schaustück
     #
     # Fall 1: derselbe Kunde dreimal, erkennbar allein am Namen. Umlaut,
-    # ausgeschriebene und abgekuerzte Rechtsform, Bindestrich - fuer den
-    # Menschen offensichtlich, fuer einen Gleichheitsvergleich unsichtbar.
+    # ausgeschriebene und abgekürzte Rechtsform, Bindestrich - für den
+    # Menschen offensichtlich, für einen Gleichheitsvergleich unsichtbar.
     schreibvarianten = [
         ("Nordwind Handels GmbH", "Seeweg 8"),
         ("NORDWIND HANDELS G.M.B.H.", "Seeweg 8"),
@@ -716,9 +716,9 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     # zusammengesetzten Wert nur auf 82 - unter der Schwelle von 85.
     #
     # Der Fall steht hier absichtlich. Ein unscharfer Abgleich, der zusammen-
-    # gesetzte Woerter zerlegte, faende ihn - und meldete dafuer jede
-    # "Handelsgesellschaft" als moegliche Dublette jeder anderen. Wer das
-    # Werkzeug vorfuehrt, sollte diese Grenze kennen und nennen koennen.
+    # gesetzte Wörter zerlegte, fände ihn - und meldete dafür jede
+    # "Handelsgesellschaft" als mögliche Dublette jeder anderen. Wer das
+    # Werkzeug vorführt, sollte diese Grenze kennen und nennen können.
     nicht_gefunden = neuer_debitor(
         eindeutig=False, NAME1="Nordwind Handelsgesellschaft mbH",
         STRAS="Seeweg 8", PSTLZ="24103", ORT01="Kiel", LAND1="DE",
@@ -739,27 +739,27 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         ],
     )
 
-    # Fall 3: derselbe Kunde unter voellig verschiedenem Namen an einer anderen
+    # Fall 3: derselbe Kunde unter völlig verschiedenem Namen an einer anderen
     # Anschrift. Der unscharfe Abgleich hat hier keine Chance - nur die
-    # gemeinsame USt-IdNr. beweist die Dublette. Genau dafuer gibt es zwei
+    # gemeinsame USt-IdNr. beweist die Dublette. Genau dafür gibt es zwei
     # getrennte Regeln.
     geteilte_kunden_ustid = make_vat("DE", rng)
     kundengruppe(
-        "CUS-DUP-001: 2 Debitoren mit gleicher USt-IdNr., ohne Namensaehnlichkeit",
+        "CUS-DUP-001: 2 Debitoren mit gleicher USt-IdNr., ohne Namensähnlichkeit",
         [
             neuer_debitor(eindeutig=False, NAME1="Alpenland Vertrieb GmbH",
                           STRAS="Bergweg 3", PSTLZ="83022", ORT01="Rosenheim",
                           LAND1="DE", STCEG=geteilte_kunden_ustid),
-            neuer_debitor(eindeutig=False, NAME1="Suedstern Distribution AG",
+            neuer_debitor(eindeutig=False, NAME1="Südstern Distribution AG",
                           STRAS="Hafenstrasse 19", PSTLZ="18055", ORT01="Rostock",
                           LAND1="DE", STCEG=geteilte_kunden_ustid),
         ],
     )
 
     # Gegenbeispiel: zwei verschiedene Unternehmen mit gleichem Namensstamm in
-    # derselben Strasse. Verschiedene Hausnummer, verschiedene USt-IdNr.,
-    # verschiedenes Geschaeft. Diese beiden duerfen nicht gemeldet werden -
-    # sonst waere die Dublettenerkennung im Kundentermin nicht vorzeigbar.
+    # derselben Straße. Verschiedene Hausnummer, verschiedene USt-IdNr.,
+    # verschiedenes Geschäft. Diese beiden dürfen nicht gemeldet werden -
+    # sonst wäre die Dublettenerkennung im Kundentermin nicht vorzeigbar.
     gegenbeispiel = [
         neuer_debitor(eindeutig=False, NAME1="Weber Metallbau GmbH",
                       STRAS="Industriering 7", PSTLZ="70565", ORT01="Stuttgart",
@@ -770,11 +770,11 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     ]
     defekte.append(
         "GEGENBEISPIEL (darf NICHT gemeldet werden): 2 verschiedene Unternehmen "
-        "mit gleichem Namensstamm in derselben Strasse | betroffen: "
+        "mit gleichem Namensstamm in derselben Straße | betroffen: "
         + ", ".join(satz["KUNNR"] for satz in gegenbeispiel)
     )
 
-    # --------------------------------------------- uebrige Debitorenmaengel
+    # --------------------------------------------- übrige Debitorenmängel
     kundengruppe(
         "CUS-COMP-001: 5 Debitoren ohne USt-IdNr.",
         [neuer_debitor(LAND1="DE", STCEG="") for _ in range(5)],
@@ -785,7 +785,7 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         + [neuer_debitor(ORT01="")],
     )
     kundengruppe(
-        "CUS-FMT-001: 4 Debitoren mit ungueltiger USt-IdNr.",
+        "CUS-FMT-001: 4 Debitoren mit ungültiger USt-IdNr.",
         [neuer_debitor(LAND1="DE", STCEG=f"DE{rng.randint(100000000, 999999999)}")
          for _ in range(4)],
     )
@@ -806,22 +806,22 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         [neuer_debitor(STRAS="", PFACH=f"{rng.randint(1000, 9999)}") for _ in range(3)],
     )
     kundengruppe(
-        "CUS-LC-001: 4 Debitoren mit alter Loeschvormerkung ohne Archivierung",
+        "CUS-LC-001: 4 Debitoren mit alter Löschvormerkung ohne Archivierung",
         [neuer_debitor(LOEVM="X", _erdat=heute - timedelta(days=1500))
          for _ in range(4)],
     )
     kundengruppe(
-        "CUS-CONS-003: 3 Debitoren zentral zur Loeschung vorgemerkt, im "
+        "CUS-CONS-003: 3 Debitoren zentral zur Löschung vorgemerkt, im "
         "Buchungskreis aber nicht",
         [neuer_debitor(LOEVM="X") for _ in range(3)],
     )
-    # Der Buchungskreis der drei Saetze muss offen bleiben, sonst ist es kein
-    # Widerspruch mehr. debitor_saetze uebernimmt LOEVM - hier zuruecksetzen.
+    # Der Buchungskreis der drei Sätze muss offen bleiben, sonst ist es kein
+    # Widerspruch mehr. debitor_saetze übernimmt LOEVM - hier zurücksetzen.
     for satz in knb1[-3:]:
         satz["LOEVM"] = ""
 
-    # Buchungskreis- und Vertriebsdaten ohne allgemeine Daten: die Saetze
-    # entstehen ohne KNA1-Eintrag und muessen deshalb von Hand angelegt werden.
+    # Buchungskreis- und Vertriebsdaten ohne allgemeine Daten: die Sätze
+    # entstehen ohne KNA1-Eintrag und müssen deshalb von Hand angelegt werden.
     for lauf in range(2):
         naechster_kunde += 1
         verwaist = f"{200000 + naechster_kunde}"
@@ -831,7 +831,7 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
             "LOEVM": "", "SPERR": "", "ERDAT": heute.strftime("%Y%m%d"),
         })
     defekte.append(
-        "CUS-CONS-001: 2 Buchungskreisdatensaetze ohne allgemeine Daten | betroffen: "
+        "CUS-CONS-001: 2 Buchungskreisdatensätze ohne allgemeine Daten | betroffen: "
         f"{knb1[-2]['KUNNR']}, {knb1[-1]['KUNNR']}"
     )
 
@@ -849,13 +849,13 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     for satz in knb1[3:6]:
         satz["AKONT"] = ""
     defekte.append(
-        "CUS-COMP-004: 3 Buchungskreisdatensaetze ohne Abstimmkonto | betroffen: "
+        "CUS-COMP-004: 3 Buchungskreisdatensätze ohne Abstimmkonto | betroffen: "
         + ", ".join(satz["KUNNR"] for satz in knb1[3:6])
     )
     for satz in knb1[8:11]:
         satz["ZTERM"] = ""
     defekte.append(
-        "CUS-COMP-005: 3 Buchungskreisdatensaetze ohne Zahlungsbedingung | betroffen: "
+        "CUS-COMP-005: 3 Buchungskreisdatensätze ohne Zahlungsbedingung | betroffen: "
         + ", ".join(satz["KUNNR"] for satz in knb1[8:11])
     )
 
@@ -866,11 +866,11 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         f"betroffen: {knb1[12]['KUNNR']}"
     )
 
-    # CUS-FMT-003: ungueltige IBAN in den Bankdaten des Debitors.
+    # CUS-FMT-003: ungültige IBAN in den Bankdaten des Debitors.
     for satz in knbk[2:5]:
         satz["IBAN"] = satz["IBAN"][:-1] + ("0" if satz["IBAN"][-1] != "0" else "1")
     defekte.append(
-        "CUS-FMT-003: 3 Debitoren mit ungueltiger IBAN | betroffen: "
+        "CUS-FMT-003: 3 Debitoren mit ungültiger IBAN | betroffen: "
         + ", ".join(satz["KUNNR"] for satz in knbk[2:5])
     )
 
@@ -892,12 +892,12 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
              "LAND1": "DE", "WAERS": "EUR", "KTOPL": "INT"}]
     t052 = [{"MANDT": mandant, "ZTERM": z, "ZTAGG": "00", "ZTAG1": t}
             for z, t in (("ZB01", 30), ("ZB02", 14), ("ZB03", 60))]
-    # Zahlwege fuer jedes vorkommende Land - sonst meldet VEN-REF-004 fuer
-    # jeden auslaendischen Kreditor eine Luecke im Customizing.
+    # Zahlwege für jedes vorkommende Land - sonst meldet VEN-REF-004 für
+    # jeden ausländischen Kreditor eine Lücke im Customizing.
     t042z = [
         {"MANDT": mandant, "LAND1": land, "ZLSCH": z, "TEXT1": t}
         for land in ("DE", "AT", "CH", "NL", "FR", "IT")
-        for z, t in (("U", "Ueberweisung"), ("S", "Scheck"))
+        for z, t in (("U", "Überweisung"), ("S", "Scheck"))
     ]
     t005 = [{"MANDT": mandant, "LAND1": land, "INTCA": land,
              "XEGLD": "X" if land in ("DE", "AT", "NL", "FR", "IT") else ""}
@@ -957,15 +957,15 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     (target / "manifest.yaml").write_text("\n".join(manifest) + "\n", encoding="utf-8")
 
     (target.parent / "EINGEBAUTE_MAENGEL.md").write_text(
-        "# Absichtlich eingebaute Maengel der Beispiellieferung\n\n"
+        "# Absichtlich eingebaute Mängel der Beispiellieferung\n\n"
         "Diese Liste dient dem Abgleich: jede Zeile nennt eine Regel, was sie "
-        "finden soll und welche Stammsaetze betroffen sind.\n\n"
+        "finden soll und welche Stammsätze betroffen sind.\n\n"
         + "\n".join(f"- {eintrag}" for eintrag in defekte)
         + "\n\n## Folgebefunde\n\n"
-        "Ueber die aufgefuehrten Maengel hinaus melden weitere Regeln Befunde, "
-        "die aus denselben Saetzen folgen - eine Loeschvormerkung ohne Zahlsperre "
+        "Über die aufgeführten Mängel hinaus melden weitere Regeln Befunde, "
+        "die aus denselben Sätzen folgen - eine Löschvormerkung ohne Zahlsperre "
         "(VEN-RISK-006) etwa ergibt sich aus den vorgemerkten Kreditoren. Solche "
-        "Folgebefunde sind erwuenscht und zeigen, dass die Regeln ineinandergreifen.\n",
+        "Folgebefunde sind erwünscht und zeigen, dass die Regeln ineinandergreifen.\n",
         encoding="utf-8",
     )
     return zaehlung
@@ -973,15 +973,15 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("target", help="Zielverzeichnis fuer die Eingangsdateien")
-    parser.add_argument("--vendors", type=int, default=400, help="Anzahl regulaerer Kreditoren")
+    parser.add_argument("target", help="Zielverzeichnis für die Eingangsdateien")
+    parser.add_argument("--vendors", type=int, default=400, help="Anzahl regulärer Kreditoren")
     args = parser.parse_args()
 
     target = Path(args.target).resolve()
     counts = build(target, args.vendors)
     print(f"Beispiellieferung erzeugt in {target}")
     for name, count in counts.items():
-        print(f"  {name:8s} {count:6d} Saetze")
+        print(f"  {name:8s} {count:6d} Sätze")
 
 
 if __name__ == "__main__":

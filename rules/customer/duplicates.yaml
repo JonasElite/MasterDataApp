@@ -6,7 +6,7 @@ rules:
     kind: duplicate
     description: >
       Zwei Debitoren mit derselben USt-IdNr. sind derselbe Kunde. Neben der
-      Dublette hat das unmittelbare Folgen fuer Kreditlimit und
+      Dublette hat das unmittelbare Folgen für Kreditlimit und
       Zusammenfassende Meldung: das Limit verteilt sich auf zwei Konten und
       wirkt dadurch nicht.
     category: duplicate
@@ -21,7 +21,7 @@ rules:
         KNA1: [KUNNR, NAME1, STCEG, STCD1, LOEVM]
     params: {}
     remediation: >
-      Fuehrenden Stammsatz bestimmen, Kreditlimit zusammenfuehren, uebrige
+      Führenden Stammsatz bestimmen, Kreditlimit zusammenführen, übrige
       Konten stilllegen.
     duplicate:
       source: |
@@ -33,12 +33,12 @@ rules:
       name_column: NAME1
 
   - id: CUS-DUP-002
-    name: Debitoren mit aehnlichem Namen an derselben Anschrift
+    name: Debitoren mit ähnlichem Namen an derselben Anschrift
     kind: duplicate
     description: >
       Dubletten im Debitorenstamm verteilen die Zahlungshistorie auf mehrere
-      Konten. Mahnwesen und Kreditlimit stuetzen sich dadurch auf ein
-      unvollstaendiges Bild.
+      Konten. Mahnwesen und Kreditlimit stützen sich dadurch auf ein
+      unvollständiges Bild.
     category: duplicate
     severity: high
     version: "1.0.0"
@@ -50,7 +50,7 @@ rules:
       fields:
         KNA1: [KUNNR, NAME1, STRAS, PSTLZ, ORT01, LAND1, LOEVM]
     params: {}
-    remediation: Cluster sichten, fuehrenden Stammsatz bestimmen, uebrige stilllegen.
+    remediation: Cluster sichten, führenden Stammsatz bestimmen, übrige stilllegen.
     duplicate:
       source: |
         SELECT KUNNR, NAME1, STRAS, PSTLZ, ORT01, LAND1

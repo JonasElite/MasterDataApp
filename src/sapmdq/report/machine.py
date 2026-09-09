@@ -1,13 +1,13 @@
 """Maschinenlesbarer Export (FA-703).
 
-Fuer die Weiterverarbeitung - etwa den spaeter geplanten Zusammenschluss mit
-Process-Mining-Auswertungen (offener Punkt OP-07) - wird der vollstaendige
-Befundbestand ohne Kuerzung ausgegeben. Anders als der Excel-Export kennt er
+Für die Weiterverarbeitung - etwa den später geplanten Zusammenschluss mit
+Process-Mining-Auswertungen (offener Punkt OP-07) - wird der vollständige
+Befundbestand ohne Kürzung ausgegeben. Anders als der Excel-Export kennt er
 keine Zeilengrenze.
 
 CSV wird mit Semikolon und UTF-8 mit BOM geschrieben. Das BOM ist kein
-Schoenheitsfehler, sondern noetig, damit Excel die Datei beim Doppelklick als
-UTF-8 erkennt und Umlaute nicht zerstoert.
+Schönheitsfehler, sondern nötig, damit Excel die Datei beim Doppelklick als
+UTF-8 erkennt und Umlaute nicht zerstört.
 """
 
 from __future__ import annotations
@@ -45,8 +45,8 @@ def export_csv(
 def export_parquet(con: duckdb.DuckDBPyConnection, findings_path: Path, target: Path) -> Path:
     """Schreibt die Befunde als Parquet.
 
-    Parquet behaelt die Datentypen und ist damit das Format der Wahl fuer die
-    Weiterverarbeitung - anders als CSV, wo jede fuehrende Null erneut zur
+    Parquet behält die Datentypen und ist damit das Format der Wahl für die
+    Weiterverarbeitung - anders als CSV, wo jede führende Null erneut zur
     Auslegungsfrage wird.
     """
     target.parent.mkdir(parents=True, exist_ok=True)

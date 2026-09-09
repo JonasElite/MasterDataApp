@@ -1,7 +1,7 @@
-# Projektkonfiguration der SAP-Stammdatenpruefung
+# Projektkonfiguration der SAP-Stammdatenprüfung
 # Angelegt am 2026-09-08
 #
-# Diese Datei beschreibt einen Lauf vollstaendig. Sie gehoert in die
+# Diese Datei beschreibt einen Lauf vollständig. Sie gehört in die
 # Versionsverwaltung - nicht die Daten, auf die sie sich bezieht.
 
 project:
@@ -18,7 +18,7 @@ paths:
 
 delivery:
   # Vom Kunden gemeldete Satzanzahl je Tabelle (FA-201). Ohne diese Angaben
-  # laesst sich nicht pruefen, ob die Lieferung vollstaendig ist.
+  # lässt sich nicht prüfen, ob die Lieferung vollständig ist.
   expected_row_counts: {}
   #   LFA1: 12345
   #   LFB1: 23456
@@ -33,7 +33,7 @@ delivery:
   # Filter auf Buchungskreise; leer bedeutet alle (FA-108)
   company_codes: []
 
-  # Zulaessige Abweichung der Satzanzahl in Prozent
+  # Zulässige Abweichung der Satzanzahl in Prozent
   row_count_tolerance_pct: 0.0
 
 ingestion:
@@ -45,7 +45,7 @@ ingestion:
   file_table_map: {}
   #   "kreditoren_alt.csv": LFA1
 
-  # Zusaetzliche Spaltenueberschriften je Tabelle
+  # Zusätzliche Spaltenüberschriften je Tabelle
   header_overrides: {}
   #   LFA1:
   #     "Lieferantennr.": LIFNR

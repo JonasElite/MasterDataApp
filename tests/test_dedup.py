@@ -33,17 +33,17 @@ class TestNormalisierung:
         assert normalize_name(name) == "MUELLER SOHN"
 
     def test_rechtsform_allein_bleibt_erhalten(self):
-        # Sonst wuerde der Satz unsichtbar und faende nie einen Partner.
+        # Sonst würde der Satz unsichtbar und fände nie einen Partner.
         assert normalize_name("GmbH") == "GMBH"
 
     @pytest.mark.parametrize(
-        "strasse", ["Hauptstr. 1", "Haupt-Strasse 1", "HAUPTSTRASSE 1", "Hauptstraße 1"]
+        "strasse", ["Hauptstr. 1", "Haupt-Straße 1", "HAUPTSTRASSE 1", "Hauptstraße 1"]
     )
     def test_strassenabkuerzungen(self, strasse):
         assert normalize_street(strasse) == "HAUPT STRASSE 1"
 
     def test_hausnummer_bleibt_erhalten(self):
-        # Die Hausnummer ist das unterscheidungsstaerkste Merkmal der Adresse.
+        # Die Hausnummer ist das unterscheidungsstärkste Merkmal der Adresse.
         assert "12" in normalize_street("Lindenallee 12")
 
     def test_harte_schluessel(self):
@@ -54,8 +54,8 @@ class TestNormalisierung:
         assert "HAUPT STRASSE 1" in adresse and "10115" in adresse and "BERLIN" in adresse
 
     def test_blockschluessel_ist_wortreihenfolgeunabhaengig(self):
-        assert block_key_name_sorted(normalize_name("Sohn Mueller")) == block_key_name_sorted(
-            normalize_name("Mueller Sohn")
+        assert block_key_name_sorted(normalize_name("Sohn Müller")) == block_key_name_sorted(
+            normalize_name("Müller Sohn")
         )
 
     def test_blockschluessel_land_plz(self):
@@ -64,7 +64,7 @@ class TestNormalisierung:
 
 class TestVereinigungsstruktur:
     def test_reihenfolgeunabhaengig(self):
-        """NFA-05: das Ergebnis darf nicht von der Einfuegefolge abhaengen."""
+        """NFA-05: das Ergebnis darf nicht von der Einfügefolge abhängen."""
         erste, zweite = UnionFind(), UnionFind()
         for links, rechts in [("a", "b"), ("b", "c"), ("d", "e")]:
             erste.union(links, rechts)
@@ -80,7 +80,7 @@ def kandidaten() -> pd.DataFrame:
         ("0000004712", "Müller und Sohn G.m.b.H.", "Hauptstr. 12", "10115", "Berlin", "DE", ""),
         ("0000004713", "MUELLER U SOHN GMBH", "Haupt-Str. 12", "10115", "Berlin", "DE", ""),
         ("0000004714", "Schmidt Logistik AG", "Bahnhofsweg 22", "20095", "Hamburg", "DE", "DE136695976"),
-        ("0000004715", "Voellig Andere KG", "Ringstr. 9", "80331", "Muenchen", "DE", ""),
+        ("0000004715", "Völlig Andere KG", "Ringstr. 9", "80331", "München", "DE", ""),
     ]
     frame = pd.DataFrame(zeilen, columns=["key", "name", "stras", "plz", "ort", "land", "ustid"])
     frame["name_norm"] = frame["name"].map(normalize_name)
@@ -101,7 +101,7 @@ class TestAbgleich:
         assert paare[0].score == 100.0
 
     def test_leere_schluessel_erzeugen_keine_paare(self, kandidaten):
-        # Drei Saetze haben keine USt-IdNr. - sie duerfen nicht als gleich gelten.
+        # Drei Sätze haben keine USt-IdNr. - sie dürfen nicht als gleich gelten.
         paare = find_exact_matches(kandidaten, "key", ["ustid_norm"])
         beteiligte = {p.left for p in paare} | {p.right for p in paare}
         assert "0000004712" not in beteiligte

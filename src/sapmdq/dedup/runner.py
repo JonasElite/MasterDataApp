@@ -1,9 +1,9 @@
-"""Ausfuehrung der Dublettenregeln (FA-501 bis FA-505).
+"""Ausführung der Dublettenregeln (FA-501 bis FA-505).
 
 Die Normalisierung und die Blockbildung laufen in SQL, nicht in Python. Das
 hat einen Grund jenseits der Geschwindigkeit: der Vergleich braucht die Daten
 im Speicher, aber immer nur einen Block auf einmal. Wird der Block in der
-Datenbank gebildet und einzeln abgeholt, bleibt der Speicherbedarf unabhaengig
+Datenbank gebildet und einzeln abgeholt, bleibt der Speicherbedarf unabhängig
 von der Gesamtmenge und die Verarbeitung out-of-core (NFA-02).
 """
 
@@ -35,16 +35,16 @@ logger = get_logger("dedup.runner")
 
 #: Zeilen, die je Abfrage aus der Datenbank geholt werden.
 #:
-#: Bloecke werden gebuendelt abgeholt, nicht einzeln. Ein Kreditorenstamm
-#: zerfaellt nach Land und Postleitzahl leicht in zehntausende kleine Bloecke;
-#: bei einer Abfrage je Block ueberwiegt der Verwaltungsaufwand den Vergleich
-#: um ein Vielfaches. Die Buendelgroesse begrenzt zugleich den Speicherbedarf
-#: unabhaengig von der Gesamtmenge (NFA-02).
+#: Blöcke werden gebündelt abgeholt, nicht einzeln. Ein Kreditorenstamm
+#: zerfällt nach Land und Postleitzahl leicht in zehntausende kleine Blöcke;
+#: bei einer Abfrage je Block überwiegt der Verwaltungsaufwand den Vergleich
+#: um ein Vielfaches. Die Bündelgröße begrenzt zugleich den Speicherbedarf
+#: unabhängig von der Gesamtmenge (NFA-02).
 FETCH_BATCH_ROWS = 50_000
 
-#: Blocking-Strategien und der SQL-Ausdruck, der ihren Schluessel bildet.
-#: ``{name}`` steht fuer die normalisierte Namensspalte, ``{country}`` und
-#: ``{postal}`` fuer die Adressbestandteile.
+#: Blocking-Strategien und der SQL-Ausdruck, der ihren Schlüssel bildet.
+#: ``{name}`` steht für die normalisierte Namensspalte, ``{country}`` und
+#: ``{postal}`` für die Adressbestandteile.
 BLOCKING_STRATEGIES: dict[str, str] = {
     "country_postcode": "dq_norm_key({country}) || '|' || dq_norm_key({postal})",
     "postcode": "dq_norm_key({postal})",
@@ -59,7 +59,7 @@ class DedupResult:
     """Ergebnis eines Dublettenlaufs."""
 
     executions: list[RuleExecution] = field(default_factory=list)
-    #: Bloecke, die wegen ihrer Groesse uebergangen wurden - je Regel.
+    #: Blöcke, die wegen ihrer Größe übergangen wurden - je Regel.
     skipped_blocks: dict[str, list[str]] = field(default_factory=dict)
 
     @property
@@ -96,17 +96,17 @@ def _blocking_expression(
 ) -> str | None:
     """Baut den SQL-Ausdruck einer Blocking-Strategie.
 
-    Die Adressbestandteile werden ueber ihre Reihenfolge zugeordnet: Strasse,
+    Die Adressbestandteile werden über ihre Reihenfolge zugeordnet: Straße,
     Postleitzahl, Ort, Land - so wie sie in der Regel deklariert sind. Fehlt
-    ein benoetigter Bestandteil, entfaellt die Strategie, statt einen
-    Blockschluessel aus NULL zu bilden, der alles in einen Topf wuerfe.
+    ein benötigter Bestandteil, entfällt die Strategie, statt einen
+    Blockschlüssel aus NULL zu bilden, der alles in einen Topf würfe.
     """
     template = BLOCKING_STRATEGIES.get(strategy)
     if template is None:
-        logger.warning("Unbekannte Blocking-Strategie '%s' wird uebergangen", strategy)
+        logger.warning("Unbekannte Blocking-Strategie '%s' wird übergangen", strategy)
         return None
 
-    # Die Adressbestandteile werden ueber ihre Position zugeordnet, so wie sie
+    # Die Adressbestandteile werden über ihre Position zugeordnet, so wie sie
     # in der Regel unter address_columns deklariert sind.
     parts = list(address_columns) + [""] * 4
     street, postal, city, country = parts[0], parts[1], parts[2], parts[3]
@@ -121,7 +121,7 @@ def _blocking_expression(
     required = [key for key in mapping if "{" + key + "}" in template]
     if any(mapping[key] is None for key in required):
         logger.debug(
-            "Blocking-Strategie '%s' entfaellt: benoetigte Adressbestandteile fehlen", strategy
+            "Blocking-Strategie '%s' entfällt: benötigte Adressbestandteile fehlen", strategy
         )
         return None
     return template.format(**{key: mapping[key] or "" for key in mapping})
@@ -136,12 +136,12 @@ def _prepare_candidates(
     """Legt die normalisierte Vergleichstabelle an.
 
     Der Aufbau ist zweistufig: die innere Auswahl normalisiert Name, Adresse
-    und harte Schluessel und reicht die Adressbestandteile unveraendert
-    weiter; die aeussere bildet daraus die Blockschluessel. Zwei Stufen sind
-    noetig, weil ein Blockschluessel auf dem normalisierten Namen aufsetzt und
-    in derselben Projektion nicht darauf zugreifen koennte.
+    und harte Schlüssel und reicht die Adressbestandteile unverändert
+    weiter; die äußere bildet daraus die Blockschlüssel. Zwei Stufen sind
+    nötig, weil ein Blockschlüssel auf dem normalisierten Namen aufsetzt und
+    in derselben Projektion nicht darauf zugreifen könnte.
 
-    Rueckgabe sind die Namen der Block-, Exakt- und Adressspalten.
+    Rückgabe sind die Namen der Block-, Exakt- und Adressspalten.
     """
     spec = rule.duplicate
     assert spec is not None
@@ -168,8 +168,8 @@ def _prepare_candidates(
             + ")"
         )
         inner.append(f"{address_expression} AS _addr_norm")
-        # Die Adressbestandteile werden unveraendert durchgereicht, weil die
-        # Blockschluessel der aeusseren Stufe auf ihnen aufsetzen.
+        # Die Adressbestandteile werden unverändert durchgereicht, weil die
+        # Blockschlüssel der äußeren Stufe auf ihnen aufsetzen.
         inner.extend(quote_identifier(column) for column in address_columns)
     else:
         inner.append("'' AS _addr_norm")
@@ -182,10 +182,10 @@ def _prepare_candidates(
 
     outer: list[str] = []
     block_columns: list[str] = []
-    # Der unscharfe Abgleich laeuft nur, wenn die Regel ihn ausdruecklich
+    # Der unscharfe Abgleich läuft nur, wenn die Regel ihn ausdrücklich
     # vorsieht - also Blocking-Strategien oder Adressspalten deklariert. Eine
-    # Regel, die allein auf harten Schluesseln vergleicht, soll nicht ueber die
-    # Projektvorgabe unversehens Namensaehnlichkeiten mit aufnehmen und dadurch
+    # Regel, die allein auf harten Schlüsseln vergleicht, soll nicht über die
+    # Projektvorgabe unversehens Namensähnlichkeiten mit aufnehmen und dadurch
     # fachlich getrennte Cluster verschmelzen.
     wants_fuzzy = bool(spec.blocking_columns or spec.address_columns)
     strategies = (spec.blocking_columns or config.blocking) if wants_fuzzy else ()
@@ -215,12 +215,12 @@ def _prepare_candidates(
 def _fetch_member_attributes(
     con: duckdb.DuckDBPyConnection, rule: Rule, keys: Sequence[str]
 ) -> dict[str, dict[str, str]]:
-    """Holt die verglichenen Felder der Clustermitglieder fuer den Befund.
+    """Holt die verglichenen Felder der Clustermitglieder für den Befund.
 
     Geholt wird genau das, was der Abgleich betrachtet hat: der Name, die
-    Adressbestandteile und die harten Schluessel. Damit laesst sich im Bericht
-    und in der Oberflaeche zeigen, worin sich zwei mutmasslich gleiche
-    Stammsaetze unterscheiden - ohne dass der Leser sie im Quellsystem
+    Adressbestandteile und die harten Schlüssel. Damit lässt sich im Bericht
+    und in der Oberfläche zeigen, worin sich zwei mutmaßlich gleiche
+    Stammsätze unterscheiden - ohne dass der Leser sie im Quellsystem
     nebeneinanderlegen muss.
 
     Im Befund stehen die Werte, wie sie im System stehen, nicht die
@@ -245,8 +245,8 @@ def _fetch_member_attributes(
         f"CAST({quote_identifier(column)} AS VARCHAR)" for column in spec.key_columns
     ) + ")"
     # ``any_value`` je Spalte: die Quelle kann je Stammsatz mehrere Zeilen
-    # liefern - etwa eine je Bankverbindung. Fuer die Gegenueberstellung
-    # genuegt eine davon; der Abgleich selbst hat ohnehin alle betrachtet.
+    # liefern - etwa eine je Bankverbindung. Für die Gegenüberstellung
+    # genügt eine davon; der Abgleich selbst hat ohnehin alle betrachtet.
     projektion = ", ".join(
         f"any_value(CAST({quote_identifier(name)} AS VARCHAR)) AS {quote_identifier(name)}"
         for name in spalten
@@ -271,19 +271,19 @@ def _clusters_to_findings(
     clusters: Sequence[DuplicateCluster],
     attribute: dict[str, dict[str, str]],
 ) -> pd.DataFrame:
-    """Uebersetzt Cluster in Befunde im einheitlichen Aufbau.
+    """Übersetzt Cluster in Befunde im einheitlichen Aufbau.
 
     Je Cluster entsteht genau ein Befund - nicht je Paar und nicht je
-    Mitglied. So laesst sich ein Cluster in einem Zug als Ausnahme
+    Mitglied. So lässt sich ein Cluster in einem Zug als Ausnahme
     kennzeichnen (FA-602), und der Bericht zeigt Gruppen statt einer Liste
-    aus Paaren, die der Leser selbst zusammensetzen muesste (FA-505).
+    aus Paaren, die der Leser selbst zusammensetzen müsste (FA-505).
     """
     import hashlib
 
     spec = rule.duplicate
     namensspalte = spec.name_column if spec else None
-    # Die Reihenfolge der Felder ist fuer alle Mitglieder gleich, damit die
-    # Gegenueberstellung in der Oberflaeche Zeile fuer Zeile aufgeht.
+    # Die Reihenfolge der Felder ist für alle Mitglieder gleich, damit die
+    # Gegenüberstellung in der Oberfläche Zeile für Zeile aufgeht.
     verglichene_felder = [
         feld
         for feld in (
@@ -313,8 +313,8 @@ def _clusters_to_findings(
             "art_des_treffers": cluster.match_type,
             "namensfeld": namensspalte or "",
             "verglichene_felder": verglichene_felder,
-            # Welche davon harte Schluessel sind. Die Oberflaeche kann die
-            # Begruendung damit selbst formulieren, statt den deutschen Satz
+            # Welche davon harte Schlüssel sind. Die Oberfläche kann die
+            # Begründung damit selbst formulieren, statt den deutschen Satz
             # aus dem Lauf anzuzeigen.
             "exakte_schluessel": list(spec.exact_keys) if spec else [],
             "mitglieder": mitglieder,
@@ -351,7 +351,7 @@ def execute_duplicate_rule(
     config: DedupConfig,
     findings_dir: Path,
 ) -> tuple[RuleExecution, list[str]]:
-    """Fuehrt eine einzelne Dublettenregel aus."""
+    """Führt eine einzelne Dublettenregel aus."""
     started = time.perf_counter()
     spec = rule.duplicate
     target = findings_dir / f"{rule.id}.parquet"
@@ -390,8 +390,8 @@ def execute_duplicate_rule(
 
     # ---------------------------------------------- exakter Abgleich (FA-502)
     for alias, label in zip(exact_columns, spec.exact_keys):
-        # Nur die Saetze abholen, deren Schluesselwert ueberhaupt mehrfach
-        # vorkommt. Der gesamte Bestand muesste sonst durch den Speicher
+        # Nur die Sätze abholen, deren Schlüsselwert überhaupt mehrfach
+        # vorkommt. Der gesamte Bestand müsste sonst durch den Speicher
         # wandern, um am Ende eine Handvoll Treffer zu ergeben - bei einem
         # sauberen Stamm im Zweifel gar keine.
         exact_frame = con.execute(
@@ -417,10 +417,10 @@ def execute_duplicate_rule(
             buendel_zeilen = 0
 
             def verarbeiten(werte: list[str]) -> None:
-                """Holt ein Buendel Bloecke und vergleicht innerhalb jedes Blocks.
+                """Holt ein Bündel Blöcke und vergleicht innerhalb jedes Blocks.
 
-                Die Spalten werden als Listen uebernommen. Ein DataFrame je
-                Block waere bei zehntausenden kleinen Bloecken der groesste
+                Die Spalten werden als Listen übernommen. Ein DataFrame je
+                Block wäre bei zehntausenden kleinen Blöcken der größte
                 Einzelposten der Laufzeit - teurer als der Vergleich selbst.
                 """
                 if not werte:
@@ -453,7 +453,7 @@ def execute_duplicate_rule(
                     abgebrochen = True
                     break
                 if size > config.max_block_size:
-                    skipped.append(f"{block_column}={block_value} ({size} Saetze)")
+                    skipped.append(f"{block_column}={block_value} ({size} Sätze)")
                     continue
                 buendel.append(block_value)
                 buendel_zeilen += size
@@ -485,24 +485,24 @@ def execute_duplicate_rule(
     con.execute(f"DROP TABLE IF EXISTS {quoted}")
     duration = time.perf_counter() - started
     logger.info(
-        "Dublettenregel %s: %d Cluster aus %d Saetzen in %.1fs",
+        "Dublettenregel %s: %d Cluster aus %d Sätzen in %.1fs",
         rule.id, len(clusters), total, duration,
     )
     if skipped:
         logger.warning(
-            "%s: %d Block/Bloecke uebergangen (groesser als %d Saetze)",
+            "%s: %d Block/Blöcke übergangen (größer als %d Sätze)",
             rule.id, len(skipped), config.max_block_size,
         )
 
     hinweise = []
     if skipped:
-        hinweise.append(f"{len(skipped)} Block/Bloecke wegen Groesse uebergangen")
+        hinweise.append(f"{len(skipped)} Block/Blöcke wegen Größe übergangen")
     if abgebrochen:
         hinweis = (
             f"Der Vergleich wurde nach {len(pairs)} Treffern abgebrochen "
             f"(Grenze dedup.max_pairs_per_rule = {config.max_pairs_per_rule}). "
-            "Das Ergebnis dieser Regel ist unvollstaendig; bei derart vielen "
-            "Treffern ist zuerst die Datenlage zu klaeren."
+            "Das Ergebnis dieser Regel ist unvollständig; bei derart vielen "
+            "Treffern ist zürst die Datenlage zu klären."
         )
         hinweise.append(hinweis)
         logger.warning("%s: %s", rule.id, hinweis)
@@ -523,7 +523,7 @@ def run_duplicate_rules(
     config: DedupConfig,
     work_dir: Path,
 ) -> DedupResult:
-    """Fuehrt alle ausfuehrbaren Dublettenregeln aus."""
+    """Führt alle ausführbaren Dublettenregeln aus."""
     result = DedupResult()
     if not config.enabled:
         logger.info("Dublettenerkennung ist in der Projektkonfiguration abgeschaltet")

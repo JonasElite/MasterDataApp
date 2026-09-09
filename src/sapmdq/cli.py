@@ -1,16 +1,16 @@
 """Kommandozeile (NFA-07).
 
-Ein Lauf wird ueber genau einen Befehl und eine Konfigurationsdatei gestartet;
-Programmierkenntnisse sind dafuer nicht noetig. Die Kommandozeile stuetzt sich
-auf ``argparse`` aus der Standardbibliothek - eine Abhaengigkeit weniger fuer
+Ein Lauf wird über genau einen Befehl und eine Konfigurationsdatei gestartet;
+Programmierkenntnisse sind dafür nicht nötig. Die Kommandozeile stützt sich
+auf ``argparse`` aus der Standardbibliothek - eine Abhängigkeit weniger für
 ein Werkzeug, das ohne Serverinstallation und ohne Administratorrechte laufen
 soll (NFA-03).
 
-Rueckgabewerte:
+Rückgabewerte:
     0  Lauf erfolgreich
     1  Lauf abgebrochen (unbrauchbare Lieferung, Konfigurationsfehler)
     2  Aufruffehler
-    3  Lauf erfolgreich, aber mit kritischen Befunden - fuer die Einbindung
+    3  Lauf erfolgreich, aber mit kritischen Befunden - für die Einbindung
        in eine Ablaufsteuerung
 """
 
@@ -37,7 +37,7 @@ EXIT_CRITICAL_FINDINGS = 3
 def _print_table(headers: list[str], rows: list[list[str]]) -> None:
     """Gibt eine einfache, ausgerichtete Tabelle aus."""
     if not rows:
-        print("  (keine Eintraege)")
+        print("  (keine Einträge)")
         return
     widths = [len(header) for header in headers]
     for row in rows:
@@ -71,7 +71,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     catalog_dir = Path(__file__).resolve().parents[2] / "rules"
     config_path = target / "projekt.yaml"
     if config_path.exists() and not args.force:
-        print(f"{config_path} besteht bereits. Mit --force ueberschreiben.")
+        print(f"{config_path} besteht bereits. Mit --force überschreiben.")
         return EXIT_USAGE
 
     config_path.write_text(
@@ -87,7 +87,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 
     print(f"Projektverzeichnis angelegt: {target}")
     print("")
-    print("Naechste Schritte:")
+    print("Nächste Schritte:")
     print(f"  1. Lieferung nach {target / 'data/input'} legen")
     print(f"  2. {config_path.name} anpassen (Mandant, Buchungskreise, Satzanzahlen)")
     print(f"  3. sapmdq validate -c {config_path}")
@@ -97,7 +97,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    """Prueft die Lieferung, ohne fachliche Regeln auszufuehren."""
+    """Prüft die Lieferung, ohne fachliche Regeln auszuführen."""
     import duckdb
 
     from sapmdq.ingest.manifest import load_or_empty
@@ -118,7 +118,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
     print(f"\nLieferung: {config.paths.input_dir}")
     print(f"Dateien: {len(ingestion.files)} | Tabellen: {len(ingestion.tables)}")
     _print_table(
-        ["Tabelle", "Saetze", "Spalten", "Quelldateien"],
+        ["Tabelle", "Sätze", "Spalten", "Quelldateien"],
         [
             [name, str(entry.row_count), str(len(entry.columns)), ", ".join(entry.source_files)]
             for name, entry in sorted(ingestion.tables.items())
@@ -139,7 +139,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    """Fuehrt einen vollstaendigen Lauf aus."""
+    """Führt einen vollständigen Lauf aus."""
     from sapmdq.run import execute_run
 
     config = _load(args)
@@ -193,7 +193,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def cmd_coverage(args: argparse.Namespace) -> int:
-    """Zeigt, welche Regeln auf dieser Lieferung laufen koennen (FA-303)."""
+    """Zeigt, welche Regeln auf dieser Lieferung laufen können (FA-303)."""
     import duckdb
 
     from sapmdq.ingest.manifest import load_or_empty
@@ -220,7 +220,7 @@ def cmd_coverage(args: argparse.Namespace) -> int:
     print(coverage.qualification())
     print("\nCoverage je Objektbereich:")
     _print_table(
-        ["Bereich", "Ausfuehrbar", "Gesamt", "Anteil"],
+        ["Bereich", "Ausführbar", "Gesamt", "Anteil"],
         [
             [area, str(executable), str(total), f"{executable / total:.0%}" if total else "-"]
             for area, (executable, total) in coverage.coverage_by_area().items()
@@ -230,7 +230,7 @@ def cmd_coverage(args: argparse.Namespace) -> int:
     if coverage.demand_list:
         print("\nPriorisierte Nachforderung (FA-304):")
         _print_table(
-            ["Nachforderung", "Zusaetzlich", "Kumuliert"],
+            ["Nachforderung", "Zusätzlich", "Kumuliert"],
             [
                 [candidate.request, f"+{candidate.direct_count}", str(candidate.cumulative_count)]
                 for candidate in coverage.demand_list
@@ -296,7 +296,7 @@ def cmd_rules(args: argparse.Namespace) -> int:
 
 
 def cmd_delta(args: argparse.Namespace) -> int:
-    """Vergleicht zwei Laeufe (FA-605)."""
+    """Vergleicht zwei Läufe (FA-605)."""
     import duckdb
 
     from sapmdq.audit import read_audit
@@ -314,25 +314,25 @@ def cmd_delta(args: argparse.Namespace) -> int:
     print(f"\nVergleichslauf: {report.baseline_path}")
     print(f"Aktueller Lauf: {report.current_path}\n")
 
-    # Ein Vergleich setzt voraus, dass beide Laeufe mit demselben Regelkatalog
+    # Ein Vergleich setzt voraus, dass beide Läufe mit demselben Regelkatalog
     # gearbeitet haben. Sonst misst die Differenz nicht den Fortschritt der
-    # Daten, sondern die Aenderung des Massstabs - und liest sich trotzdem wie
+    # Daten, sondern die Änderung des Maßstabs - und liest sich trotzdem wie
     # ein Erfolg.
     vorher = read_audit(report.baseline_path.parent)
     jetzt = read_audit(report.current_path.parent)
     if vorher and jetzt:
         if vorher.catalog_version != jetzt.catalog_version:
             print(
-                "Achtung: Die Laeufe haben unterschiedliche Regelkataloge benutzt "
+                "Achtung: Die Läufe haben unterschiedliche Regelkataloge benutzt "
                 f"({vorher.catalog_version} gegen {jetzt.catalog_version}). Die "
-                "Differenz zeigt dann auch die Aenderung des Massstabs und nicht "
+                "Differenz zeigt dann auch die Änderung des Maßstabs und nicht "
                 "allein den Fortschritt der Daten.\n"
             )
         if vorher.coverage_ratio != jetzt.coverage_ratio:
             print(
-                f"Hinweis: Der Coverage-Grad hat sich geaendert "
+                f"Hinweis: Der Coverage-Grad hat sich geändert "
                 f"({vorher.coverage_ratio:.0%} gegen {jetzt.coverage_ratio:.0%}). "
-                "Es wurde nicht dasselbe geprueft.\n"
+                "Es wurde nicht dasselbe geprüft.\n"
             )
 
     print(report.summary_line())
@@ -347,7 +347,7 @@ def cmd_delta(args: argparse.Namespace) -> int:
     )
     if report.changed_rule_versions:
         print(
-            "\nHinweis: Bei diesen Regeln hat sich die Version geaendert, ihre Befunde "
+            "\nHinweis: Bei diesen Regeln hat sich die Version geändert, ihre Befunde "
             "sind nicht unmittelbar vergleichbar: " + ", ".join(report.changed_rule_versions)
         )
     return EXIT_OK
@@ -373,7 +373,7 @@ def cmd_whitelist(args: argparse.Namespace) -> int:
     if args.whitelist_command == "list":
         print(f"\nAusnahmeliste: {path}")
         _print_table(
-            ["Gilt fuer", "Begruendung", "Freigegeben von", "Laeuft ab", "Wirksam"],
+            ["Gilt für", "Begründung", "Freigegeben von", "Läuft ab", "Wirksam"],
             [
                 [
                     entry.scope_description,
@@ -389,7 +389,7 @@ def cmd_whitelist(args: argparse.Namespace) -> int:
 
     if args.whitelist_command == "add":
         if not args.reason:
-            print("Eine Ausnahme braucht eine Begruendung (--reason).")
+            print("Eine Ausnahme braucht eine Begründung (--reason).")
             return EXIT_USAGE
         entry = WhitelistEntry(
             reason=args.reason,
@@ -404,7 +404,7 @@ def cmd_whitelist(args: argparse.Namespace) -> int:
         )
         if not any((entry.finding_id, entry.rule_id, entry.object_key, entry.object_key_pattern)):
             print(
-                "Die Ausnahme muss benennen, wofuer sie gilt: --finding-id, --rule-id, "
+                "Die Ausnahme muss benennen, wofür sie gilt: --finding-id, --rule-id, "
                 "--object-key oder --pattern."
             )
             return EXIT_USAGE
@@ -465,7 +465,7 @@ def cmd_pseudonymize(args: argparse.Namespace) -> int:
     if created and config.privacy.pseudonymize_salt_file is None:
         print(
             "Hinweis: Es wurde ein neues Salt erzeugt, aber nicht gespeichert. Zwei Aufrufe "
-            "liefern damit unterschiedliche Pseudonyme. Fuer wiederholbare Ergebnisse "
+            "liefern damit unterschiedliche Pseudonyme. Für wiederholbare Ergebnisse "
             "privacy.pseudonymize_salt_file setzen."
         )
 
@@ -482,7 +482,7 @@ def cmd_pseudonymize(args: argparse.Namespace) -> int:
     _print_table(["Tabelle", "Datei"], [[name, path.name] for name, path in sorted(written.items())])
     print("")
     print(
-        "Wichtig: Diese Fassung ist pseudonymisiert, nicht anonymisiert. Das Salt gehoert\n"
+        "Wichtig: Diese Fassung ist pseudonymisiert, nicht anonymisiert. Das Salt gehört\n"
         "getrennt von diesen Daten aufbewahrt - wer beides hat, kann die Zuordnung\n"
         "wiederherstellen (DS-05)."
     )
@@ -490,7 +490,7 @@ def cmd_pseudonymize(args: argparse.Namespace) -> int:
 
 
 def cmd_purge(args: argparse.Namespace) -> int:
-    """Loescht abgelaufene Daten und schreibt die Loeschbestaetigung (DS-03)."""
+    """Löscht abgelaufene Daten und schreibt die Löschbestätigung (DS-03)."""
     import getpass
 
     from sapmdq.privacy.retention import purge
@@ -531,27 +531,27 @@ def cmd_purge(args: argparse.Namespace) -> int:
     print("")
     if not args.confirm:
         print(
-            f"Vorschau - es wurde nichts geloescht. {len(report.candidates)} Eintraege "
-            f"({report.total_bytes / 1_048_576:.1f} MB) waeren betroffen.\n"
-            "Zum Ausfuehren: --confirm"
+            f"Vorschau - es wurde nichts gelöscht. {len(report.candidates)} Einträge "
+            f"({report.total_bytes / 1_048_576:.1f} MB) wären betroffen.\n"
+            "Zum Ausführen: --confirm"
         )
         return EXIT_OK
     print(
-        f"{len(report.deleted)} Eintraege geloescht ({report.deleted_bytes / 1_048_576:.1f} MB). "
-        f"Loeschbestaetigung: {config.paths.output_dir / 'loeschbestaetigung.json'}"
+        f"{len(report.deleted)} Einträge gelöscht ({report.deleted_bytes / 1_048_576:.1f} MB). "
+        f"Löschbestätigung: {config.paths.output_dir / 'loeschbestaetigung.json'}"
     )
     if report.failed:
-        print(f"{len(report.failed)} Eintraege konnten nicht geloescht werden.")
+        print(f"{len(report.failed)} Einträge konnten nicht gelöscht werden.")
         return EXIT_ABORTED
     return EXIT_OK
 
 
 # ------------------------------------------------------------------ Vorlagen
 _PROJECT_TEMPLATE = """\
-# Projektkonfiguration der SAP-Stammdatenpruefung
+# Projektkonfiguration der SAP-Stammdatenprüfung
 # Angelegt am {today}
 #
-# Diese Datei beschreibt einen Lauf vollstaendig. Sie gehoert in die
+# Diese Datei beschreibt einen Lauf vollständig. Sie gehört in die
 # Versionsverwaltung - nicht die Daten, auf die sie sich bezieht.
 
 project:
@@ -568,7 +568,7 @@ paths:
 
 delivery:
   # Vom Kunden gemeldete Satzanzahl je Tabelle (FA-201). Ohne diese Angaben
-  # laesst sich nicht pruefen, ob die Lieferung vollstaendig ist.
+  # lässt sich nicht prüfen, ob die Lieferung vollständig ist.
   expected_row_counts: {{}}
   #   LFA1: 12345
   #   LFB1: 23456
@@ -583,7 +583,7 @@ delivery:
   # Filter auf Buchungskreise; leer bedeutet alle (FA-108)
   company_codes: []
 
-  # Zulaessige Abweichung der Satzanzahl in Prozent
+  # Zulässige Abweichung der Satzanzahl in Prozent
   row_count_tolerance_pct: 0.0
 
 ingestion:
@@ -595,7 +595,7 @@ ingestion:
   file_table_map: {{}}
   #   "kreditoren_alt.csv": LFA1
 
-  # Zusaetzliche Spaltenueberschriften je Tabelle
+  # Zusätzliche Spaltenüberschriften je Tabelle
   header_overrides: {{}}
   #   LFA1:
   #     "Lieferantennr.": LIFNR
@@ -653,10 +653,10 @@ privacy:
 _MANIFEST_TEMPLATE = """\
 # Begleitzettel der Datenlieferung
 #
-# Diese Datei legt der Kunde seiner Lieferung bei (Kapitel 8.4). Sie gehoert
-# in das Eingangsverzeichnis und heisst dort "manifest.yaml".
+# Diese Datei legt der Kunde seiner Lieferung bei (Kapitel 8.4). Sie gehört
+# in das Eingangsverzeichnis und heißt dort "manifest.yaml".
 #
-# Ohne sie laesst sich nicht pruefen, ob die Lieferung vollstaendig ist -
+# Ohne sie lässt sich nicht prüfen, ob die Lieferung vollständig ist -
 # der Satzanzahlabgleich nach FA-201 braucht eine Gegenzahl.
 
 delivery:
@@ -677,11 +677,11 @@ tables:
 _WHITELIST_TEMPLATE = """\
 # Dauerhafte Ausnahmen (FA-602)
 #
-# Jede Ausnahme braucht eine Begruendung und sollte benennen, wer sie erteilt
+# Jede Ausnahme braucht eine Begründung und sollte benennen, wer sie erteilt
 # hat. Ein Ablaufdatum ist empfehlenswert: eine Ausnahme, die niemand mehr
-# ueberprueft, wird mit der Zeit zur Luecke.
+# überprüft, wird mit der Zeit zur Lücke.
 #
-# Diese Datei ueberdauert Folgelieferungen und gehoert in die Versionsverwaltung.
+# Diese Datei überdauert Folgelieferungen und gehört in die Versionsverwaltung.
 
 entries: []
 #  - rule_id: VEN-DUP-002
@@ -696,11 +696,11 @@ entries: []
 
 # ------------------------------------------------------------- Aufbau der CLI
 def cmd_ui(args: argparse.Namespace) -> int:
-    """Startet die oertliche Oberflaeche (NFA-03, NFA-04).
+    """Startet die örtliche Oberfläche (NFA-03, NFA-04).
 
-    Der Aufruf blockiert, bis er abgebrochen wird - die Oberflaeche ist ein
+    Der Aufruf blockiert, bis er abgebrochen wird - die Oberfläche ist ein
     Arbeitsplatz und kein Dienst. Endet der Befehl, ist auch der Port wieder
-    frei; es bleibt nichts im Hintergrund zurueck.
+    frei; es bleibt nichts im Hintergrund zurück.
     """
     import threading
 
@@ -716,13 +716,13 @@ def cmd_ui(args: argparse.Namespace) -> int:
         browser_oeffnen=not args.no_browser,
     )
     print("")
-    print(f"Oberflaeche fuer Projekt '{config.project.name}' laeuft.")
+    print(f"Oberfläche für Projekt '{config.project.name}' läuft.")
     print("")
     print(f"  {adresse}")
     print("")
     print(
-        "Die Adresse enthaelt das Merkmal dieser Sitzung. Ohne es antwortet der\n"
-        "Server nicht - auf einem gemeinsam genutzten Rechner genuegt der offene\n"
+        "Die Adresse enthält das Merkmal dieser Sitzung. Ohne es antwortet der\n"
+        "Server nicht - auf einem gemeinsam genutzten Rechner genügt der offene\n"
         "Port allein nicht. Bei jedem Start gilt ein neues Merkmal; die Adresse\n"
         "eignet sich deshalb nicht als Lesezeichen."
     )
@@ -733,7 +733,7 @@ def cmd_ui(args: argparse.Namespace) -> int:
     try:
         threading.Event().wait()
     except KeyboardInterrupt:
-        print("Oberflaeche beendet.")
+        print("Oberfläche beendet.")
     finally:
         server.shutdown()
         server.server_close()
@@ -744,10 +744,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="sapmdq",
         description=(
-            "Automatisierte Pruefung von SAP-Stammdaten auf Vollstaendigkeit, "
+            "Automatisierte Prüfung von SAP-Stammdaten auf Vollständigkeit, "
             "formale Korrektheit, Konsistenz und Dubletten."
         ),
-        epilog="Ausfuehrliche Beschreibung: siehe README.md",
+        epilog="Ausführliche Beschreibung: siehe README.md",
     )
     parser.add_argument("--version", action="version", version=f"sapmdq {APP_VERSION}")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -756,44 +756,44 @@ def build_parser() -> argparse.ArgumentParser:
         sub.add_argument(
             "-c", "--config", required=config_required, help="Pfad zur Projektkonfiguration"
         )
-        sub.add_argument("-v", "--verbose", action="store_true", help="ausfuehrliche Ausgabe")
+        sub.add_argument("-v", "--verbose", action="store_true", help="ausführliche Ausgabe")
         sub.add_argument("-q", "--quiet", action="store_true", help="nur Warnungen und Fehler")
 
     # init
     init = subparsers.add_parser("init", help="Projektverzeichnis mit Vorlagen anlegen")
     init.add_argument("directory", help="Zielverzeichnis")
     init.add_argument("--name", help="Projektname")
-    init.add_argument("--force", action="store_true", help="bestehende Konfiguration ueberschreiben")
+    init.add_argument("--force", action="store_true", help="bestehende Konfiguration überschreiben")
     init.set_defaults(func=cmd_init)
 
     # validate
     validate = subparsers.add_parser(
-        "validate", help="Lieferung pruefen, ohne fachliche Regeln auszufuehren (FA-2xx)"
+        "validate", help="Lieferung prüfen, ohne fachliche Regeln auszuführen (FA-2xx)"
     )
     add_common(validate)
     validate.set_defaults(func=cmd_validate)
 
     # run
-    run = subparsers.add_parser("run", help="vollstaendigen Lauf ausfuehren")
+    run = subparsers.add_parser("run", help="vollständigen Lauf ausführen")
     add_common(run)
     run.add_argument(
         "--force", action="store_true",
         help="trotz unbrauchbarer Lieferung fortfahren; wird im Protokoll vermerkt",
     )
-    run.add_argument("--baseline", help="Vergleichslauf fuer den Delta-Vergleich (FA-605)")
+    run.add_argument("--baseline", help="Vergleichslauf für den Delta-Vergleich (FA-605)")
     run.add_argument("-o", "--output", help="abweichendes Ausgabeverzeichnis")
     run.set_defaults(func=cmd_run)
 
     # coverage
     coverage = subparsers.add_parser(
-        "coverage", help="zeigen, welche Regeln auf dieser Lieferung laufen koennen (FA-303)"
+        "coverage", help="zeigen, welche Regeln auf dieser Lieferung laufen können (FA-303)"
     )
     add_common(coverage)
     coverage.set_defaults(func=cmd_coverage)
 
     # rules
     rules = subparsers.add_parser("rules", help="Regelkatalog auflisten")
-    rules.add_argument("-c", "--config", help="Projektkonfiguration (beruecksichtigt Abschaltungen)")
+    rules.add_argument("-c", "--config", help="Projektkonfiguration (berücksichtigt Abschaltungen)")
     rules.add_argument("--catalog", default="rules", help="Regelverzeichnis, falls ohne Konfiguration")
     rules.add_argument("--area", help="nur ein Objektbereich")
     rules.add_argument("--category", help="nur eine Kategorie")
@@ -802,7 +802,7 @@ def build_parser() -> argparse.ArgumentParser:
     rules.set_defaults(func=cmd_rules)
 
     # delta
-    delta = subparsers.add_parser("delta", help="zwei Laeufe vergleichen (FA-605)")
+    delta = subparsers.add_parser("delta", help="zwei Läufe vergleichen (FA-605)")
     delta.add_argument("baseline", help="Vergleichslauf (Verzeichnis oder befunde.parquet)")
     delta.add_argument("current", help="aktueller Lauf")
     delta.add_argument("-v", "--verbose", action="store_true")
@@ -820,8 +820,8 @@ def build_parser() -> argparse.ArgumentParser:
     add_wl.add_argument("--finding-id", dest="finding_id")
     add_wl.add_argument("--rule-id", dest="rule_id")
     add_wl.add_argument("--object-key", dest="object_key")
-    add_wl.add_argument("--pattern", help="Suchmuster fuer den Objektschluessel, etwa '47*'")
-    add_wl.add_argument("--reason", required=True, help="Begruendung (verpflichtend)")
+    add_wl.add_argument("--pattern", help="Suchmuster für den Objektschlüssel, etwa '47*'")
+    add_wl.add_argument("--reason", required=True, help="Begründung (verpflichtend)")
     add_wl.add_argument("--approved-by", dest="approved_by")
     add_wl.add_argument("--expires", help="Ablaufdatum, etwa 2027-12-31")
     add_wl.add_argument("--reference", help="Ticketnummer oder Protokollverweis")
@@ -833,11 +833,11 @@ def build_parser() -> argparse.ArgumentParser:
     status.add_argument("-v", "--verbose", action="store_true")
     status.add_argument("-q", "--quiet", action="store_true")
     status_sub = status.add_subparsers(dest="status_command", required=True)
-    status_sub.add_parser("list", help="Verteilung der Staende anzeigen")
+    status_sub.add_parser("list", help="Verteilung der Stände anzeigen")
     set_status = status_sub.add_parser("set", help="Stand eines Befundes setzen")
     set_status.add_argument("finding_id", help="Befundkennung")
     set_status.add_argument(
-        "value", help="offen | in Klaerung | akzeptiert | korrigiert"
+        "value", help="offen | in Klärung | akzeptiert | korrigiert"
     )
     set_status.add_argument("--note", help="Bemerkung")
     set_status.add_argument("--by", help="Bearbeiter")
@@ -845,7 +845,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # pseudonymize
     pseudo = subparsers.add_parser(
-        "pseudonymize", help="pseudonymisierte Fassung fuer Demo und Schulung erzeugen (DS-05)"
+        "pseudonymize", help="pseudonymisierte Fassung für Demo und Schulung erzeugen (DS-05)"
     )
     add_common(pseudo)
     pseudo.add_argument("-o", "--output", required=True, help="Zielverzeichnis")
@@ -854,52 +854,76 @@ def build_parser() -> argparse.ArgumentParser:
 
     # purge
     purge_parser = subparsers.add_parser(
-        "purge", help="abgelaufene Daten loeschen und Loeschbestaetigung schreiben (DS-03)"
+        "purge", help="abgelaufene Daten löschen und Löschbestätigung schreiben (DS-03)"
     )
     add_common(purge_parser)
     purge_parser.add_argument(
-        "--retention-days", type=int, help="Aufbewahrungsfrist; ueberschreibt die Konfiguration"
+        "--retention-days", type=int, help="Aufbewahrungsfrist; überschreibt die Konfiguration"
     )
     purge_parser.add_argument(
-        "--confirm", action="store_true", help="tatsaechlich loeschen (ohne: nur Vorschau)"
+        "--confirm", action="store_true", help="tatsächlich löschen (ohne: nur Vorschau)"
     )
     purge_parser.add_argument(
-        "--keep-work", action="store_true", help="Arbeitsverzeichnis nicht loeschen"
+        "--keep-work", action="store_true", help="Arbeitsverzeichnis nicht löschen"
     )
-    purge_parser.add_argument("--reason", help="Begruendung fuer die Loeschbestaetigung")
-    purge_parser.add_argument("--by", help="ausfuehrende Person")
+    purge_parser.add_argument("--reason", help="Begründung für die Löschbestätigung")
+    purge_parser.add_argument("--by", help="ausführende Person")
     purge_parser.set_defaults(func=cmd_purge)
 
     # ui
     ui = subparsers.add_parser(
-        "ui", help="oertliche Oberflaeche im Browser oeffnen"
+        "ui", help="örtliche Oberfläche im Browser öffnen"
     )
     add_common(ui)
     ui.add_argument(
         "--port",
         type=int,
         default=0,
-        help="fester Port; ohne Angabe waehlt das Betriebssystem einen freien",
+        help="fester Port; ohne Angabe wählt das Betriebssystem einen freien",
     )
     ui.add_argument(
         "--host",
         default="127.0.0.1",
         help=(
-            "Bindeadresse. Vorbelegt ist die Rueckschleife. Eine andere Adresse "
-            "macht die Oberflaeche im Netz erreichbar, obwohl sie "
+            "Bindeadresse. Vorbelegt ist die Rückschleife. Eine andere Adresse "
+            "macht die Oberfläche im Netz erreichbar, obwohl sie "
             "personenbezogene Daten anzeigt (DS-02)."
         ),
     )
     ui.add_argument(
-        "--no-browser", action="store_true", help="Browser nicht selbst oeffnen"
+        "--no-browser", action="store_true", help="Browser nicht selbst öffnen"
     )
     ui.set_defaults(func=cmd_ui)
 
     return parser
 
 
+def _ausgabe_vorbereiten() -> None:
+    """Sorgt dafuer, dass Umlaute die Konsole ueberstehen.
+
+    Die Meldungen sind deutsch geschrieben. Auf einer Konsole mit alter
+    Codepage - unter Windows etwa cp850 - oder bei Umleitung in eine Datei
+    kann eine Zeile sonst mit einem UnicodeEncodeError abbrechen, und zwar
+    mitten im Lauf. Ein abgebrochener Lauf wegen eines Umlauts waere der
+    denkbar schlechteste Fehlschlag.
+
+    Umlaute liegen in allen gaengigen Codepages; noetig ist die Absicherung
+    also selten. Sie kostet aber nichts und nimmt der Umstellung ihr einziges
+    ernsthaftes Risiko.
+    """
+    for strom in (sys.stdout, sys.stderr):
+        umstellen = getattr(strom, "reconfigure", None)
+        if umstellen is None:
+            continue
+        try:
+            umstellen(errors="backslashreplace")
+        except (ValueError, OSError):  # pragma: no cover - exotische Umgebung
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
     """Einstiegspunkt der Kommandozeile."""
+    _ausgabe_vorbereiten()
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

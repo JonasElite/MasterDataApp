@@ -2,17 +2,17 @@
 rules:
 
   - id: MAT-DUP-001
-    name: Materialien mit gleicher oder sehr aehnlicher Kurzbezeichnung
+    name: Materialien mit gleicher oder sehr ähnlicher Kurzbezeichnung
     kind: duplicate
     description: >
       Doppelt angelegte Materialien zersplittern Bestand und Bedarf: beide
       Nummern werden getrennt disponiert, beide bilden Sicherheitsbestand, und
-      der Einkauf verliert die Buendelung seiner Mengen. Verglichen wird die
+      der Einkauf verliert die Bündelung seiner Mengen. Verglichen wird die
       Kurzbezeichnung nach Normalisierung; geblockt wird nach Warengruppe und
       Namensanfang.
 
       Bei technischen Materialien mit systematischen Bezeichnungen liegen
-      Kurztexte naturgemaess nah beieinander ("Schraube M6x20" gegen
+      Kurztexte naturgemäß nah beieinander ("Schraube M6x20" gegen
       "Schraube M6x25"). Der Schwellwert ist deshalb je Projekt anzupassen.
     category: duplicate
     severity: medium
@@ -28,8 +28,8 @@ rules:
     params:
       language: "D"
     remediation: >
-      Cluster fachlich sichten. Bei echten Dubletten fuehrendes Material
-      bestimmen, Bestaende umbuchen und das doppelte Material stilllegen.
+      Cluster fachlich sichten. Bei echten Dubletten führendes Material
+      bestimmen, Bestände umbuchen und das doppelte Material stilllegen.
     duplicate:
       source: |
         SELECT a.MATNR, t.MAKTX, a.MATKL, a.MTART
@@ -43,8 +43,8 @@ rules:
       # Bewusst ohne address_columns: Warengruppe und Materialart sind keine
       # Adresse. Als solche gewertet erhielten zwei Materialien derselben
       # Gruppe die volle Adresspunktzahl, und der zusammengesetzte Schwellwert
-      # setzte den strengeren Namensschwellwert ausser Kraft - jedes zweite
-      # Material derselben Gruppe waere eine vermeintliche Dublette.
+      # setzte den strengeren Namensschwellwert außer Kraft - jedes zweite
+      # Material derselben Gruppe wäre eine vermeintliche Dublette.
       blocking_columns: [name_prefix, name_sorted]
       threshold: 92
 
@@ -67,7 +67,7 @@ rules:
       fields:
         MARA: [MATNR, MTART, EAN11, LVORM]
     params: {}
-    remediation: EAN-Zuordnung pruefen und die doppelte Anlage bereinigen.
+    remediation: EAN-Zuordnung prüfen und die doppelte Anlage bereinigen.
     duplicate:
       source: |
         SELECT MATNR, EAN11, MTART

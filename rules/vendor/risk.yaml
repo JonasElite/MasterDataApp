@@ -1,17 +1,17 @@
 # Risiko- und Compliance-Indikatoren, Kreditor (FA-407).
 #
 # Diese Regeln erzeugen keine Schuldvermutung. Sie benennen Konstellationen, die
-# aus Sicht des internen Kontrollsystems eine Erklaerung verdienen. Ein Befund
-# ist ein Pruefauftrag, kein Vorwurf - das gehoert so in den Bericht.
+# aus Sicht des internen Kontrollsystems eine Erklärung verdienen. Ein Befund
+# ist ein Prüfauftrag, kein Vorwurf - das gehört so in den Bericht.
 rules:
 
   - id: VEN-RISK-001
-    name: Bankverbindung des Kreditors stimmt mit einer Mitarbeiterbankverbindung ueberein
+    name: Bankverbindung des Kreditors stimmt mit einer Mitarbeiterbankverbindung überein
     description: >
       Stimmt die Kontoverbindung eines Kreditors mit der eines Mitarbeiters
-      ueberein, kann das eine legitime Reisekostenerstattung ueber ein
-      Kreditorenkonto sein - oder ein Zahlungsumleitungsrisiko. Die Regel laeuft
-      nur, wenn der Personalstamm ausdruecklich mitgeliefert wurde.
+      überein, kann das eine legitime Reisekostenerstattung über ein
+      Kreditorenkonto sein - oder ein Zahlungsumleitungsrisiko. Die Regel läuft
+      nur, wenn der Personalstamm ausdrücklich mitgeliefert wurde.
     category: risk
     severity: critical
     version: "1.0.0"
@@ -26,14 +26,14 @@ rules:
         PA0009: [PERNR, BANKS, BANKL, BANKN, IBAN, ENDDA]
     params: {}
     remediation: >
-      Konstellation mit der Innenrevision klaeren und dokumentieren. Bei
-      berechtigten Faellen als begruendete Ausnahme whitelisten.
+      Konstellation mit der Innenrevision klären und dokumentieren. Bei
+      berechtigten Fällen als begründete Ausnahme whitelisten.
     sql: |
       SELECT DISTINCT
           k.MANDT, k.LIFNR, k.BANKS, k.BANKL, k.BANKN,
           CASE WHEN k.IBAN IS NOT NULL AND p.IBAN IS NOT NULL AND k.IBAN = p.IBAN
-               THEN 'Uebereinstimmung ueber IBAN'
-               ELSE 'Uebereinstimmung ueber Bankschluessel und Kontonummer' END AS befund
+               THEN 'Übereinstimmung über IBAN'
+               ELSE 'Übereinstimmung über Bankschlüssel und Kontonummer' END AS befund
       FROM LFBK k
       JOIN PA0009 p
         ON (k.IBAN IS NOT NULL AND k.IBAN = p.IBAN)
@@ -44,10 +44,10 @@ rules:
   - id: VEN-RISK-002
     name: Kreditor mit reiner Postfachanschrift
     description: >
-      Eine Anschrift, die nur ein Postfach nennt, laesst den Sitz des Partners
-      offen. Fuer die umsatzsteuerliche Rechnungsanschrift ist sie in vielen
-      Faellen nicht ausreichend, und fuer Sorgfaltspflichten nach dem
-      Geldwaeschegesetz ist sie unbrauchbar.
+      Eine Anschrift, die nur ein Postfach nennt, lässt den Sitz des Partners
+      offen. Für die umsatzsteuerliche Rechnungsanschrift ist sie in vielen
+      Fällen nicht ausreichend, und für Sorgfaltspflichten nach dem
+      Geldwäschegesetz ist sie unbrauchbar.
     category: risk
     severity: medium
     version: "1.0.0"
@@ -60,7 +60,7 @@ rules:
       fields:
         LFA1: [MANDT, LIFNR, NAME1, LAND1, STRAS, PFACH, ORT01, LOEVM]
     params: {}
-    remediation: Ladungsfaehige Anschrift beim Kreditor erfragen und nachpflegen.
+    remediation: Ladungsfähige Anschrift beim Kreditor erfragen und nachpflegen.
     sql: |
       SELECT MANDT, LIFNR, NAME1, LAND1, STRAS, PFACH, ORT01
       FROM LFA1
@@ -72,12 +72,12 @@ rules:
         )
 
   - id: VEN-RISK-003
-    name: Bankdaten des Kreditors kuerzlich geaendert
+    name: Bankdaten des Kreditors kürzlich geändert
     description: >
-      Die Aenderung einer Bankverbindung ist der haeufigste Ansatzpunkt fuer
-      Zahlungsumleitung durch gefaelschte Lieferantenschreiben. Kuerzlich
-      geaenderte Bankdaten gehoeren vor dem naechsten Zahllauf gegen einen
-      unabhaengigen Kanal bestaetigt.
+      Die Änderung einer Bankverbindung ist der häufigste Ansatzpunkt für
+      Zahlungsumleitung durch gefälschte Lieferantenschreiben. Kürzlich
+      geänderte Bankdaten gehören vor dem nächsten Zahllauf gegen einen
+      unabhängigen Kanal bestätigt.
     category: risk
     severity: high
     version: "1.0.0"
@@ -97,8 +97,8 @@ rules:
       bank_tables: [LFBK, TIBAN]
       bank_fields: [BANKN, BANKL, BANKS, IBAN, BKONT]
     remediation: >
-      Aenderung gegen einen unabhaengig beschafften Kontakt des Kreditors
-      bestaetigen (Rueckruf an eine bekannte Nummer, nicht an die im Schreiben
+      Änderung gegen einen unabhängig beschafften Kontakt des Kreditors
+      bestätigen (Rückruf an eine bekannte Nummer, nicht an die im Schreiben
       genannte).
     sql: |
       SELECT
@@ -117,11 +117,11 @@ rules:
       GROUP BY a.MANDT, a.LIFNR, a.NAME1
 
   - id: VEN-RISK-004
-    name: Kreditor angelegt und Bankdaten vom selben Benutzer geaendert
+    name: Kreditor angelegt und Bankdaten vom selben Benutzer geändert
     description: >
-      Legt derselbe Benutzer einen Kreditor an und aendert spaeter dessen
+      Legt derselbe Benutzer einen Kreditor an und ändert später dessen
       Bankverbindung, fehlt die Funktionstrennung. Das ist eine der klassischen
-      Feststellungen der Abschlusspruefung zum internen Kontrollsystem.
+      Feststellungen der Abschlussprüfung zum internen Kontrollsystem.
     category: risk
     severity: high
     version: "1.0.0"
@@ -140,7 +140,7 @@ rules:
       bank_tables: [LFBK, TIBAN]
       bank_fields: [BANKN, BANKL, BANKS, IBAN]
     remediation: >
-      Berechtigungskonzept pruefen und die Funktionstrennung zwischen
+      Berechtigungskonzept prüfen und die Funktionstrennung zwischen
       Stammdatenanlage und Bankdatenpflege durchsetzen.
     sql: |
       SELECT
@@ -161,9 +161,9 @@ rules:
   - id: VEN-RISK-005
     name: CpD-Konto mit fest hinterlegter Bankverbindung
     description: >
-      Ein CpD-Konto sammelt einmalige Geschaeftspartner; die Zahlungsdaten werden
+      Ein CpD-Konto sammelt einmalige Geschäftspartner; die Zahlungsdaten werden
       je Beleg erfasst. Eine fest hinterlegte Bankverbindung hebt diese Kontrolle
-      auf: Zahlungen an wechselnde Empfaenger laufen dann unbemerkt auf ein festes
+      auf: Zahlungen an wechselnde Empfänger laufen dann unbemerkt auf ein festes
       Konto.
     category: risk
     severity: critical
@@ -187,10 +187,10 @@ rules:
         AND (COALESCE(k.BANKN, '') <> '' OR COALESCE(k.IBAN, '') <> '')
 
   - id: VEN-RISK-006
-    name: Zur Loeschung vorgemerkter Kreditor ohne Zahlsperre
+    name: Zur Löschung vorgemerkter Kreditor ohne Zahlsperre
     description: >
-      Ein zur Loeschung vorgemerkter Kreditor bleibt ohne Zahlsperre im Zahllauf
-      beruecksichtigt. Die Vormerkung allein verhindert keine Zahlung.
+      Ein zur Löschung vorgemerkter Kreditor bleibt ohne Zahlsperre im Zahllauf
+      berücksichtigt. Die Vormerkung allein verhindert keine Zahlung.
     category: risk
     severity: high
     version: "1.0.0"

@@ -1,18 +1,18 @@
-"""Loeschkonzept mit dokumentierter Loeschbestaetigung (DS-03).
+"""Löschkonzept mit dokumentierter Löschbestätigung (DS-03).
 
-Kundendaten duerfen nach Projektende nicht unbegrenzt liegenbleiben. Diese
-Funktionen loeschen Arbeitsstaende und Laufergebnisse nach Ablauf der
-vereinbarten Aufbewahrungsfrist und protokollieren, was geloescht wurde.
+Kundendaten dürfen nach Projektende nicht unbegrenzt liegenbleiben. Diese
+Funktionen löschen Arbeitsstände und Laufergebnisse nach Ablauf der
+vereinbarten Aufbewahrungsfrist und protokollieren, was gelöscht wurde.
 
 Zwei Entscheidungen dazu:
 
-Geloescht wird nichts ohne Bestaetigung.
+Gelöscht wird nichts ohne Bestätigung.
     Ein versehentlicher Aufruf darf keine Beweismittel vernichten. Ohne
-    ``confirm=True`` wird nur aufgelistet, was geloescht wuerde.
+    ``confirm=True`` wird nur aufgelistet, was gelöscht würde.
 
-Die Loeschbestaetigung ueberlebt die Loeschung.
-    Sie enthaelt keine Kundendaten, sondern Pfade, Zeitpunkte, Groessen und
-    die Anzahl geloeschter Dateien - genau das, was gegenueber dem Kunden und
+Die Löschbestätigung überlebt die Löschung.
+    Sie enthält keine Kundendaten, sondern Pfade, Zeitpunkte, Größen und
+    die Anzahl gelöschter Dateien - genau das, was gegenüber dem Kunden und
     dem Datenschutz nachzuweisen ist.
 """
 
@@ -29,13 +29,13 @@ from sapmdq.util.timeutil import iso_timestamp
 
 logger = get_logger("privacy.retention")
 
-#: Dateiname der Loeschbestaetigung.
+#: Dateiname der Löschbestätigung.
 DELETION_LOG = "loeschbestaetigung.json"
 
 
 @dataclass
 class PurgeCandidate:
-    """Ein Verzeichnis oder eine Datei, die zur Loeschung ansteht."""
+    """Ein Verzeichnis oder eine Datei, die zur Löschung ansteht."""
 
     path: Path
     kind: str
@@ -50,7 +50,7 @@ class PurgeCandidate:
 
 @dataclass
 class PurgeReport:
-    """Ergebnis eines Loeschlaufs."""
+    """Ergebnis eines Löschlaufs."""
 
     candidates: list[PurgeCandidate] = field(default_factory=list)
     deleted: list[PurgeCandidate] = field(default_factory=list)
@@ -68,7 +68,7 @@ class PurgeReport:
 
 
 def _measure(path: Path) -> tuple[int, int, datetime]:
-    """Ermittelt Groesse, Dateianzahl und juengste Aenderung eines Pfades."""
+    """Ermittelt Größe, Dateianzahl und jüngste Änderung eines Pfades."""
     if path.is_file():
         stat = path.stat()
         return stat.st_size, 1, datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
@@ -89,10 +89,10 @@ def _measure(path: Path) -> tuple[int, int, datetime]:
 def collect_candidates(
     work_dir: Path, output_dir: Path, retention_days: int | None, include_work: bool = True
 ) -> list[PurgeCandidate]:
-    """Sammelt, was nach Ablauf der Frist zu loeschen waere.
+    """Sammelt, was nach Ablauf der Frist zu löschen wäre.
 
-    Das Arbeitsverzeichnis enthaelt die normalisierten Zwischenstaende und
-    damit Kundendaten in Rohform; es faellt unabhaengig von der Frist an,
+    Das Arbeitsverzeichnis enthält die normalisierten Zwischenstände und
+    damit Kundendaten in Rohform; es fällt unabhängig von der Frist an,
     sobald das Projekt abgeschlossen ist. Laufergebnisse werden nach ihrem
     Alter beurteilt.
     """
@@ -138,14 +138,14 @@ def purge(
     reason: str = "",
     executed_by: str = "",
 ) -> PurgeReport:
-    """Loescht abgelaufene Daten und schreibt die Loeschbestaetigung."""
+    """Löscht abgelaufene Daten und schreibt die Löschbestätigung."""
     candidates = collect_candidates(work_dir, output_dir, retention_days, include_work)
     report = PurgeReport(candidates=candidates, retention_days=retention_days, executed=confirm)
 
     if not confirm:
         logger.info(
-            "Vorschau: %d Eintraege mit zusammen %.1f MB wuerden geloescht. "
-            "Zum Ausfuehren --confirm angeben.",
+            "Vorschau: %d Einträge mit zusammen %.1f MB würden gelöscht. "
+            "Zum Ausführen --confirm angeben.",
             len(candidates), report.total_bytes / 1_048_576,
         )
         return report
@@ -157,10 +157,10 @@ def purge(
             else:
                 candidate.path.unlink()
             report.deleted.append(candidate)
-            logger.info("Geloescht: %s (%d Dateien)", candidate.path, candidate.file_count)
+            logger.info("Gelöscht: %s (%d Dateien)", candidate.path, candidate.file_count)
         except OSError as exc:
             report.failed.append((str(candidate.path), str(exc)))
-            logger.error("Loeschen fehlgeschlagen: %s - %s", candidate.path, exc)
+            logger.error("Löschen fehlgeschlagen: %s - %s", candidate.path, exc)
 
     write_deletion_log(report, output_dir, reason=reason, executed_by=executed_by)
     return report
@@ -169,10 +169,10 @@ def purge(
 def write_deletion_log(
     report: PurgeReport, output_dir: Path, reason: str = "", executed_by: str = ""
 ) -> Path:
-    """Schreibt die Loeschbestaetigung (DS-03).
+    """Schreibt die Löschbestätigung (DS-03).
 
-    Sie wird an den Ausgabeordner angehaengt, nicht ueberschrieben: mehrere
-    Loeschlaeufe ueber die Projektlaufzeit ergeben zusammen den Nachweis.
+    Sie wird an den Ausgabeordner angehängt, nicht überschrieben: mehrere
+    Löschläufe über die Projektlaufzeit ergeben zusammen den Nachweis.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / DELETION_LOG
@@ -209,7 +209,7 @@ def write_deletion_log(
 
     path.write_text(json.dumps(history, indent=2, ensure_ascii=False), encoding="utf-8")
     logger.info(
-        "Loeschbestaetigung geschrieben: %s (%d Eintraege, %.1f MB)",
+        "Löschbestätigung geschrieben: %s (%d Einträge, %.1f MB)",
         path, len(report.deleted), report.deleted_bytes / 1_048_576,
     )
     return path

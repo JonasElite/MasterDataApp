@@ -1,13 +1,13 @@
 """Aufbereitung der Rohbefunde (FA-601 bis FA-605).
 
-Aus den Rohbefunden der Engine werden hier Arbeitsvorraete: mit dauerhaften
-Ausnahmen, Bearbeitungsstand, zustaendiger Stelle und dem Verhaeltnis zum
+Aus den Rohbefunden der Engine werden hier Arbeitsvorräte: mit dauerhaften
+Ausnahmen, Bearbeitungsstand, zuständiger Stelle und dem Verhältnis zum
 Vergleichslauf.
 
 Als Ausnahme gekennzeichnete Befunde bleiben in der Ergebnisdatei erhalten,
-zaehlen aber nicht mehr zum offenen Bestand und erscheinen nicht in der
+zählen aber nicht mehr zum offenen Bestand und erscheinen nicht in der
 Befundliste des Berichts (AK-06). Sie werden getrennt ausgewiesen - eine
-Ausnahme, die spurlos verschwindet, laesst sich nicht mehr ueberpruefen.
+Ausnahme, die spurlos verschwindet, lässt sich nicht mehr überprüfen.
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ class EnrichmentResult:
 
     @property
     def effective(self) -> int:
-        """Befunde, die tatsaechlich zu bearbeiten sind."""
+        """Befunde, die tatsächlich zu bearbeiten sind."""
         return self.total - self.whitelisted
 
 
@@ -54,10 +54,10 @@ def _register_frame(
     columns: Sequence[str],
     records: Sequence[Mapping[str, Any]],
 ) -> None:
-    """Legt eine Hilfstabelle mit ausdruecklich typisierten Spalten an.
+    """Legt eine Hilfstabelle mit ausdrücklich typisierten Spalten an.
 
     Die Typen werden gesetzt statt abgeleitet: bei einer leeren Liste - kein
-    Eintrag in der Ausnahmeliste ist der Normalfall - kaeme die Ableitung zu
+    Eintrag in der Ausnahmeliste ist der Normalfall - käme die Ableitung zu
     einem beliebigen Typ, und der anschliessende Mustervergleich scheiterte an
     einem Typfehler statt einfach nichts zu treffen.
     """
@@ -94,7 +94,7 @@ def _register_whitelist(con: duckdb.DuckDBPyConnection, whitelist: Whitelist) ->
 
 
 def _register_status(con: duckdb.DuckDBPyConnection, store: StatusStore) -> None:
-    """Legt die Bearbeitungsstaende als Tabelle an."""
+    """Legt die Bearbeitungsstände als Tabelle an."""
     _register_frame(
         con,
         "_status",
@@ -156,9 +156,9 @@ def enrich_findings(
         SELECT
             f.*,
             -- Bei mehreren zutreffenden Ausnahmen gewinnt die erste in
-            -- alphabetischer Folge der Begruendung; das ist beliebig, aber
-            -- reproduzierbar. Wichtiger ist, dass ueberhaupt genau eine
-            -- Begruendung im Bericht steht.
+            -- alphabetischer Folge der Begründung; das ist beliebig, aber
+            -- reproduzierbar. Wichtiger ist, dass überhaupt genau eine
+            -- Begründung im Bericht steht.
             min(w.wl_reason) AS whitelist_reason
         FROM {source} f
         LEFT JOIN _whitelist w
@@ -208,8 +208,8 @@ def enrich_findings(
             f"SELECT delta_state, count(*) FROM {enriched} WHERE NOT whitelisted GROUP BY 1 ORDER BY 1"
         ).fetchall()
     )
-    # Was "offen" heisst, steht am Statusmodell und nicht hier - sonst
-    # muesste eine neue Statusstufe an zwei Stellen nachgezogen werden.
+    # Was "offen" heißt, steht am Statusmodell und nicht hier - sonst
+    # müsste eine neue Statusstufe an zwei Stellen nachgezogen werden.
     offene_stufen = ", ".join(
         quote_literal(status.value) for status in FindingStatus if not status.is_closed
     )
@@ -219,8 +219,8 @@ def enrich_findings(
     ).fetchone()[0]
 
     # Ausnahmen, die auf keinen Befund mehr zutreffen: entweder ist der Mangel
-    # behoben oder die Ausnahme ist veraltet. Beides gehoert gemeldet, damit
-    # die Liste nicht unbemerkt anwaechst.
+    # behoben oder die Ausnahme ist veraltet. Beides gehört gemeldet, damit
+    # die Liste nicht unbemerkt anwächst.
     used_reasons = {
         row[0]
         for row in con.execute(

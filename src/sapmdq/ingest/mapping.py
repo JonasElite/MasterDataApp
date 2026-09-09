@@ -1,7 +1,7 @@
 """Zuordnung Datei zu SAP-Tabelle (FA-107).
 
-Drei Wege, in dieser Reihenfolge: die Konfiguration sagt es ausdruecklich,
-der Dateiname verraet es, oder die Spaltensignatur laesst nur einen Schluss
+Drei Wege, in dieser Reihenfolge: die Konfiguration sagt es ausdrücklich,
+der Dateiname verrät es, oder die Spaltensignatur lässt nur einen Schluss
 zu. Widersprechen sich Dateiname und Signatur, gewinnt die Signatur - der
 Dateiname ist die weichere Angabe -, der Widerspruch wird aber protokolliert.
 """
@@ -54,9 +54,9 @@ class TableAssignment:
 
 
 def _manual_override(path: Path, file_table_map: Mapping[str, str]) -> str | None:
-    """Sucht eine ausdrueckliche Zuordnung aus der Konfiguration.
+    """Sucht eine ausdrückliche Zuordnung aus der Konfiguration.
 
-    Erlaubt sind der genaue Dateiname, der vollstaendige Pfad und
+    Erlaubt sind der genaue Dateiname, der vollständige Pfad und
     Dateinamensmuster wie ``kreditoren_*.csv``.
     """
     for pattern, table in file_table_map.items():
@@ -138,7 +138,7 @@ def assign_table(
             notes=[
                 "Die Spaltensignatur passt auf mehrere Tabellen gleich gut: "
                 + ", ".join(f"{name} ({score:.2f})" for name, score in candidates[:3])
-                + ". Bitte ueber ingestion.file_table_map festlegen."
+                + ". Bitte über ingestion.file_table_map festlegen."
             ],
         )
 
@@ -147,8 +147,8 @@ def assign_table(
         table=None,
         method=AssignmentMethod.UNRESOLVED,
         notes=[
-            "Weder Dateiname noch Spalten lassen auf eine bekannte Tabelle schliessen. "
-            "Bitte ueber ingestion.file_table_map zuordnen."
+            "Weder Dateiname noch Spalten lassen auf eine bekannte Tabelle schließen. "
+            "Bitte über ingestion.file_table_map zuordnen."
         ],
     )
 

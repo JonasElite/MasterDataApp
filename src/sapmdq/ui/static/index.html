@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>SAP-Stammdatenpruefung</title>
+<title>SAP-Stammdatenprüfung</title>
 <link rel="stylesheet" href="/stil.css">
 <link rel="icon" href="/zeichen.svg" type="image/svg+xml">
 </head>
@@ -13,8 +13,8 @@
 <div id="anmeldung" class="anmeldung" hidden>
   <div class="karte">
     <h1>Sitzungsmerkmal fehlt</h1>
-    <p>Die Oberflaeche wird ueber die Adresse aus der Startmeldung geoeffnet.
-       Sie enthaelt das Merkmal dieser Sitzung. Ohne es antwortet der Server nicht.</p>
+    <p>Die Oberfläche wird über die Adresse aus der Startmeldung geöffnet.
+       Sie enthält das Merkmal dieser Sitzung. Ohne es antwortet der Server nicht.</p>
     <p class="leise">Beispiel: <code>http://127.0.0.1:8765/?token=&hellip;</code></p>
   </div>
 </div>
@@ -24,7 +24,7 @@
   <aside class="seitenleiste">
     <div class="marke">
       <img class="marke-zeichen" src="/zeichen.svg" alt="" width="26" height="26">
-      <span class="marke-text">Stammdaten&shy;pruefung</span>
+      <span class="marke-text">Stammdaten&shy;prüfung</span>
     </div>
 
     <nav aria-label="Bereiche">
@@ -32,19 +32,19 @@
       <button class="nav" data-ansicht="befunde">Befunde</button>
       <button class="nav" data-ansicht="dubletten">Dubletten</button>
       <button class="nav" data-ansicht="abdeckung">Abdeckung</button>
-      <button class="nav" data-ansicht="coverage">Pruefumfang</button>
+      <button class="nav" data-ansicht="coverage">Prüfumfang</button>
       <button class="nav" data-ansicht="lieferung">Lieferung</button>
       <button class="nav" data-ansicht="ausnahmen">Ausnahmen</button>
-      <button class="nav" data-ansicht="laeufe">Laeufe</button>
+      <button class="nav" data-ansicht="laeufe">Läufe</button>
     </nav>
 
     <div class="seitenleiste-fuss">
       <label class="feldchen" for="sprache">Sprache</label>
       <select id="sprache" aria-label="Sprache"></select>
       <label class="feldchen" for="lauf-auswahl">Angezeigter Lauf</label>
-      <select id="lauf-auswahl" aria-label="Angezeigten Lauf waehlen"></select>
-      <button id="praesentation" class="knopf">Praesentation</button>
-      <button id="lauf-starten" class="knopf knopf-haupt">Pruefung starten</button>
+      <select id="lauf-auswahl" aria-label="Angezeigten Lauf wählen"></select>
+      <button id="praesentation" class="knopf">Präsentation</button>
+      <button id="lauf-starten" class="knopf knopf-haupt">Prüfung starten</button>
       <p id="projekt-fuss" class="leise"></p>
     </div>
   </aside>
@@ -65,13 +65,13 @@
       <div class="lagebild">
         <div>
           <div class="karte hero">
-            <div class="hero-titel">Datenqualitaet</div>
+            <div class="hero-titel">Datenqualität</div>
             <div id="lb-score" class="hero-wert">-</div>
             <div id="lb-einordnung"></div>
             <p id="lb-score-zusatz" class="hero-zusatz"></p>
           </div>
           <div class="karte">
-            <h2>Pruefumfang</h2>
+            <h2>Prüfumfang</h2>
             <div id="lb-ring"></div>
             <p id="lb-ring-text" class="leise abstand-oben"></p>
           </div>
@@ -98,12 +98,12 @@
 
       <div class="spalten">
         <div class="karte">
-          <h2>Woran es am haeufigsten liegt</h2>
+          <h2>Woran es am häufigsten liegt</h2>
           <div id="lb-regeln" class="saeulen"></div>
         </div>
         <div class="karte">
-          <h2>Was eine Nachlieferung braechte</h2>
-          <p class="leise">Nach Wirkung geordnet: wieviele zusaetzliche Pruefungen
+          <h2>Was eine Nachlieferung brächte</h2>
+          <p class="leise">Nach Wirkung geordnet: wieviele zusätzliche Prüfungen
              die Tabelle freischaltet.</p>
           <div id="lb-nachforderung" class="saeulen"></div>
         </div>
@@ -112,7 +112,7 @@
       <div class="karte">
         <h2>Bewertung je Bereich</h2>
         <p class="leise">Der Wert ist unter dem Vorbehalt des jeweils erreichten
-           Pruefumfangs zu lesen. Was nicht geprueft werden konnte, geht nicht ein.</p>
+           Prüfumfangs zu lesen. Was nicht geprüft werden konnte, geht nicht ein.</p>
         <div id="lb-bewertung"></div>
       </div>
     </section>
@@ -129,16 +129,16 @@
         <div id="l-tabellen"></div>
       </div>
       <div class="karte">
-        <h2>Pruefungen der Lieferung</h2>
+        <h2>Prüfungen der Lieferung</h2>
         <div id="l-pruefungen"></div>
       </div>
     </section>
 
     <!-- ------------------------------------------------------- Abdeckung -->
     <section id="ansicht-abdeckung" class="ansicht" hidden>
-      <p class="leise">Was das Werkzeug ueberhaupt prueft - unabhaengig von
+      <p class="leise">Was das Werkzeug überhaupt prüft - unabhängig von
          dieser Lieferung. Je Prozess steht daneben, wieviel davon sich mit
-         den gelieferten Tabellen tatsaechlich pruefen liess.</p>
+         den gelieferten Tabellen tatsächlich prüfen ließ.</p>
 
       <div id="ab-kennzahlen" class="kacheln"></div>
 
@@ -150,8 +150,8 @@
 
       <div class="karte">
         <h2>Alle Tabellen</h2>
-        <p class="leise">Welche Tabelle wofuer gebraucht wird und an wievielen
-           Regeln sie haengt.</p>
+        <p class="leise">Welche Tabelle wofür gebraucht wird und an wievielen
+           Regeln sie hängt.</p>
         <div class="werkzeugleiste">
           <input id="ab-suche" type="search" placeholder="Tabelle suchen"
                  aria-label="Tabelle suchen">
@@ -164,15 +164,15 @@
     <!-- -------------------------------------------------------- Coverage -->
     <section id="ansicht-coverage" class="ansicht" hidden>
       <div class="karte">
-        <h2>Pruefumfang</h2>
+        <h2>Prüfumfang</h2>
         <p id="c-vorbehalt"></p>
         <div id="c-anteil" class="fortschrittsleiste"><span></span></div>
         <div id="c-bereiche" class="kacheln kacheln-klein"></div>
       </div>
       <div class="karte">
         <h2>Nachforderung</h2>
-        <p class="leise">Was zusaetzlich geliefert werden muesste, damit die
-           entfallenen Regeln laufen koennen - nach Wirkung geordnet.</p>
+        <p class="leise">Was zusätzlich geliefert werden müsste, damit die
+           entfallenen Regeln laufen können - nach Wirkung geordnet.</p>
         <div id="c-nachforderung"></div>
       </div>
       <div class="karte">
@@ -189,7 +189,7 @@
     <section id="ansicht-befunde" class="ansicht" hidden>
       <div class="karte">
         <div class="filter">
-          <input id="b-suche" type="search" placeholder="Schluessel, Regel oder Detail" aria-label="Befunde durchsuchen">
+          <input id="b-suche" type="search" placeholder="Schlüssel, Regel oder Detail" aria-label="Befunde durchsuchen">
           <select id="b-schweregrad" aria-label="Schweregrad">
             <option value="">Schweregrad: alle</option>
             <option value="critical">critical</option>
@@ -203,23 +203,23 @@
           <select id="b-status" aria-label="Bearbeitungsstand">
             <option value="">Stand: alle</option>
             <option value="offen">offen</option>
-            <option value="in Klaerung">in Klaerung</option>
+            <option value="in Klärung">in Klärung</option>
             <option value="akzeptiert">akzeptiert</option>
             <option value="korrigiert">korrigiert</option>
           </select>
           <select id="b-vergleich" aria-label="Vergleich zum Vorlauf">
             <option value="">Vergleich: alle</option>
             <option value="neu">neu</option>
-            <option value="unveraendert">unveraendert</option>
+            <option value="unverändert">unverändert</option>
             <option value="kein Vergleich">kein Vergleich</option>
           </select>
           <label class="schalter"><input id="b-ausnahmen" type="checkbox"> Ausnahmen zeigen</label>
-          <button id="b-zuruecksetzen" class="knopf knopf-leise">Filter loeschen</button>
+          <button id="b-zuruecksetzen" class="knopf knopf-leise">Filter löschen</button>
         </div>
         <p id="b-anzahl" class="leise"></p>
         <div id="b-tabelle"></div>
         <div class="blaettern">
-          <button id="b-zurueck" class="knopf knopf-leise">Zurueck</button>
+          <button id="b-zurueck" class="knopf knopf-leise">Zurück</button>
           <span id="b-seite" class="leise"></span>
           <button id="b-weiter" class="knopf knopf-leise">Weiter</button>
         </div>
@@ -238,12 +238,12 @@
       <div class="karte">
         <h2>Cluster</h2>
         <div class="werkzeugleiste">
-          <input id="d-suche" type="search" placeholder="Name oder Schluessel"
+          <input id="d-suche" type="search" placeholder="Name oder Schlüssel"
                  aria-label="Cluster durchsuchen">
           <select id="d-art" aria-label="Art des Treffers">
             <option value="">Nachweis: alle</option>
-            <option value="exakt">exakt - harter Schluessel</option>
-            <option value="unscharf">unscharf - Namensaehnlichkeit</option>
+            <option value="exakt">exakt - harter Schlüssel</option>
+            <option value="unscharf">unscharf - Namensähnlichkeit</option>
           </select>
           <button id="d-alle-auf" class="knopf knopf-leise">Alle aufklappen</button>
         </div>
@@ -261,18 +261,18 @@
       </div>
     </section>
 
-    <!-- ---------------------------------------------------------- Laeufe -->
+    <!-- ---------------------------------------------------------- Läufe -->
     <section id="ansicht-laeufe" class="ansicht" hidden>
       <div class="karte">
-        <h2>Laeufe</h2>
+        <h2>Läufe</h2>
         <div id="r-liste"></div>
       </div>
       <div class="karte">
-        <h2>Zwei Laeufe vergleichen</h2>
+        <h2>Zwei Läufe vergleichen</h2>
         <div class="werkzeugleiste">
-          <select id="v-vorher" aria-label="Frueherer Lauf"></select>
+          <select id="v-vorher" aria-label="Früherer Lauf"></select>
           <span class="leise">gegen</span>
-          <select id="v-jetzt" aria-label="Spaeterer Lauf"></select>
+          <select id="v-jetzt" aria-label="Späterer Lauf"></select>
           <button id="v-starten" class="knopf">Vergleichen</button>
         </div>
         <div id="v-ergebnis"></div>
@@ -286,7 +286,7 @@
   <div class="schublade" role="dialog" aria-modal="true" aria-labelledby="d-titel">
     <div class="schublade-kopf">
       <h2 id="d-titel">Befund</h2>
-      <button id="d-schliessen" class="knopf knopf-leise" aria-label="Schliessen">Schliessen</button>
+      <button id="d-schliessen" class="knopf knopf-leise" aria-label="Schließen">Schließen</button>
     </div>
     <div id="d-inhalt" class="schublade-inhalt"></div>
   </div>
@@ -296,8 +296,8 @@
 <div id="laufblende" class="blende" hidden>
   <div class="schublade schublade-mitte" role="dialog" aria-modal="true" aria-labelledby="p-titel">
     <div class="schublade-kopf">
-      <h2 id="p-titel">Pruefungslauf</h2>
-      <button id="p-schliessen" class="knopf knopf-leise">Schliessen</button>
+      <h2 id="p-titel">Prüfungslauf</h2>
+      <button id="p-schliessen" class="knopf knopf-leise">Schließen</button>
     </div>
     <div class="schublade-inhalt">
       <p id="p-status"></p>
@@ -306,14 +306,14 @@
   </div>
 </div>
 
-<!-- --------------------------------------------------------- Praesentation -->
+<!-- --------------------------------------------------------- Präsentation -->
 <div id="buehne" class="buehne" hidden>
   <div id="folie" class="folie" role="region" aria-live="polite"></div>
   <div class="buehne-fuss">
     <span id="folie-titel" class="titel"></span>
     <button id="folie-zurueck" class="knopf knopf-leise" aria-label="Vorige Folie">&larr;</button>
     <span id="folie-zaehler" class="zaehler"></span>
-    <button id="folie-vor" class="knopf knopf-leise" aria-label="Naechste Folie">&rarr;</button>
+    <button id="folie-vor" class="knopf knopf-leise" aria-label="Nächste Folie">&rarr;</button>
     <button id="folie-drucken" class="knopf knopf-leise">Als PDF</button>
     <button id="buehne-schliessen" class="knopf knopf-leise">Beenden</button>
   </div>

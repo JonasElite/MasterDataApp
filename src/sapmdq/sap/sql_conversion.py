@@ -1,10 +1,10 @@
-"""Wertkonvertierung als SQL-Ausdruecke (FA-103, FA-104).
+"""Wertkonvertierung als SQL-Ausdrücke (FA-103, FA-104).
 
-Jede Eingangsdatei landet zunaechst als reine Zeichenkettentabelle in DuckDB.
+Jede Eingangsdatei landet zunächst als reine Zeichenkettentabelle in DuckDB.
 Erst dieser Baustein entscheidet anhand der DDIC-Metadaten, was ein Feld
-tatsaechlich ist, und erzeugt dafuer einen SQL-Ausdruck. Dadurch gibt es genau
+tatsächlich ist, und erzeugt dafür einen SQL-Ausdruck. Dadurch gibt es genau
 eine Stelle, an der die Konvertierungssemantik definiert ist, und die
-Verarbeitung bleibt vollstaendig in der Datenbank (NFA-01, NFA-02).
+Verarbeitung bleibt vollständig in der Datenbank (NFA-01, NFA-02).
 """
 
 from __future__ import annotations
@@ -14,12 +14,12 @@ from sapmdq.sap.tables import FieldSpec
 
 
 def quote_identifier(name: str) -> str:
-    """Maskiert einen Bezeichner fuer SQL."""
+    """Maskiert einen Bezeichner für SQL."""
     return '"' + name.replace('"', '""') + '"'
 
 
 def quote_literal(value: str) -> str:
-    """Maskiert eine Zeichenkette fuer SQL."""
+    """Maskiert eine Zeichenkette für SQL."""
     return "'" + str(value).replace("'", "''") + "'"
 
 
@@ -46,13 +46,13 @@ def text_expression(column: str, options: ConversionOptions) -> str:
 
 
 def alpha_expression(column: str, length: int, options: ConversionOptions) -> str:
-    """ALPHA-Eingabekonvertierung: fuehrende Nullen wiederherstellen (FA-103).
+    """ALPHA-Eingabekonvertierung: führende Nullen wiederherstellen (FA-103).
 
-    SAP fuellt nur rein numerische Werte links mit Nullen auf; alphanumerische
-    Schluessel wie ``ABC-123`` bleiben unveraendert. Werte, die bereits laenger
-    als die Feldlaenge sind, werden nicht abgeschnitten - sie deuten auf eine
-    falsche Feldlaenge hin und sollen als Befund sichtbar bleiben, nicht
-    stillschweigend verstuemmelt werden.
+    SAP füllt nur rein numerische Werte links mit Nullen auf; alphanumerische
+    Schlüssel wie ``ABC-123`` bleiben unverändert. Werte, die bereits länger
+    als die Feldlänge sind, werden nicht abgeschnitten - sie deuten auf eine
+    falsche Feldlänge hin und sollen als Befund sichtbar bleiben, nicht
+    stillschweigend verstümmelt werden.
     """
     base = trimmed(column, options)
     expression = (
@@ -66,7 +66,7 @@ def date_expression(column: str, options: ConversionOptions) -> str:
     """SAP-Datumsfeld in einen echten DATE-Wert (FA-104).
 
     Platzhalter werden vor dem Parsen abgefangen. 9999-12-31 bleibt
-    standardmaessig erhalten, weil der Wert fachlich "unbegrenzt gueltig"
+    standardmässig erhalten, weil der Wert fachlich "unbegrenzt gültig"
     bedeutet und keine fehlende Angabe ist.
     """
     base = trimmed(column, options)
@@ -99,7 +99,7 @@ def time_expression(column: str, options: ConversionOptions) -> str:
 def amount_expression(column: str, notation: str, options: ConversionOptions) -> str:
     """Betrags- und Mengenfeld in eine Dezimalzahl (FA-104).
 
-    Behandelt das in SAP uebliche nachgestellte Vorzeichen (``1.234,56-``),
+    Behandelt das in SAP übliche nachgestellte Vorzeichen (``1.234,56-``),
     beide Dezimalschreibweisen und Tausendertrennzeichen. Nicht
     interpretierbare Werte werden zu NULL statt den Lauf abzubrechen; sie
     erscheinen als Formatbefund.
@@ -126,7 +126,7 @@ def column_expression(
     options: ConversionOptions,
     notation: str = "point",
 ) -> str:
-    """Konvertierungsausdruck fuer eine Spalte gemaess Feldbeschreibung."""
+    """Konvertierungsausdruck für eine Spalte gemäß Feldbeschreibung."""
     if spec.is_alpha:
         return alpha_expression(column, spec.alpha_length or 0, options)
     if spec.is_date:
@@ -141,7 +141,7 @@ def column_expression(
 def notation_probe(column: str) -> str:
     """SQL, das die Dezimalschreibweise einer Spalte bestimmt (Stichprobe).
 
-    Gezaehlt wird, wie oft Komma bzw. Punkt als letztes Trennzeichen auftritt.
+    Gezählt wird, wie oft Komma bzw. Punkt als letztes Trennzeichen auftritt.
     In ``1.234,56`` ist das Komma das Dezimaltrennzeichen, in ``1,234.56`` der
     Punkt. Werte mit nur einem Trennzeichen und genau drei Nachkommastellen
     gelten als Tausendertrennung.

@@ -1,4 +1,4 @@
-# Uebergreifende Regeln.
+# Übergreifende Regeln.
 #
 # Diese Regeln verbinden mehrere Objektbereiche - typischerweise Kreditor gegen
 # Debitor oder Stammsatz gegen Adress- und Bankenstamm. Sie finden Mangel, die
@@ -8,8 +8,8 @@ rules:
   - id: X-REF-001
     name: Adressverweis zeigt auf eine nicht vorhandene Adresse
     description: >
-      Der Kreditor verweist ueber ADRNR auf die zentrale Adressverwaltung. Zeigt
-      der Verweis ins Leere, ist die vollstaendige Anschrift nicht aufloesbar -
+      Der Kreditor verweist über ADRNR auf die zentrale Adressverwaltung. Zeigt
+      der Verweis ins Leere, ist die vollständige Anschrift nicht auflösbar -
       die Felder in LFA1 sind dann nur noch eine Kopie unbekannten Alters.
     category: referential
     severity: high
@@ -24,7 +24,7 @@ rules:
         LFA1: [MANDT, LIFNR, NAME1, ADRNR, LOEVM]
         ADRC: [ADDRNUMBER]
     params: {}
-    remediation: Adresse in der zentralen Adressverwaltung neu anlegen und verknuepfen.
+    remediation: Adresse in der zentralen Adressverwaltung neu anlegen und verknüpfen.
     sql: |
       SELECT a.MANDT, a.LIFNR, a.NAME1, a.ADRNR
       FROM LFA1 a
@@ -35,11 +35,11 @@ rules:
         AND d.ADDRNUMBER IS NULL
 
   - id: X-FMT-001
-    name: BIC im Bankenstamm ist ungueltig
+    name: BIC im Bankenstamm ist ungültig
     description: >
-      Der BIC wird nach ISO 9362 geprueft: acht oder elf Stellen, Bankcode,
+      Der BIC wird nach ISO 9362 geprüft: acht oder elf Stellen, Bankcode,
       Landeskennzeichen, Ortskennung und optionale Filialkennung. Ein falscher
-      BIC fuehrt bei Auslandszahlungen zur Rueckweisung.
+      BIC führt bei Auslandszahlungen zur Rückweisung.
     category: format
     severity: high
     version: "1.0.0"
@@ -62,9 +62,9 @@ rules:
         AND NOT bic_valid(SWIFT)
 
   - id: X-CONS-001
-    name: Verknuepfung Kreditor und Debitor ist einseitig
+    name: Verknüpfung Kreditor und Debitor ist einseitig
     description: >
-      Ist ein Partner zugleich Kunde und Lieferant, verweisen beide Stammsaetze
+      Ist ein Partner zugleich Kunde und Lieferant, verweisen beide Stammsätze
       aufeinander. Nur ein einseitiger Verweis verhindert die Verrechnung offener
       Posten - es wird gezahlt, obwohl eine Forderung gegensteht.
     category: consistency
@@ -98,7 +98,7 @@ rules:
       Dieselbe Kontoverbindung bei einem Kreditor und einem Debitor kann auf
       einen Partner in Doppelrolle hindeuten - dann sollte die Verrechnung
       eingerichtet sein. Sie kann aber auch eine Zahlungsumleitung verdecken.
-      Beides verdient eine Klaerung.
+      Beides verdient eine Klärung.
     category: risk
     severity: high
     version: "1.0.0"
@@ -113,8 +113,8 @@ rules:
         KNBK: [KUNNR, BANKS, BANKL, BANKN, IBAN]
     params: {}
     remediation: >
-      Pruefen, ob ein Partner in Doppelrolle vorliegt; dann Verrechnung
-      einrichten. Andernfalls die Herkunft der Bankverbindung klaeren.
+      Prüfen, ob ein Partner in Doppelrolle vorliegt; dann Verrechnung
+      einrichten. Andernfalls die Herkunft der Bankverbindung klären.
     sql: |
       SELECT DISTINCT
           l.MANDT, l.LIFNR, k.KUNNR,
@@ -129,7 +129,7 @@ rules:
   - id: X-CONS-002
     name: Adresse in der zentralen Adressverwaltung weicht vom Stammsatz ab
     description: >
-      LFA1 fuehrt eine Kopie der Anschrift, die fuehrende Fassung steht in ADRC.
+      LFA1 führt eine Kopie der Anschrift, die führende Fassung steht in ADRC.
       Weichen Ort oder Postleitzahl voneinander ab, ist unklar, welche Anschrift
       gilt - Rechnungen und Mahnungen gehen dann an unterschiedliche Adressen.
     category: consistency
@@ -145,7 +145,7 @@ rules:
         LFA1: [MANDT, LIFNR, NAME1, ADRNR, ORT01, PSTLZ, LOEVM]
         ADRC: [ADDRNUMBER, CITY1, POST_CODE1]
     params: {}
-    remediation: Anschriften abgleichen und die fuehrende Fassung durchschreiben.
+    remediation: Anschriften abgleichen und die führende Fassung durchschreiben.
     sql: |
       SELECT
           a.MANDT, a.LIFNR, a.NAME1, a.ADRNR,

@@ -29,20 +29,20 @@ def auswerten(con, ausdruck_bauer, werte: list[str | None], spalte: str = "V"):
 
 
 class TestAlphaKonvertierung:
-    """FA-103: fuehrende Nullen bleiben erhalten (AK-03)."""
+    """FA-103: führende Nullen bleiben erhalten (AK-03)."""
 
     def test_numerische_werte_werden_aufgefuellt(self, con):
         ergebnis = auswerten(con, alpha_expression("V", 10, OPTIONS), ["4711", "0000004711"])
         assert ergebnis == ["0000004711", "0000004711"]
 
     def test_alphanumerische_schluessel_bleiben_unveraendert(self, con):
-        # SAP fuellt bei der ALPHA-Konvertierung nur rein numerische Werte auf.
+        # SAP füllt bei der ALPHA-Konvertierung nur rein numerische Werte auf.
         ergebnis = auswerten(con, alpha_expression("V", 10, OPTIONS), ["ABC-123", "X1"])
         assert ergebnis == ["ABC-123", "X1"]
 
     def test_zu_lange_werte_werden_nicht_abgeschnitten(self, con):
-        # Ein zu langer Wert deutet auf eine falsche Feldlaenge hin. Er wird
-        # unveraendert uebernommen, damit er als Befund sichtbar bleibt.
+        # Ein zu langer Wert deutet auf eine falsche Feldlänge hin. Er wird
+        # unverändert übernommen, damit er als Befund sichtbar bleibt.
         ergebnis = auswerten(con, alpha_expression("V", 10, OPTIONS), ["123456789012"])
         assert ergebnis == ["123456789012"]
 
@@ -68,9 +68,9 @@ class TestDatumskonvertierung:
         assert auswerten(con, date_expression("V", OPTIONS), ["00000000"]) == [None]
 
     def test_unbegrenzt_gueltig_bleibt_erhalten(self, con):
-        # 9999-12-31 bedeutet "unbegrenzt gueltig" und ist keine fehlende
+        # 9999-12-31 bedeutet "unbegrenzt gültig" und ist keine fehlende
         # Angabe. Der Wert sprengt den Nanosekundenbereich von pandas - er
-        # muss den Weg dennoch unbeschadet ueberstehen.
+        # muss den Weg dennoch unbeschadet überstehen.
         assert auswerten(con, date_expression("V", OPTIONS), ["99991231"]) == [
             dt.date(9999, 12, 31)
         ]

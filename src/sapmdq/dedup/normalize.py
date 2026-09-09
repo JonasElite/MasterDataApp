@@ -1,12 +1,12 @@
 """Normalisierung vor dem Vergleich (FA-501).
 
-Ohne diesen Schritt findet jeder Abgleich zu wenig: "Mueller & Sohn GmbH",
+Ohne diesen Schritt findet jeder Abgleich zu wenig: "Müller & Sohn GmbH",
 "Müller und Sohn G.m.b.H." und "MUELLER U SOHN GMBH" sind derselbe Partner,
-haben aber keine zwei Zeichen gemeinsam, wenn man sie unveraendert vergleicht.
+haben aber keine zwei Zeichen gemeinsam, wenn man sie unverändert vergleicht.
 
-Die Normalisierung ist bewusst aggressiv. Sie wird nur fuer den Vergleich
+Die Normalisierung ist bewusst aggressiv. Sie wird nur für den Vergleich
 verwendet; im Befund erscheinen stets die Originalwerte, damit der Data Owner
-sieht, was tatsaechlich im System steht.
+sieht, was tatsächlich im System steht.
 """
 
 from __future__ import annotations
@@ -15,10 +15,10 @@ import re
 import unicodedata
 from typing import Iterable, Mapping, Sequence
 
-#: Rechtsformzusaetze, die vor dem Namensvergleich entfernt werden.
-#: Sie stehen bei fast jedem Firmennamen und wuerden die Aehnlichkeit
-#: kuenstlich anheben - zwei voellig verschiedene GmbHs waeren sich allein
-#: durch das Kuerzel schon aehnlich.
+#: Rechtsformzusätze, die vor dem Namensvergleich entfernt werden.
+#: Sie stehen bei fast jedem Firmennamen und würden die Ähnlichkeit
+#: künstlich anheben - zwei völlig verschiedene GmbHs wären sich allein
+#: durch das Kürzel schon ähnlich.
 DEFAULT_LEGAL_FORMS: tuple[str, ...] = (
     "GMBH", "MBH", "AG", "KGAA", "KG", "OHG", "GBR", "GESBR", "EK", "EG", "EV",
     "UG", "SE", "AGCOKG", "GMBHCOKG", "GMBHCO", "COKG", "CO", "PARTG", "MBB",
@@ -31,7 +31,7 @@ DEFAULT_LEGAL_FORMS: tuple[str, ...] = (
     "GENOSSENSCHAFT", "STIFTUNG", "VEREIN", "ANSTALT", "TRUST", "FOUNDATION",
 )
 
-#: Strassenbezeichnungen und ihre Abkuerzungen. Der Vergleich erfolgt auf der
+#: Straßenbezeichnungen und ihre Abkürzungen. Der Vergleich erfolgt auf der
 #: ausgeschriebenen Form, damit "Hauptstr. 1" und "Hauptstrasse 1" gleich sind.
 DEFAULT_STREET_ABBREVIATIONS: Mapping[str, str] = {
     "STR": "STRASSE",
@@ -66,12 +66,12 @@ _UMLAUT_MAP = str.maketrans(
 
 _NON_ALNUM = re.compile(r"[^A-Z0-9]+")
 _MULTI_SPACE = re.compile(r"\s+")
-#: "Hauptstr" -> "Haupt str": die angehaengte Strassenbezeichnung abtrennen.
+#: "Hauptstr" -> "Haupt str": die angehängte Straßenbezeichnung abtrennen.
 _STREET_SUFFIX = re.compile(r"([A-Z]{3,})(STRASSE|STR|PLATZ|WEG|ALLEE|GASSE|RING)\b")
 
 
 def to_ascii(text: str) -> str:
-    """Schreibt Umlaute aus und entfernt uebrige diakritische Zeichen."""
+    """Schreibt Umlaute aus und entfernt übrige diakritische Zeichen."""
     expanded = (text or "").translate(_UMLAUT_MAP)
     decomposed = unicodedata.normalize("NFKD", expanded)
     return "".join(char for char in decomposed if not unicodedata.combining(char))
@@ -84,9 +84,9 @@ def normalize_name(
 ) -> str:
     """Bringt einen Firmennamen auf eine vergleichbare Form (FA-501).
 
-    Entfernt Rechtsformzusaetze, Umlaute, Satzzeichen und Fuellwoerter. Bleibt
-    danach nichts uebrig - etwa bei einem Namen, der nur aus "GmbH" besteht -,
-    wird auf Wunsch die einfache Grossform zurueckgegeben, damit der Satz nicht
+    Entfernt Rechtsformzusätze, Umlaute, Satzzeichen und Füllwörter. Bleibt
+    danach nichts übrig - etwa bei einem Namen, der nur aus "GmbH" besteht -,
+    wird auf Wunsch die einfache Grossform zurückgegeben, damit der Satz nicht
     unsichtbar wird.
     """
     if not value:
@@ -110,11 +110,11 @@ def normalize_name(
 def normalize_street(
     value: str | None, abbreviations: Mapping[str, str] = DEFAULT_STREET_ABBREVIATIONS
 ) -> str:
-    """Bringt eine Strassenangabe auf eine vergleichbare Form (FA-501).
+    """Bringt eine Straßenangabe auf eine vergleichbare Form (FA-501).
 
-    Loest Abkuerzungen auf und trennt angehaengte Strassenbezeichnungen ab, so
-    dass "Hauptstr. 1", "Haupt-Strasse 1" und "HAUPTSTRASSE 1" uebereinstimmen.
-    Die Hausnummer bleibt erhalten: sie ist das unterscheidungsstaerkste Merkmal
+    Löst Abkürzungen auf und trennt angehängte Straßenbezeichnungen ab, so
+    dass "Hauptstr. 1", "Haupt-Straße 1" und "HAUPTSTRASSE 1" übereinstimmen.
+    Die Hausnummer bleibt erhalten: sie ist das unterscheidungsstärkste Merkmal
     einer Adresse.
     """
     if not value:
@@ -126,7 +126,7 @@ def normalize_street(
 
     tokens = [abbreviations.get(token, token) for token in text.split()]
     joined = " ".join(tokens)
-    # Zusammengeschriebene Formen aufloesen: HAUPTSTRASSE -> HAUPT STRASSE
+    # Zusammengeschriebene Formen auflösen: HAUPTSTRASSE -> HAUPT STRASSE
     joined = _STREET_SUFFIX.sub(
         lambda m: f"{m.group(1)} {DEFAULT_STREET_ABBREVIATIONS.get(m.group(2), m.group(2))}",
         joined,
@@ -135,9 +135,9 @@ def normalize_street(
 
 
 def normalize_key(value: str | None) -> str:
-    """Normalisiert einen harten Schluessel (IBAN, USt-IdNr., Steuernummer).
+    """Normalisiert einen harten Schlüssel (IBAN, USt-IdNr., Steuernummer).
 
-    Harte Schluessel werden ohne Trennzeichen und in Grossschreibung
+    Harte Schlüssel werden ohne Trennzeichen und in Grossschreibung
     verglichen; ihre Gleichheit ist bereits ein hinreichender Nachweis
     (FA-502).
     """
@@ -168,21 +168,21 @@ def name_tokens(normalized_name: str) -> tuple[str, ...]:
 
 
 def block_key_name_sorted(normalized_name: str, count: int = 2, length: int = 3) -> str:
-    """Blockschluessel aus den alphabetisch ersten Wortanfaengen (FA-504).
+    """Blockschlüssel aus den alphabetisch ersten Wortanfängen (FA-504).
 
-    Faengt Faelle ab, in denen die Wortreihenfolge abweicht: "Sohn Mueller"
-    und "Mueller Sohn" landen im selben Block, waehrend ein reiner
-    Namensanfang sie trennen wuerde.
+    Fängt Fälle ab, in denen die Wortreihenfolge abweicht: "Sohn Müller"
+    und "Müller Sohn" landen im selben Block, während ein reiner
+    Namensanfang sie trennen würde.
     """
     tokens = sorted(token[:length] for token in name_tokens(normalized_name))
     return "".join(tokens[:count])
 
 
 def block_key_country_postcode(country: str | None, postal_code: str | None) -> str:
-    """Blockschluessel aus Land und Postleitzahl (FA-504).
+    """Blockschlüssel aus Land und Postleitzahl (FA-504).
 
     Die im Requirements-Dokument genannte Standardstrategie. Sie ist wirksam,
-    weil Dubletten fast immer dieselbe Anschrift tragen, und guenstig, weil sie
+    weil Dubletten fast immer dieselbe Anschrift tragen, und günstig, weil sie
     den Bestand fein aufteilt.
     """
     return f"{normalize_key(country)}|{normalize_key(postal_code)}"

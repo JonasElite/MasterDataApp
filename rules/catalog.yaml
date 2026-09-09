@@ -1,7 +1,7 @@
 # Metadaten des mitgelieferten Regelkatalogs (FA-415).
 #
-# Die Versionsnummer wird bei jeder fachlichen Aenderung erhoeht. Sie wird je
-# Lauf protokolliert, zusammen mit einem Inhaltshash ueber alle Regeldateien:
+# Die Versionsnummer wird bei jeder fachlichen Änderung erhöht. Sie wird je
+# Lauf protokolliert, zusammen mit einem Inhaltshash über alle Regeldateien:
 # die Nummer sagt, was gemeint war, der Hash sagt, was gelaufen ist.
-name: SAP-Stammdatenpruefung - Standardkatalog
+name: SAP-Stammdatenprüfung - Standardkatalog
 version: "1.0.0"

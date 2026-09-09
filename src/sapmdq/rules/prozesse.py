@@ -1,15 +1,15 @@
-"""Zuordnung der Pruefregeln zu Geschaeftsprozessen.
+"""Zuordnung der Prüfregeln zu Geschäftsprozessen.
 
 Die Frage "welche Prozesse deckt ihr ab?" kommt in jedem Kundentermin, und
-sie laesst sich nicht aus dem Regelkatalog allein beantworten: eine Regel
+sie lässt sich nicht aus dem Regelkatalog allein beantworten: eine Regel
 kennt ihren Objektbereich, aber nicht ihren fachlichen Zusammenhang. Ein
 fehlendes Abstimmkonto blockiert den Zahllauf und bricht zugleich die
-Verbindung ins Hauptbuch - dieselbe Regel gehoert also zu zwei Prozessen.
+Verbindung ins Hauptbuch - dieselbe Regel gehört also zu zwei Prozessen.
 
 Die Zuordnung steht deshalb in ``rules/prozesse.yaml``, getrennt von den
-Regeln. Sie aendert nichts an der Pruefung und geht nicht in den Inhaltshash
-des Katalogs ein; eine geschaerfte Formulierung darf die Katalogversion nicht
-veraendern (FA-605).
+Regeln. Sie ändert nichts an der Prüfung und geht nicht in den Inhaltshash
+des Katalogs ein; eine geschärfte Formulierung darf die Katalogversion nicht
+verändern (FA-605).
 """
 
 from __future__ import annotations
@@ -39,19 +39,19 @@ _FIELDS = {
 
 @dataclass
 class Process:
-    """Ein Geschaeftsprozess und die Regeln, die auf ihn zielen."""
+    """Ein Geschäftsprozess und die Regeln, die auf ihn zielen."""
 
     id: str
     name: str
-    #: ``kern`` fuer einen durchgaengigen Prozess, ``quer`` fuer ein Thema,
-    #: das durch mehrere Prozesse laeuft.
+    #: ``kern`` für einen durchgängigen Prozess, ``quer`` für ein Thema,
+    #: das durch mehrere Prozesse läuft.
     gruppe: str = "kern"
     beschreibung: str = ""
-    #: Die Prozessschritte, fuer die Darstellung als Kette.
+    #: Die Prozessschritte, für die Darstellung als Kette.
     schritte: tuple[str, ...] = ()
-    #: Was inhaltlich geprueft wird, in Stichpunkten.
+    #: Was inhaltlich geprüft wird, in Stichpunkten.
     schwerpunkte: tuple[str, ...] = ()
-    #: Was ausdruecklich nicht geprueft wird.
+    #: Was ausdrücklich nicht geprüft wird.
     grenzen: str = ""
     #: Zuordnungswege.
     bereiche: tuple[str, ...] = ()
@@ -59,7 +59,7 @@ class Process:
     regeln: tuple[str, ...] = ()
 
     def matches(self, rule: Rule) -> bool:
-        """Gehoert die Regel zu diesem Prozess?"""
+        """Gehört die Regel zu diesem Prozess?"""
         return (
             rule.object_area in self.bereiche
             or rule.category.value in self.kategorien
@@ -99,7 +99,7 @@ def _as_tuple(value: Any, context: str) -> tuple[str, ...]:
 def load_processes(directories: Sequence[Path]) -> ProcessCatalog:
     """Liest die Prozesszuordnung aus den Regelverzeichnissen.
 
-    Fehlt die Datei, ist das kein Fehler: das Werkzeug laeuft ohne
+    Fehlt die Datei, ist das kein Fehler: das Werkzeug läuft ohne
     Prozesszuordnung, nur die Abdeckungsseite bleibt dann leer.
     """
     catalog = ProcessCatalog()
@@ -154,7 +154,7 @@ def load_processes(directories: Sequence[Path]) -> ProcessCatalog:
 
 
 def assign(catalog: ProcessCatalog, rules: Sequence[Rule]) -> ProcessCatalog:
-    """Traegt ein, welche Prozesse zu welcher Regel gehoeren."""
+    """Trägt ein, welche Prozesse zu welcher Regel gehören."""
     catalog.by_rule = {}
     for rule in rules:
         treffer = tuple(p.id for p in catalog.processes if p.matches(rule))
@@ -163,9 +163,9 @@ def assign(catalog: ProcessCatalog, rules: Sequence[Rule]) -> ProcessCatalog:
     ohne = [rule.id for rule in rules if rule.id not in catalog.by_rule]
     if ohne:
         # Kein Abbruch: eine neue Regel soll laufen, auch wenn ihre Zuordnung
-        # noch fehlt. Sichtbar wird die Luecke im Protokoll und im Test.
+        # noch fehlt. Sichtbar wird die Lücke im Protokoll und im Test.
         logger.warning(
-            "%d Regeln sind keinem Prozess zugeordnet (%s). Bitte in %s ergaenzen.",
+            "%d Regeln sind keinem Prozess zugeordnet (%s). Bitte in %s ergänzen.",
             len(ohne), ", ".join(ohne[:5]), PROCESS_FILE,
         )
     return catalog

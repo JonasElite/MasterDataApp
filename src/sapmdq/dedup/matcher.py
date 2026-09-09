@@ -1,17 +1,17 @@
-"""Abgleich und Gruppierung moeglicher Dubletten (FA-502 bis FA-505).
+"""Abgleich und Gruppierung möglicher Dubletten (FA-502 bis FA-505).
 
-Der Ablauf folgt dem ueblichen Muster der Datensatzverknuepfung:
+Der Ablauf folgt dem üblichen Muster der Datensatzverknüpfung:
 
-1. Exakter Abgleich auf harten Schluesseln (FA-502). Gleiche IBAN oder gleiche
-   USt-IdNr. bei verschiedenen Stammsaetzen ist bereits ein Nachweis, kein
-   Verdacht - solche Paare bekommen den Hoechstwert.
-2. Blocking (FA-504). Ohne Vorauswahl waeren bei einer Million Kreditoren
-   500 Milliarden Vergleiche noetig. Verglichen wird nur innerhalb von
-   Bloecken, etwa je Land und Postleitzahl.
-3. Unscharfer Abgleich innerhalb der Bloecke (FA-503) mit Jaro-Winkler und
-   Levenshtein ueber RapidFuzz.
-4. Gruppierung zu Clustern (FA-505). Aus Paaren werden zusammenhaengende
-   Gruppen: wenn A zu B passt und B zu C, gehoeren alle drei in einen Cluster.
+1. Exakter Abgleich auf harten Schlüsseln (FA-502). Gleiche IBAN oder gleiche
+   USt-IdNr. bei verschiedenen Stammsätzen ist bereits ein Nachweis, kein
+   Verdacht - solche Paare bekommen den Höchstwert.
+2. Blocking (FA-504). Ohne Vorauswahl wären bei einer Million Kreditoren
+   500 Milliarden Vergleiche nötig. Verglichen wird nur innerhalb von
+   Blöcken, etwa je Land und Postleitzahl.
+3. Unscharfer Abgleich innerhalb der Blöcke (FA-503) mit Jaro-Winkler und
+   Levenshtein über RapidFuzz.
+4. Gruppierung zu Clustern (FA-505). Aus Paaren werden zusammenhängende
+   Gruppen: wenn A zu B passt und B zu C, gehören alle drei in einen Cluster.
 """
 
 from __future__ import annotations
@@ -32,13 +32,13 @@ logger = get_logger("dedup.matcher")
 NAME_WEIGHT = 0.65
 ADDRESS_WEIGHT = 0.35
 
-#: Wert, den ein exakter Treffer auf einem harten Schluessel erhaelt.
+#: Wert, den ein exakter Treffer auf einem harten Schlüssel erhält.
 EXACT_SCORE = 100.0
 
 
 @dataclass
 class MatchPair:
-    """Ein Paar moeglicher Dubletten mit Begruendung."""
+    """Ein Paar möglicher Dubletten mit Begründung."""
 
     left: str
     right: str
@@ -49,14 +49,14 @@ class MatchPair:
 
 @dataclass
 class DuplicateCluster:
-    """Eine Gruppe zusammengehoeriger Stammsaetze (FA-505)."""
+    """Eine Gruppe zusammengehöriger Stammsätze (FA-505)."""
 
     cluster_id: str
     members: tuple[str, ...]
     score: float
     reasons: tuple[str, ...]
     match_type: str
-    #: Groesse des Clusters - zwei ist der Regelfall, mehr ist auffaellig.
+    #: Größe des Clusters - zwei ist der Regelfall, mehr ist auffällig.
     size: int = 0
     #: Belegende Paare, absteigend nach Wert.
     evidence: tuple[MatchPair, ...] = field(default_factory=tuple)
@@ -69,10 +69,10 @@ class DuplicateCluster:
 class UnionFind:
     """Vereinigungsstruktur zur Bildung der Cluster.
 
-    Kleine, bewaehrte Umsetzung mit Pfadverkuerzung. Sie macht aus Paaren
-    zusammenhaengende Gruppen, ohne dass eine Reihenfolge festgelegt werden
-    muss - das Ergebnis ist unabhaengig davon, in welcher Folge die Paare
-    eingefuegt werden.
+    Kleine, bewährte Umsetzung mit Pfadverkürzung. Sie macht aus Paaren
+    zusammenhängende Gruppen, ohne dass eine Reihenfolge festgelegt werden
+    muss - das Ergebnis ist unabhängig davon, in welcher Folge die Paare
+    eingefügt werden.
     """
 
     def __init__(self) -> None:
@@ -90,8 +90,8 @@ class UnionFind:
         root_left, root_right = self.find(left), self.find(right)
         if root_left == root_right:
             return
-        # Der kleinere Schluessel wird zur Wurzel: das macht die Zuordnung
-        # unabhaengig von der Einfuegereihenfolge und damit reproduzierbar.
+        # Der kleinere Schlüssel wird zur Wurzel: das macht die Zuordnung
+        # unabhängig von der Einfügereihenfolge und damit reproduzierbar.
         if root_left <= root_right:
             self._parent[root_right] = root_left
         else:
@@ -107,11 +107,11 @@ class UnionFind:
 def find_exact_matches(
     frame: pd.DataFrame, key_column: str, exact_columns: Sequence[str]
 ) -> list[MatchPair]:
-    """Exakter Abgleich auf harten Schluesseln (FA-502).
+    """Exakter Abgleich auf harten Schlüsseln (FA-502).
 
     Verglichen werden nur normalisierte, nicht leere Werte. Der Wert wird auf
-    Paare heruntergebrochen; bei einer Gruppe von drei Saetzen entstehen drei
-    Paare, die die Clusterbildung anschliessend wieder zusammenfuehrt.
+    Paare heruntergebrochen; bei einer Gruppe von drei Sätzen entstehen drei
+    Paare, die die Clusterbildung anschließend wieder zusammenführt.
     """
     pairs: list[MatchPair] = []
     for column in exact_columns:
@@ -142,7 +142,7 @@ def find_exact_matches(
 
 
 def _block_frame(frame: pd.DataFrame, block_columns: Sequence[str]) -> dict[str, pd.Index]:
-    """Bildet die Bloecke ueber alle konfigurierten Strategien (FA-504)."""
+    """Bildet die Blöcke über alle konfigurierten Strategien (FA-504)."""
     blocks: dict[str, pd.Index] = {}
     for column in block_columns:
         if column not in frame.columns:
@@ -163,12 +163,12 @@ def compare_block(
     combined_threshold: float,
     min_name_score: float = 70.0,
 ) -> list[MatchPair]:
-    """Vergleicht die Saetze eines Blocks miteinander (FA-503).
+    """Vergleicht die Sätze eines Blocks miteinander (FA-503).
 
     Nimmt bewusst einfache Listen und keinen DataFrame. Ein Kreditorenstamm
-    zerfaellt in zehntausende kleine Bloecke; wird je Block ein DataFrame
+    zerfällt in zehntausende kleine Blöcke; wird je Block ein DataFrame
     aufgebaut und wieder zerlegt, kostet die Verwaltung ein Vielfaches des
-    Vergleichs. Die Aehnlichkeitsmatrix entsteht in einem Zug in kompiliertem
+    Vergleichs. Die Ähnlichkeitsmatrix entsteht in einem Zug in kompiliertem
     Code, die Auswertung arbeitet auf Listen.
     """
     if len(keys) < 2:
@@ -179,9 +179,9 @@ def compare_block(
         names, names, scorer=fuzz.token_sort_ratio,
         score_cutoff=cutoff, dtype=np.uint8, workers=-1,
     )
-    # Nur die obere Dreiecksmatrix ist von Interesse. Sie wird ueber die
-    # Bedingung ausgewaehlt und nicht ueber eine Kopie der Matrix - bei
-    # grossen Bloecken waere die Kopie der teuerste Einzelposten.
+    # Nur die obere Dreiecksmatrix ist von Interesse. Sie wird über die
+    # Bedingung ausgewählt und nicht über eine Kopie der Matrix - bei
+    # großen Blöcken wäre die Kopie der teuerste Einzelposten.
     rows, columns = np.nonzero(matrix)
     treffer = []
     for row, column in zip(rows.tolist(), columns.tolist()):
@@ -194,11 +194,11 @@ def compare_block(
         left_key, right_key = keys[row], keys[column]
         if left_key == right_key:
             continue
-        # Der Wert stammt aus der Matrix. Ein zusaetzlicher Einzelvergleich je
-        # Paar waere hier nicht nur teuer, sondern nutzlos: die Auswahl ist
-        # bereits ueber denselben Schwellwert erfolgt, ein zweites Verfahren
-        # koennte nur den Wert schon ausgewaehlter Paare anheben, nie ein
-        # uebersehenes Paar nachtragen.
+        # Der Wert stammt aus der Matrix. Ein zusätzlicher Einzelvergleich je
+        # Paar wäre hier nicht nur teuer, sondern nutzlos: die Auswahl ist
+        # bereits über denselben Schwellwert erfolgt, ein zweites Verfahren
+        # könnte nur den Wert schon ausgewählter Paare anheben, nie ein
+        # übersehenes Paar nachtragen.
         name_score = float(matrix[row, column])
 
         address_score = None
@@ -207,14 +207,14 @@ def compare_block(
 
         if name_score >= name_threshold:
             score = name_score
-            reason = f"Name sehr aehnlich ({name_score:.0f} von 100)"
+            reason = f"Name sehr ähnlich ({name_score:.0f} von 100)"
         elif address_score is not None:
             combined = NAME_WEIGHT * name_score + ADDRESS_WEIGHT * address_score
             if combined < combined_threshold:
                 continue
             score = combined
             reason = (
-                f"Name und Adresse aehnlich (Name {name_score:.0f}, "
+                f"Name und Adresse ähnlich (Name {name_score:.0f}, "
                 f"Adresse {address_score:.0f}, zusammen {combined:.0f} von 100)"
             )
         else:
@@ -239,9 +239,9 @@ def compare_blocks(
     combined_threshold: float,
     max_block_size: int = 5_000,
 ) -> tuple[list[MatchPair], list[str]]:
-    """Vergleicht mehrere aufeinanderfolgend abgelegte Bloecke.
+    """Vergleicht mehrere aufeinanderfolgend abgelegte Blöcke.
 
-    Erwartet die Saetze nach Blockschluessel sortiert. Die Blockgrenzen werden
+    Erwartet die Sätze nach Blockschlüssel sortiert. Die Blockgrenzen werden
     beim Durchlauf bestimmt; geschnitten wird auf Listen und nicht auf einem
     DataFrame.
     """
@@ -256,7 +256,7 @@ def compare_blocks(
             ende += 1
         groesse = ende - beginn
         if groesse > max_block_size:
-            uebergangen.append(f"{block_keys[beginn]} ({groesse} Saetze)")
+            uebergangen.append(f"{block_keys[beginn]} ({groesse} Sätze)")
         elif groesse > 1:
             paare.extend(
                 compare_block(
@@ -281,13 +281,13 @@ def find_fuzzy_matches(
     min_name_score: float = 70.0,
     max_block_size: int = 5_000,
 ) -> tuple[list[MatchPair], list[str]]:
-    """Unscharfer Abgleich innerhalb der Bloecke eines DataFrames (FA-503, FA-504).
+    """Unscharfer Abgleich innerhalb der Blöcke eines DataFrames (FA-503, FA-504).
 
-    Bequeme Fassung fuer kleine Mengen und fuer Tests. Der Lauf selbst
+    Bequeme Fassung für kleine Mengen und für Tests. Der Lauf selbst
     verwendet ``compare_blocks`` und umgeht damit den DataFrame.
 
-    Rueckgabe sind die Paare und die Namen der Bloecke, die wegen ihrer
-    Groesse uebergangen wurden - diese Auslassung gehoert in den Bericht.
+    Rückgabe sind die Paare und die Namen der Blöcke, die wegen ihrer
+    Größe übergangen wurden - diese Auslassung gehört in den Bericht.
     """
     paare: dict[tuple[str, str], MatchPair] = {}
     uebergangen: list[str] = []
@@ -298,7 +298,7 @@ def find_fuzzy_matches(
         block = frame.loc[index]
         groesse = len(block)
         if groesse > max_block_size:
-            uebergangen.append(f"{block_name} ({groesse} Saetze)")
+            uebergangen.append(f"{block_name} ({groesse} Sätze)")
             continue
 
         adressen = (
@@ -318,7 +318,7 @@ def find_fuzzy_matches(
 
     if uebergangen:
         logger.warning(
-            "%d Block/Bloecke wurden wegen ihrer Groesse uebergangen: %s",
+            "%d Block/Blöcke wurden wegen ihrer Größe übergangen: %s",
             len(uebergangen), ", ".join(uebergangen[:5]),
         )
     logger.debug("Unscharfer Abgleich: %d Paare", len(paare))
@@ -328,8 +328,8 @@ def find_fuzzy_matches(
 def build_clusters(pairs: Iterable[MatchPair]) -> list[DuplicateCluster]:
     """Fasst Paare zu Clustern zusammen (FA-505).
 
-    Die Ausgabe ist bewusst keine Paarliste: bei drei zusammengehoerigen
-    Stammsaetzen soll der Data Owner eine Gruppe von drei sehen und nicht drei
+    Die Ausgabe ist bewusst keine Paarliste: bei drei zusammengehörigen
+    Stammsätzen soll der Data Owner eine Gruppe von drei sehen und nicht drei
     Paare, die er selbst zusammensetzen muss.
     """
     pair_list = list(pairs)
@@ -364,7 +364,7 @@ def build_clusters(pairs: Iterable[MatchPair]) -> list[DuplicateCluster]:
 
     clusters.sort(key=lambda c: (-c.score, -c.size, c.cluster_id))
     logger.info(
-        "%d Cluster aus %d Paaren gebildet (groesster Cluster: %d Saetze)",
+        "%d Cluster aus %d Paaren gebildet (grösster Cluster: %d Sätze)",
         len(clusters), len(pair_list), max((c.size for c in clusters), default=0),
     )
     return clusters

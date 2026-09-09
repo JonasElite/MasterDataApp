@@ -45,7 +45,7 @@ class TestSatzanzahl:
         assert report.usable
 
     def test_vergleich_vor_der_mandantenfilterung(self, con, projekt, csv_schreiber):
-        # Der Kunde hat gezaehlt, was er exportiert hat - nicht, was wir behalten.
+        # Der Kunde hat gezählt, was er exportiert hat - nicht, was wir behalten.
         csv_schreiber(projekt, "LFA1.csv", [
             "MANDT;LIFNR;NAME1", "100;4711;A", "200;4712;B",
         ])
@@ -58,8 +58,8 @@ class TestTruncation:
     """FA-202."""
 
     def test_abgeschnittene_feldinhalte(self, con, projekt, csv_schreiber):
-        # Abgeschnitten heisst: alles, was laenger gewesen waere, staut sich
-        # auf der Grenze, waehrend die Laengen knapp darunter duenn bleiben.
+        # Abgeschnitten heißt: alles, was länger gewesen wäre, staut sich
+        # auf der Grenze, während die Längen knapp darunter dünn bleiben.
         zeilen = ["MANDT;LIFNR;NAME1"]
         for i in range(150):
             laenge = 35 if i % 3 else 20 + (i % 8)
@@ -72,20 +72,20 @@ class TestTruncation:
     def test_natuerliche_laengenverteilung_erzeugt_keinen_scheinbefund(
         self, con, projekt, csv_schreiber
     ):
-        # Namensfelder schoepfen ihre Laenge natuerlicherweise aus. Dass
-        # einzelne Werte die Feldlaenge genau erreichen, ist kein Hinweis auf
-        # einen abgeschnittenen Export, solange die Laengen darunter aehnlich
+        # Namensfelder schöpfen ihre Länge natürlicherweise aus. Dass
+        # einzelne Werte die Feldlänge genau erreichen, ist kein Hinweis auf
+        # einen abgeschnittenen Export, solange die Längen darunter ähnlich
         # besetzt sind.
         zeilen = ["MANDT;LIFNR;NAME1"]
         for i in range(150):
-            laenge = 30 + (i % 6)  # gleichmaessig ueber 30 bis 35
+            laenge = 30 + (i % 6)  # gleichmässig über 30 bis 35
             zeilen.append(f"100;{100000 + i};{'X' * laenge}")
         csv_schreiber(projekt, "LFA1.csv", zeilen)
         _, report = pruefen(con, projekt)
         assert not any("NAME1" in c.message for c in befunde(report, "FA-202"))
 
     def test_kleine_tabelle_erzeugt_keinen_scheinbefund(self, con, projekt, csv_schreiber):
-        # Bei zwoelf Eintraegen sagt ein Anteil von 50 Prozent nichts aus.
+        # Bei zwölf Einträgen sagt ein Anteil von 50 Prozent nichts aus.
         zeilen = ["MANDT;LIFNR;NAME1"] + [
             f"100;{4700 + i};{'Ueberweisung' if i % 2 else 'Kurz'}" for i in range(12)
         ]
@@ -139,7 +139,7 @@ class TestVerwertbarkeit:
     """FA-206."""
 
     def test_doppelte_schluessel_blockieren(self, con, projekt, csv_schreiber):
-        # Ueberschneidende Teillieferungen wuerden jeden Befund doppelt zeigen.
+        # Überschneidende Teillieferungen würden jeden Befund doppelt zeigen.
         csv_schreiber(projekt, "LFA1_a.csv", ["MANDT;LIFNR;NAME1", "100;4711;A"])
         csv_schreiber(projekt, "LFA1_b.csv", ["MANDT;LIFNR;NAME1", "100;4711;A"])
         _, report = pruefen(con, projekt)
@@ -151,7 +151,7 @@ class TestVerwertbarkeit:
         projekt.ingestion.file_table_map = {"LFA1.csv": "LFA1"}
         _, report = pruefen(con, projekt)
         assert not report.usable
-        assert any("Schluesselfelder" in c.message for c in report.errors)
+        assert any("Schlüsselfelder" in c.message for c in report.errors)
 
     def test_leere_tabelle_nach_filter_blockiert(self, con, projekt, csv_schreiber):
         csv_schreiber(projekt, "LFA1.csv", ["MANDT;LIFNR;NAME1", "200;4711;A"])

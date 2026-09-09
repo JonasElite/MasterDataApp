@@ -1,4 +1,4 @@
-"""Zustaende und Schema der aufbereiteten Befunde (FA-601, FA-603)."""
+"""Zustände und Schema der aufbereiteten Befunde (FA-601, FA-603)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ class FindingStatus(str, Enum):
     """Bearbeitungsstand eines Befundes (FA-603)."""
 
     OPEN = "offen"
-    IN_CLARIFICATION = "in Klaerung"
+    IN_CLARIFICATION = "in Klärung"
     ACCEPTED = "akzeptiert"
     CORRECTED = "korrigiert"
 
@@ -24,6 +24,9 @@ class FindingStatus(str, Enum):
         if not value:
             return cls.OPEN
         text = str(value).strip().lower().replace("_", " ").replace("ä", "ae")
+        # Die Schluessel stehen in genau der Form, die die Zeile darueber
+        # erzeugt: klein, ohne Unterstriche, Umlaute ausgeschrieben. Ein "ä"
+        # im Schluessel wuerde nie getroffen.
         mapping = {
             "offen": cls.OPEN,
             "open": cls.OPEN,
@@ -46,10 +49,10 @@ class FindingStatus(str, Enum):
 
 
 class DeltaState(str, Enum):
-    """Verhaeltnis eines Befundes zum Vergleichslauf (FA-605)."""
+    """Verhältnis eines Befundes zum Vergleichslauf (FA-605)."""
 
     NEW = "neu"
-    UNCHANGED = "unveraendert"
+    UNCHANGED = "unverändert"
     RESOLVED = "behoben"
     #: Kein Vergleichslauf hinterlegt.
     UNKNOWN = "kein Vergleich"

@@ -1,6 +1,6 @@
 """Fehlerklassen.
 
-``DeliveryError`` fuehrt zum harten Abbruch der Verarbeitung (FA-206):
+``DeliveryError`` führt zum harten Abbruch der Verarbeitung (FA-206):
 eine nicht verwertbare Lieferung wird nicht still teilverarbeitet.
 ``RuleError`` dagegen bricht den Gesamtlauf nicht ab, sondern wird als
 Regelfehler ausgewiesen (NFA-09).

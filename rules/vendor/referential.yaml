@@ -1,8 +1,8 @@
-# Referenzintegritaet Kreditor (FA-404).
+# Referenzintegrität Kreditor (FA-404).
 #
 # Diese Regeln brauchen die Customizing-Tabellen aus Kapitel 8.2. Sie sind klein
-# im Volumen und unkritisch in der Freigabe, schalten aber ueberproportional
-# viele Pruefungen frei - genau das weist die Nachforderungsliste (FA-304) aus,
+# im Volumen und unkritisch in der Freigabe, schalten aber überproportional
+# viele Prüfungen frei - genau das weist die Nachforderungsliste (FA-304) aus,
 # wenn sie fehlen.
 rules:
 
@@ -35,10 +35,10 @@ rules:
         AND s.SAKNR IS NULL
 
   - id: VEN-REF-002
-    name: Abstimmkonto ist kein Abstimmkonto fuer Kreditoren
+    name: Abstimmkonto ist kein Abstimmkonto für Kreditoren
     description: >
-      Ein Sachkonto wird ueber das Mitbuchungskennzeichen zum Abstimmkonto einer
-      Kontoart. Steht dort nicht "K" fuer Kreditoren, ist die Zuordnung falsch,
+      Ein Sachkonto wird über das Mitbuchungskennzeichen zum Abstimmkonto einer
+      Kontoart. Steht dort nicht "K" für Kreditoren, ist die Zuordnung falsch,
       auch wenn das Konto existiert.
     category: referential
     severity: high
@@ -66,9 +66,9 @@ rules:
   - id: VEN-REF-003
     name: Zahlungsbedingung ist im Customizing nicht definiert
     description: >
-      Verweist ein Kreditor auf eine Zahlungsbedingung, die in T052 fehlt, laesst
-      sich das Faelligkeitsdatum nicht ermitteln. Solche Verweise entstehen, wenn
-      Customizing zurueckgebaut wird, ohne die Stammdaten anzupassen.
+      Verweist ein Kreditor auf eine Zahlungsbedingung, die in T052 fehlt, lässt
+      sich das Fälligkeitsdatum nicht ermitteln. Solche Verweise entstehen, wenn
+      Customizing zurückgebaut wird, ohne die Stammdaten anzupassen.
     category: referential
     severity: high
     version: "1.0.0"
@@ -93,11 +93,11 @@ rules:
         AND t.ZTERM IS NULL
 
   - id: VEN-REF-004
-    name: Zahlweg ist fuer das Land des Kreditors nicht definiert
+    name: Zahlweg ist für das Land des Kreditors nicht definiert
     description: >
-      Das Feld ZWELS enthaelt die zulaessigen Zahlwege als Zeichenkette, je Zeichen
-      einen Zahlweg. Jeder davon muss in T042Z fuer das Land hinterlegt sein, sonst
-      uebergeht ihn der Zahllauf stillschweigend.
+      Das Feld ZWELS enthält die zulässigen Zahlwege als Zeichenkette, je Zeichen
+      einen Zahlweg. Jeder davon muss in T042Z für das Land hinterlegt sein, sonst
+      übergeht ihn der Zahllauf stillschweigend.
     category: referential
     severity: high
     version: "1.0.0"
@@ -113,9 +113,9 @@ rules:
         LFB1: [MANDT, LIFNR, BUKRS, ZWELS, LOEVM]
         T042Z: [LAND1, ZLSCH]
     params: {}
-    remediation: Zahlweg im Customizing ergaenzen oder aus dem Kreditor entfernen.
+    remediation: Zahlweg im Customizing ergänzen oder aus dem Kreditor entfernen.
     sql: |
-      WITH aufgeloest AS (
+      WITH aufgelöst AS (
           SELECT b.MANDT, b.LIFNR, b.BUKRS, b.ZWELS, a.LAND1, z.zahlweg
           FROM LFB1 b
           JOIN LFA1 a ON b.LIFNR = a.LIFNR
@@ -127,7 +127,7 @@ rules:
       SELECT
           MANDT, LIFNR, BUKRS, LAND1, ZWELS,
           string_agg(DISTINCT zahlweg, ', ' ORDER BY zahlweg) AS unbekannte_zahlwege
-      FROM aufgeloest a
+      FROM aufgelöst a
       WHERE NOT EXISTS (
           SELECT 1 FROM T042Z t
           WHERE t.LAND1 = a.LAND1 AND t.ZLSCH = a.zahlweg
@@ -138,7 +138,7 @@ rules:
     name: Kontengruppe ist im Customizing nicht definiert
     description: >
       Die Kontengruppe steuert Feldauswahl und Nummernkreis. Ein Verweis auf eine
-      nicht existierende Kontengruppe macht jede Pflichtfeldpruefung des Systems
+      nicht existierende Kontengruppe macht jede Pflichtfeldprüfung des Systems
       wirkungslos.
     category: referential
     severity: high
@@ -153,7 +153,7 @@ rules:
         LFA1: [MANDT, LIFNR, NAME1, KTOKK]
         T077K: [KTOKK]
     params: {}
-    remediation: Kontengruppe im Customizing pruefen und den Stammsatz zuordnen.
+    remediation: Kontengruppe im Customizing prüfen und den Stammsatz zuordnen.
     sql: |
       SELECT a.MANDT, a.LIFNR, a.NAME1, a.KTOKK
       FROM LFA1 a
@@ -161,10 +161,10 @@ rules:
       WHERE a.KTOKK IS NOT NULL AND t.KTOKK IS NULL
 
   - id: VEN-REF-006
-    name: Laenderschluessel ist im Customizing nicht definiert
+    name: Länderschlüssel ist im Customizing nicht definiert
     description: >
-      Ein unbekannter Laenderschluessel bricht die Steuerfindung, die
-      Adresspruefung und die Meldung zur Aussenwirtschaftsstatistik.
+      Ein unbekannter Länderschlüssel bricht die Steuerfindung, die
+      Adressprüfung und die Meldung zur Außenwirtschaftsstatistik.
     category: referential
     severity: high
     version: "1.0.0"
@@ -178,7 +178,7 @@ rules:
         LFA1: [MANDT, LIFNR, NAME1, LAND1]
         T005: [LAND1]
     params: {}
-    remediation: Laenderschluessel gegen T005 korrigieren.
+    remediation: Länderschlüssel gegen T005 korrigieren.
     sql: |
       SELECT a.MANDT, a.LIFNR, a.NAME1, a.LAND1
       FROM LFA1 a
@@ -189,7 +189,7 @@ rules:
     name: Buchungskreis existiert nicht
     description: >
       Buchungskreisdaten zu einem Buchungskreis, den es nicht gibt, sind
-      verwaiste Saetze. Sie entstehen typischerweise bei Umstrukturierungen.
+      verwaiste Sätze. Sie entstehen typischerweise bei Umstrukturierungen.
     category: referential
     severity: critical
     version: "1.0.0"
@@ -204,7 +204,7 @@ rules:
         LFB1: [MANDT, LIFNR, BUKRS, AKONT]
         T001: [BUKRS]
     params: {}
-    remediation: Verwaiste Buchungskreissaetze bereinigen.
+    remediation: Verwaiste Buchungskreissätze bereinigen.
     sql: |
       SELECT b.MANDT, b.LIFNR, b.BUKRS, b.AKONT
       FROM LFB1 b
@@ -214,8 +214,8 @@ rules:
   - id: VEN-REF-008
     name: Bankverbindung verweist auf eine unbekannte Bank
     description: >
-      Bankland und Bankschluessel muessen im Bankenstamm vorhanden sein. Fehlt der
-      Eintrag, kann der Zahllauf die Bankdaten nicht aufloesen.
+      Bankland und Bankschlüssel müssen im Bankenstamm vorhanden sein. Fehlt der
+      Eintrag, kann der Zahllauf die Bankdaten nicht auflösen.
     category: referential
     severity: high
     version: "1.0.0"
@@ -240,7 +240,7 @@ rules:
     name: Einkaufsorganisation existiert nicht
     description: >
       Einkaufsorganisationsdaten zu einer nicht vorhandenen Einkaufsorganisation
-      sind verwaist und stoeren die Auswertung des Lieferantenstamms.
+      sind verwaist und stören die Auswertung des Lieferantenstamms.
     category: referential
     severity: high
     version: "1.0.0"
@@ -254,7 +254,7 @@ rules:
         LFM1: [MANDT, LIFNR, EKORG, WAERS]
         T024E: [EKORG]
     params: {}
-    remediation: Verwaiste Saetze bereinigen.
+    remediation: Verwaiste Sätze bereinigen.
     sql: |
       SELECT m.MANDT, m.LIFNR, m.EKORG, m.WAERS
       FROM LFM1 m
@@ -262,10 +262,10 @@ rules:
       WHERE t.EKORG IS NULL
 
   - id: VEN-REF-010
-    name: Bestellwaehrung ist kein gueltiger Waehrungsschluessel
+    name: Bestellwährung ist kein gültiger Währungsschlüssel
     description: >
-      Die in der Einkaufsorganisationssicht gepflegte Waehrung muss im
-      Waehrungsverzeichnis vorhanden sein, sonst scheitert die Preisfindung.
+      Die in der Einkaufsorganisationssicht gepflegte Währung muss im
+      Währungsverzeichnis vorhanden sein, sonst scheitert die Preisfindung.
     category: referential
     severity: medium
     version: "1.0.0"
@@ -279,7 +279,7 @@ rules:
         LFM1: [MANDT, LIFNR, EKORG, WAERS, LOEVM]
         TCURC: [WAERS]
     params: {}
-    remediation: Waehrungsschluessel korrigieren.
+    remediation: Währungsschlüssel korrigieren.
     sql: |
       SELECT m.MANDT, m.LIFNR, m.EKORG, m.WAERS
       FROM LFM1 m

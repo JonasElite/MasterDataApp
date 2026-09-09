@@ -1,8 +1,8 @@
-"""Zustand der Oberflaeche waehrend ihrer Laufzeit.
+"""Zustand der Oberfläche während ihrer Laufzeit.
 
-Haelt die Projektkonfiguration und den gerade laufenden Pruefungslauf. Der
+Hält die Projektkonfiguration und den gerade laufenden Prüfungslauf. Der
 Zustand lebt nur im Prozess; alles Dauerhafte steht in den Dateien des
-Projektverzeichnisses. Wird die Oberflaeche beendet, geht nichts verloren,
+Projektverzeichnisses. Wird die Oberfläche beendet, geht nichts verloren,
 was nicht ohnehin schon geschrieben war.
 """
 
@@ -20,12 +20,12 @@ from sapmdq.config import ProjectConfig
 from sapmdq.logging_setup import LOGGER_NAME, RedactingFilter
 from sapmdq.util.timeutil import iso_timestamp
 
-#: Wieviele Protokollzeilen die Oberflaeche zum laufenden Auftrag vorhaelt.
+#: Wieviele Protokollzeilen die Oberfläche zum laufenden Auftrag vorhält.
 LOG_LINES = 400
 
 
 class _LogSammler(logging.Handler):
-    """Sammelt Protokollzeilen fuer die Fortschrittsanzeige.
+    """Sammelt Protokollzeilen für die Fortschrittsanzeige.
 
     Die Zeilen laufen durch dieselbe Redaction wie die Logdatei (DS-07) - eine
     Fortschrittsanzeige ist kein Grund, personenbeziehbare Werte auf den
@@ -46,9 +46,9 @@ class _LogSammler(logging.Handler):
 
 @dataclass
 class Auftrag:
-    """Ein im Hintergrund laufender Pruefungslauf."""
+    """Ein im Hintergrund laufender Prüfungslauf."""
 
-    status: str = "bereit"  # bereit | laeuft | fertig | fehler
+    status: str = "bereit"  # bereit | läuft | fertig | fehler
     begonnen_am: str = ""
     beendet_am: str = ""
     lauf_id: str = ""
@@ -79,8 +79,8 @@ class UiState:
     def neu_laden(self) -> ProjectConfig:
         """Liest die Projektkonfiguration neu ein.
 
-        Die Datei kann sich waehrend der Sitzung aendern - etwa weil ueber die
-        Oberflaeche eine Ausnahme aufgenommen wurde oder weil jemand die
+        Die Datei kann sich während der Sitzung ändern - etwa weil über die
+        Oberfläche eine Ausnahme aufgenommen wurde oder weil jemand die
         Konfiguration im Editor angepasst hat.
         """
         from sapmdq.config import load_config
@@ -95,15 +95,15 @@ class UiState:
         return self.auftrag.status == "laeuft"
 
     def lauf_starten(self, force: bool = False) -> tuple[bool, str]:
-        """Startet einen Pruefungslauf im Hintergrund.
+        """Startet einen Prüfungslauf im Hintergrund.
 
-        Rueckgabe ist, ob gestartet wurde, und eine Begruendung. Zwei Laeufe
-        gleichzeitig sind ausgeschlossen: sie wuerden dieselben
-        Zwischenstaende im Arbeitsverzeichnis ueberschreiben.
+        Rückgabe ist, ob gestartet wurde, und eine Begründung. Zwei Läufe
+        gleichzeitig sind ausgeschlossen: sie würden dieselben
+        Zwischenstände im Arbeitsverzeichnis überschreiben.
         """
         with self._sperre:
             if self.laeuft:
-                return False, "Es laeuft bereits ein Pruefungslauf."
+                return False, "Es läuft bereits ein Prüfungslauf."
             self.auftrag = Auftrag(status="laeuft", begonnen_am=iso_timestamp())
             self._thread = threading.Thread(
                 target=self._lauf_ausfuehren, args=(force,), daemon=True
@@ -144,11 +144,11 @@ class UiState:
         return self.config.paths.output_dir / "runs"
 
     def lauf_verzeichnis(self, lauf_id: str) -> Path | None:
-        """Loest eine Lauf-Kennung in ein Verzeichnis auf.
+        """Löst eine Lauf-Kennung in ein Verzeichnis auf.
 
-        Die Kennung wird gegen die tatsaechlich vorhandenen Verzeichnisse
-        geprueft und nicht in einen Pfad eingesetzt. Damit kann eine
-        praeparierte Kennung nicht aus dem Ausgabeverzeichnis herausfuehren.
+        Die Kennung wird gegen die tatsächlich vorhandenen Verzeichnisse
+        geprüft und nicht in einen Pfad eingesetzt. Damit kann eine
+        präparierte Kennung nicht aus dem Ausgabeverzeichnis herausführen.
         """
         if not self.runs_dir.is_dir():
             return None

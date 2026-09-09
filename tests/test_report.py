@@ -13,7 +13,7 @@ class TestDataQualityScore:
     GEWICHTE = {"critical": 10.0, "high": 5.0, "medium": 2.0, "low": 1.0}
 
     def test_bereich_ohne_ausfuehrbare_regeln_ist_nicht_bewertbar(self):
-        # Ein voller Punktwert waere hier die gefaehrlichste aller Aussagen.
+        # Ein voller Punktwert wäre hier die gefährlichste aller Aussagen.
         bericht = compute_score({}, {"customer": 800}, {"customer": (0, 21)}, self.GEWICHTE)
         bereich = bericht.by_area()["customer"]
         assert bereich.score is None
@@ -43,7 +43,7 @@ class TestDataQualityScore:
             {"vendor": (5, 5), "material": (5, 5)},
             self.GEWICHTE,
         )
-        # Der grosse, saubere Bereich praegt den Gesamtwert.
+        # Der große, saubere Bereich prägt den Gesamtwert.
         assert bericht.overall > 90
 
     def test_ohne_bewertbaren_bereich_kein_gesamtwert(self):
@@ -107,7 +107,7 @@ report:
     def test_excel_enthaelt_uebersicht_und_coverage(self, lauf):
         openpyxl = pytest.importorskip("openpyxl")
         mappe = openpyxl.load_workbook(lauf.run_dir / "befunde.xlsx")
-        for blatt in ("Uebersicht", "Lieferung", "Coverage", "Befunde", "Datenqualitaet"):
+        for blatt in ("Übersicht", "Lieferung", "Coverage", "Befunde", "Datenqualität"):
             assert blatt in mappe.sheetnames, blatt
 
     def test_maschinenlesbarer_export(self, lauf):

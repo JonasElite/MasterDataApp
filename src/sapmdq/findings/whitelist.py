@@ -1,12 +1,12 @@
-"""Dauerhafte Ausnahmen mit Begruendung (FA-602).
+"""Dauerhafte Ausnahmen mit Begründung (FA-602).
 
 Ein Befund kann fachlich richtig und trotzdem gewollt sein: zwei Kreditoren
-teilen sich ein Konto, weil der Konzern eine zentrale Kasse fuehrt. Damit
-solche Faelle nicht in jedem Lauf erneut diskutiert werden muessen, lassen
-sie sich als Ausnahme kennzeichnen - aber nur mit Begruendung und mit Angabe,
-wer sie erteilt hat. Eine Ausnahme ohne Begruendung wird zurueckgewiesen.
+teilen sich ein Konto, weil der Konzern eine zentrale Kasse führt. Damit
+solche Fälle nicht in jedem Lauf erneut diskutiert werden müssen, lassen
+sie sich als Ausnahme kennzeichnen - aber nur mit Begründung und mit Angabe,
+wer sie erteilt hat. Eine Ausnahme ohne Begründung wird zurückgewiesen.
 
-Die Datei liegt ausserhalb des Laufverzeichnisses und ueberdauert damit
+Die Datei liegt außerhalb des Laufverzeichnisses und überdauert damit
 Folgelieferungen und Projekte (FA-602).
 """
 
@@ -38,7 +38,7 @@ class WhitelistEntry:
     finding_id: str | None = None
     rule_id: str | None = None
     object_key: str | None = None
-    #: Suchmuster fuer den Objektschluessel, etwa ``47*``.
+    #: Suchmuster für den Objektschlüssel, etwa ``47*``.
     object_key_pattern: str | None = None
     #: Freitext zur Herkunft (Ticketnummer, Protokoll).
     reference: str = ""
@@ -50,11 +50,11 @@ class WhitelistEntry:
         return self.expires_on < (reference_date or date.today())
 
     def matches(self, finding_id: str, rule_id: str, object_key: str) -> bool:
-        """Prueft, ob die Ausnahme auf einen Befund zutrifft.
+        """Prüft, ob die Ausnahme auf einen Befund zutrifft.
 
-        Alle angegebenen Merkmale muessen passen. Nicht angegebene Merkmale
-        schraenken nicht ein - so laesst sich eine Regel fuer einen ganzen
-        Objektbereich ausnehmen, ohne jeden Schluessel aufzuzaehlen.
+        Alle angegebenen Merkmale müssen passen. Nicht angegebene Merkmale
+        schränken nicht ein - so lässt sich eine Regel für einen ganzen
+        Objektbereich ausnehmen, ohne jeden Schlüssel aufzuzählen.
         """
         if self.finding_id and self.finding_id != finding_id:
             return False
@@ -111,13 +111,13 @@ def _parse_entry(raw: Mapping[str, Any], context: str) -> WhitelistEntry:
     reason = str(raw.get("reason", "")).strip()
     if not reason:
         raise ConfigError(
-            f"{context}: Jede Ausnahme braucht eine Begruendung ('reason'). Eine Ausnahme "
-            "ohne Begruendung ist in einer prueffesten Auswertung nicht vertretbar."
+            f"{context}: Jede Ausnahme braucht eine Begründung ('reason'). Eine Ausnahme "
+            "ohne Begründung ist in einer prüffesten Auswertung nicht vertretbar."
         )
     if not any(raw.get(key) for key in ("finding_id", "rule_id", "object_key", "object_key_pattern")):
         raise ConfigError(
             f"{context}: Die Ausnahme benennt keinen Befund. Mindestens 'finding_id' oder "
-            "'rule_id' muss angegeben sein, sonst wuerde sie alle Befunde unterdruecken."
+            "'rule_id' muss angegeben sein, sonst würde sie alle Befunde unterdrücken."
         )
 
     def as_date(key: str) -> date | None:
@@ -128,7 +128,7 @@ def _parse_entry(raw: Mapping[str, Any], context: str) -> WhitelistEntry:
             return value
         parsed = parse_date(str(value))
         if parsed is None:
-            raise ConfigError(f"{context}: '{key}' ist kein gueltiges Datum: {value!r}")
+            raise ConfigError(f"{context}: '{key}' ist kein gültiges Datum: {value!r}")
         return parsed
 
     return WhitelistEntry(
@@ -147,7 +147,7 @@ def _parse_entry(raw: Mapping[str, Any], context: str) -> WhitelistEntry:
 
 
 def load_whitelist(path: Path | None) -> Whitelist:
-    """Laedt die Ausnahmeliste; eine fehlende Datei ist kein Fehler."""
+    """Lädt die Ausnahmeliste; eine fehlende Datei ist kein Fehler."""
     if path is None or not path.is_file():
         if path is not None:
             logger.info("Keine Ausnahmeliste unter %s - alle Befunde gelten als offen", path)
@@ -180,7 +180,7 @@ def load_whitelist(path: Path | None) -> Whitelist:
 
 
 def save_whitelist(whitelist: Whitelist, path: Path) -> None:
-    """Schreibt die Ausnahmeliste zurueck."""
+    """Schreibt die Ausnahmeliste zurück."""
     entries: list[dict[str, Any]] = []
     for entry in whitelist.entries:
         record: dict[str, Any] = {}
@@ -207,15 +207,15 @@ def save_whitelist(whitelist: Whitelist, path: Path) -> None:
     header = (
         "# Dauerhafte Ausnahmen (FA-602).\n"
         "#\n"
-        "# Jede Ausnahme braucht eine Begruendung und sollte benennen, wer sie\n"
+        "# Jede Ausnahme braucht eine Begründung und sollte benennen, wer sie\n"
         "# erteilt hat. Ein Ablaufdatum ist empfehlenswert: eine Ausnahme, die\n"
-        "# niemand mehr ueberprueft, wird mit der Zeit zur Luecke.\n"
+        "# niemand mehr überprüft, wird mit der Zeit zur Lücke.\n"
         "#\n"
-        "# Diese Datei gehoert nicht in das Laufverzeichnis - sie ueberdauert\n"
+        "# Diese Datei gehört nicht in das Laufverzeichnis - sie überdauert\n"
         "# Folgelieferungen und wird versioniert.\n\n"
     )
     path.write_text(
         header + yaml.safe_dump({"entries": entries}, allow_unicode=True, sort_keys=False),
         encoding="utf-8",
     )
-    logger.info("Ausnahmeliste mit %d Eintraegen nach %s geschrieben", len(entries), path)
+    logger.info("Ausnahmeliste mit %d Einträgen nach %s geschrieben", len(entries), path)

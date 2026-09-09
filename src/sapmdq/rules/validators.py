@@ -1,8 +1,8 @@
-"""Fachliche Pruefverfahren fuer Formatregeln (FA-402).
+"""Fachliche Prüfverfahren für Formatregeln (FA-402).
 
 Die Verfahren stehen als Python-Funktionen hier und werden der Datenbank als
 benutzerdefinierte Funktionen bekannt gemacht (``udf.py``). Damit bleiben
-Pruefziffernverfahren dort, wo sie lesbar und testbar sind, waehrend die
+Prüfziffernverfahren dort, wo sie lesbar und testbar sind, während die
 Regeln in SQL formuliert bleiben.
 
 Alle Funktionen sind rein: gleiche Eingabe, gleiche Ausgabe, kein Zustand,
@@ -15,7 +15,7 @@ import re
 
 # --------------------------------------------------------------------- IBAN
 
-#: Laenge der IBAN je Land nach dem IBAN-Register (ISO 13616).
+#: Länge der IBAN je Land nach dem IBAN-Register (ISO 13616).
 IBAN_LENGTHS: dict[str, int] = {
     "AD": 24, "AE": 23, "AL": 28, "AT": 20, "AZ": 28, "BA": 20, "BE": 16, "BG": 22,
     "BH": 22, "BR": 29, "BY": 28, "CH": 21, "CR": 22, "CY": 28, "CZ": 24, "DE": 22,
@@ -33,16 +33,16 @@ _IBAN_STRUCTURE = re.compile(r"^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$")
 
 
 def _clean(value: str | None) -> str:
-    """Entfernt Leerzeichen und Bindestriche und schreibt gross."""
+    """Entfernt Leerzeichen und Bindestriche und schreibt groß."""
     if value is None:
         return ""
     return re.sub(r"[\s\-]", "", str(value)).upper()
 
 
 def _mod97(text: str) -> int:
-    """Rest der IBAN-Pruefsumme modulo 97, blockweise gerechnet.
+    """Rest der IBAN-Prüfsumme modulo 97, blockweise gerechnet.
 
-    Die Zahl waere fuer ganzzahlige Arithmetik zu lang, deshalb wird sie in
+    Die Zahl wäre für ganzzahlige Arithmetik zu lang, deshalb wird sie in
     Abschnitten reduziert - das Standardverfahren nach ISO 7064.
     """
     remainder = 0
@@ -55,10 +55,10 @@ def _mod97(text: str) -> int:
 
 
 def iban_reason(value: str | None) -> str:
-    """Prueft eine IBAN und benennt den Grund einer Beanstandung.
+    """Prüft eine IBAN und benennt den Grund einer Beanstandung.
 
-    Rueckgabe ist ein leerer Text, wenn die IBAN gueltig ist. Andernfalls
-    steht dort eine Begruendung, die unveraendert in den Befund uebernommen
+    Rückgabe ist ein leerer Text, wenn die IBAN gültig ist. Andernfalls
+    steht dort eine Begründung, die unverändert in den Befund übernommen
     werden kann.
     """
     cleaned = _clean(value)
@@ -69,21 +69,21 @@ def iban_reason(value: str | None) -> str:
     country = cleaned[:2]
     expected = IBAN_LENGTHS.get(country)
     if expected is None:
-        return f"Laenderkennzeichen '{country}' ist kein bekanntes IBAN-Land"
+        return f"Länderkennzeichen '{country}' ist kein bekanntes IBAN-Land"
     if len(cleaned) != expected:
-        return f"IBAN hat {len(cleaned)} Stellen, fuer {country} sind {expected} vorgesehen"
+        return f"IBAN hat {len(cleaned)} Stellen, für {country} sind {expected} vorgesehen"
     if _mod97(cleaned[4:] + cleaned[:4]) != 1:
-        return "Pruefziffer der IBAN ist falsch"
+        return "Prüfziffer der IBAN ist falsch"
     return ""
 
 
 def iban_valid(value: str | None) -> bool:
-    """True, wenn die IBAN Aufbau, Laenge und Pruefziffer erfuellt."""
+    """True, wenn die IBAN Aufbau, Länge und Prüfziffer erfüllt."""
     return iban_reason(value) == ""
 
 
 def iban_country(value: str | None) -> str | None:
-    """Laenderkennzeichen einer IBAN."""
+    """Länderkennzeichen einer IBAN."""
     cleaned = _clean(value)
     return cleaned[:2] if len(cleaned) >= 2 and cleaned[:2].isalpha() else None
 
@@ -91,7 +91,7 @@ def iban_country(value: str | None) -> str | None:
 def iban_bank_identifier(value: str | None) -> str | None:
     """Bankkennung aus der IBAN, soweit landesspezifisch bekannt.
 
-    Fuer die Laender, deren Aufbau hier hinterlegt ist, liefert die Funktion
+    Für die Länder, deren Aufbau hier hinterlegt ist, liefert die Funktion
     die Bankleitzahl. Sie erlaubt den Abgleich der IBAN gegen die im
     Stammsatz gepflegte Bankverbindung.
     """
@@ -110,12 +110,12 @@ _BIC_PATTERN = re.compile(r"^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$")
 
 
 def bic_reason(value: str | None) -> str:
-    """Prueft einen BIC und benennt den Grund einer Beanstandung."""
+    """Prüft einen BIC und benennt den Grund einer Beanstandung."""
     cleaned = _clean(value)
     if not cleaned:
         return "BIC fehlt"
     if len(cleaned) not in (8, 11):
-        return f"BIC hat {len(cleaned)} Stellen, zulaessig sind 8 oder 11"
+        return f"BIC hat {len(cleaned)} Stellen, zulässig sind 8 oder 11"
     if not _BIC_PATTERN.match(cleaned):
         return "BIC entspricht nicht dem Aufbau nach ISO 9362"
     return ""
@@ -128,7 +128,7 @@ def bic_valid(value: str | None) -> bool:
 
 # ------------------------------------------------------------- USt-IdNr.
 
-#: Syntax der USt-IdNr. je Land, ohne das vorangestellte Laenderkennzeichen.
+#: Syntax der USt-IdNr. je Land, ohne das vorangestellte Länderkennzeichen.
 VAT_PATTERNS: dict[str, str] = {
     "AT": r"U[0-9]{8}",
     "BE": r"[01][0-9]{9}",
@@ -165,7 +165,7 @@ _VAT_COUNTRY_ALIASES = {"GR": "EL", "GB": "XI"}
 
 
 def _vat_check_de(digits: str) -> bool:
-    """Pruefziffer der deutschen USt-IdNr. (Verfahren nach ISO 7064 MOD 11,10)."""
+    """Prüfziffer der deutschen USt-IdNr. (Verfahren nach ISO 7064 MOD 11,10)."""
     product = 10
     for char in digits[:-1]:
         total = (int(char) + product) % 10
@@ -176,14 +176,14 @@ def _vat_check_de(digits: str) -> bool:
 
 
 def _vat_check_nl(digits: str) -> bool:
-    """Pruefziffer der niederlaendischen USt-IdNr. (Elfproben-Verfahren)."""
+    """Prüfziffer der niederländischen USt-IdNr. (Elfproben-Verfahren)."""
     body = digits[:9]
     total = sum(int(char) * weight for char, weight in zip(body[:8], range(9, 1, -1)))
     return total % 11 == int(body[8])
 
 
 def _vat_check_luhn(digits: str) -> bool:
-    """Luhn-Pruefziffer, verwendet unter anderem fuer die italienische Nummer."""
+    """Luhn-Prüfziffer, verwendet unter anderem für die italienische Nummer."""
     total = 0
     for index, char in enumerate(reversed(digits)):
         value = int(char)
@@ -195,20 +195,20 @@ def _vat_check_luhn(digits: str) -> bool:
     return total % 10 == 0
 
 
-#: Pruefziffernverfahren, die hier umgesetzt sind. Fuer alle uebrigen Laender
-#: wird nur die Syntax geprueft; das ist ausdruecklich vermerkt, damit ein
-#: unauffaelliges Ergebnis nicht mit einer Pruefziffernpruefung verwechselt
-#: wird. Die inhaltliche Bestaetigung leistet erst der VIES-Abgleich (FA-408).
+#: Prüfziffernverfahren, die hier umgesetzt sind. Für alle übrigen Länder
+#: wird nur die Syntax geprüft; das ist ausdrücklich vermerkt, damit ein
+#: unauffälliges Ergebnis nicht mit einer Prüfziffernprüfung verwechselt
+#: wird. Die inhaltliche Bestätigung leistet erst der VIES-Abgleich (FA-408).
 _VAT_CHECKSUMS = {"DE": _vat_check_de, "NL": _vat_check_nl, "IT": _vat_check_luhn}
 
 
 def vat_id_reason(country: str | None, value: str | None) -> str:
-    """Prueft eine USt-IdNr. und benennt den Grund einer Beanstandung.
+    """Prüft eine USt-IdNr. und benennt den Grund einer Beanstandung.
 
-    ``country`` ist das Land des Stammsatzes. Traegt die Nummer selbst ein
-    Laenderkennzeichen, gilt dieses; weicht es vom Land des Stammsatzes ab,
-    wird darauf hingewiesen - eine deutsche Adresse mit oesterreichischer
-    USt-IdNr. ist moeglich, aber begruendungsbeduerftig.
+    ``country`` ist das Land des Stammsatzes. Trägt die Nummer selbst ein
+    Länderkennzeichen, gilt dieses; weicht es vom Land des Stammsatzes ab,
+    wird darauf hingewiesen - eine deutsche Adresse mit österreichischer
+    USt-IdNr. ist möglich, aber begründungsbedürftig.
     """
     cleaned = _clean(value)
     if not cleaned:
@@ -222,27 +222,27 @@ def vat_id_reason(country: str | None, value: str | None) -> str:
         vat_country = _VAT_COUNTRY_ALIASES.get((country or "").upper(), (country or "").upper())
         body = cleaned
         if not vat_country:
-            return "USt-IdNr. ohne Laenderkennzeichen und ohne Land im Stammsatz"
+            return "USt-IdNr. ohne Länderkennzeichen und ohne Land im Stammsatz"
 
     pattern = VAT_PATTERNS.get(vat_country)
     if pattern is None:
-        return f"Fuer das Land '{vat_country}' ist kein Aufbau der USt-IdNr. hinterlegt"
+        return f"Für das Land '{vat_country}' ist kein Aufbau der USt-IdNr. hinterlegt"
     if not re.fullmatch(pattern, body):
-        return f"USt-IdNr. entspricht nicht dem Aufbau fuer {vat_country}"
+        return f"USt-IdNr. entspricht nicht dem Aufbau für {vat_country}"
 
     checker = _VAT_CHECKSUMS.get(vat_country)
     if checker is not None and not checker(body):
-        return f"Pruefziffer der USt-IdNr. ({vat_country}) ist falsch"
+        return f"Prüfziffer der USt-IdNr. ({vat_country}) ist falsch"
     return ""
 
 
 def vat_id_valid(country: str | None, value: str | None) -> bool:
-    """True, wenn die USt-IdNr. Aufbau und - soweit umgesetzt - Pruefziffer erfuellt."""
+    """True, wenn die USt-IdNr. Aufbau und - soweit umgesetzt - Prüfziffer erfüllt."""
     return vat_id_reason(country, value) == ""
 
 
 def vat_id_country(value: str | None) -> str | None:
-    """Laenderkennzeichen aus der USt-IdNr., falls vorhanden."""
+    """Länderkennzeichen aus der USt-IdNr., falls vorhanden."""
     cleaned = _clean(value)
     prefix = cleaned[:2]
     if prefix in VAT_PATTERNS or prefix in _VAT_COUNTRY_ALIASES:
@@ -270,28 +270,28 @@ POSTAL_PATTERNS: dict[str, str] = {
 
 
 def postal_code_reason(country: str | None, value: str | None) -> str:
-    """Prueft eine Postleitzahl gegen den Aufbau des Landes."""
+    """Prüft eine Postleitzahl gegen den Aufbau des Landes."""
     code = (str(value) if value is not None else "").strip().upper()
     land = (str(country) if country is not None else "").strip().upper()
     if not code:
         return "Postleitzahl fehlt"
     if not land:
-        return "Land fehlt, die Postleitzahl ist nicht pruefbar"
+        return "Land fehlt, die Postleitzahl ist nicht prüfbar"
     pattern = POSTAL_PATTERNS.get(land)
     if pattern is None:
-        return ""  # Land ohne hinterlegten Aufbau - keine Aussage moeglich
+        return ""  # Land ohne hinterlegten Aufbau - keine Aussage möglich
     if not re.fullmatch(pattern, code):
-        return f"Postleitzahl entspricht nicht dem Aufbau fuer {land}"
+        return f"Postleitzahl entspricht nicht dem Aufbau für {land}"
     return ""
 
 
 def postal_code_valid(country: str | None, value: str | None) -> bool:
-    """True, wenn die Postleitzahl zum Land passt oder nicht pruefbar ist."""
+    """True, wenn die Postleitzahl zum Land passt oder nicht prüfbar ist."""
     return postal_code_reason(country, value) == ""
 
 
 def postal_code_known(country: str | None) -> bool:
-    """True, wenn fuer das Land ein Aufbau hinterlegt ist."""
+    """True, wenn für das Land ein Aufbau hinterlegt ist."""
     return (str(country) if country else "").strip().upper() in POSTAL_PATTERNS
 
 
@@ -319,9 +319,9 @@ def is_po_box(value: str | None) -> bool:
 
 
 def has_digit(value: str | None) -> bool:
-    """True, wenn der Text mindestens eine Ziffer enthaelt.
+    """True, wenn der Text mindestens eine Ziffer enthält.
 
-    Eine Strassenangabe ohne jede Ziffer hat in aller Regel keine Hausnummer.
+    Eine Straßenangabe ohne jede Ziffer hat in aller Regel keine Hausnummer.
     """
     return bool(value) and any(char.isdigit() for char in str(value))
 
@@ -330,7 +330,7 @@ def is_placeholder_text(value: str | None) -> bool:
     """Erkennt Platzhalter, die fachlich einem leeren Feld gleichkommen.
 
     Pflegehinweise wie ``unbekannt``, ``keine Angabe``, ``xxx`` oder ``-``
-    erfuellen die Pflichtfeldpruefung formal, tragen aber keine Information.
+    erfüllen die Pflichtfeldprüfung formal, tragen aber keine Information.
     """
     if value is None:
         return False
@@ -351,29 +351,29 @@ def is_placeholder_text(value: str | None) -> bool:
 
 
 def gtin_reason(value: str | None) -> str:
-    """Prueft eine EAN/GTIN und benennt den Grund einer Beanstandung.
+    """Prüft eine EAN/GTIN und benennt den Grund einer Beanstandung.
 
-    Zulaessig sind GTIN-8, GTIN-12 (UPC), GTIN-13 (EAN) und GTIN-14. Die
-    Pruefziffer folgt dem Modulo-10-Verfahren nach GS1: die Stellen werden von
+    Zulässig sind GTIN-8, GTIN-12 (UPC), GTIN-13 (EAN) und GTIN-14. Die
+    Prüfziffer folgt dem Modulo-10-Verfahren nach GS1: die Stellen werden von
     rechts abwechselnd mit 3 und 1 gewichtet.
     """
     cleaned = _clean(value)
     if not cleaned:
         return "EAN fehlt"
     if not cleaned.isdigit():
-        return "EAN enthaelt Zeichen, die keine Ziffern sind"
+        return "EAN enthält Zeichen, die keine Ziffern sind"
     if len(cleaned) not in (8, 12, 13, 14):
-        return f"EAN hat {len(cleaned)} Stellen, zulaessig sind 8, 12, 13 oder 14"
+        return f"EAN hat {len(cleaned)} Stellen, zulässig sind 8, 12, 13 oder 14"
 
     body, check = cleaned[:-1], int(cleaned[-1])
     total = 0
     for index, char in enumerate(reversed(body)):
         total += int(char) * (3 if index % 2 == 0 else 1)
     if (10 - total % 10) % 10 != check:
-        return "Pruefziffer der EAN ist falsch"
+        return "Prüfziffer der EAN ist falsch"
     return ""
 
 
 def gtin_valid(value: str | None) -> bool:
-    """True, wenn die EAN/GTIN Laenge und Pruefziffer erfuellt."""
+    """True, wenn die EAN/GTIN Länge und Prüfziffer erfüllt."""
     return gtin_reason(value) == ""
