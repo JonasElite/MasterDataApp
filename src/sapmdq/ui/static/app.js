@@ -622,6 +622,177 @@ function pruefmeldung(pruefung) {
   return t(pruefung.meldung_vorlage, werte);
 }
 
+/* --------------------------------------------------------------- Projekte
+ *
+ * Ein Berater betreut mehrere Kunden. Diese Ansicht zeigt die bekannten
+ * Projekte, öffnet eines davon und legt neue an.
+ *
+ * Der Wechsel bindet die ganze Sitzung neu: Läufe, Befunde, Ausnahmen und
+ * der Eingang gehören danach zu einem anderen Kunden. Deshalb wird nach
+ * einem Wechsel alles neu geladen und nicht bloß die Ansicht neu gezeichnet.
+ */
+
+let PROJEKTE = { projekte: [], aktuell: "", liste: "" };
+
+async function zeigeProjekte() {
+  try {
+    PROJEKTE = await hole("/api/projekte");
+  } catch (fehler) {
+    setzen($("#pj-karten"), [el("p", { class: "nichts", text: fehler.message })]);
+    return;
+  }
+  $("#pj-liste-pfad").textContent = PROJEKTE.liste;
+  setzen($("#pj-karten"), (PROJEKTE.projekte || []).map(projektkarte));
+}
+
+function projektkarte(projekt) {
+  const klassen = ["projektkarte"];
+  if (projekt.aktuell) klassen.push("aktuell");
+  if (!projekt.lesbar) klassen.push("fehlt");
+
+  const kopf = el("div", {}, [
+    el("h3", { text: projekt.name || projekt.verzeichnis }),
+    projekt.kunde ? el("p", { class: "leise", text: projekt.kunde }) : null,
+  ]);
+
+  const zahlen = projekt.lesbar
+    ? el("div", { class: "zahlen" }, [
+        el("span", { text: t("{n} Läufe", { n: zahl(projekt.laeufe) }) }),
+        el("span", { text: t("{n} Datei(en) im Eingang", { n: zahl(projekt.eingangsdateien) }) }),
+        el("span", { text: projekt.quellsystem || "" }),
+        projekt.letzter_lauf
+          ? el("span", { text: t("zuletzt {lauf}", { lauf: projekt.letzter_lauf }) })
+          : null,
+      ])
+    : el("p", { class: "merkmal critical", text: projekt.fehler || t("nicht lesbar") });
+
+  const knoepfe = el("div", { class: "knoepfe" }, [
+    projekt.aktuell
+      ? el("span", { class: "merkmal gut", text: "geöffnet" })
+      : el("button", {
+          class: "knopf knopf-haupt",
+          text: "öffnen",
+          disabled: projekt.lesbar ? null : "disabled",
+          onclick: () => projektOeffnen(projekt.pfad),
+        }),
+    projekt.aktuell
+      ? null
+      : el("button", {
+          class: "knopf knopf-leise",
+          text: "aus der Liste nehmen",
+          title: "Nimmt das Projekt aus dieser Liste. Die Dateien bleiben liegen.",
+          onclick: () => projektEntfernen(projekt),
+        }),
+  ]);
+
+  return el("div", { class: klassen.join(" ") }, [
+    kopf,
+    zahlen,
+    el("p", { class: "pfad", text: projekt.pfad }),
+    knoepfe,
+  ]);
+}
+
+async function projektOeffnen(pfad) {
+  try {
+    const ergebnis = await sende("/api/projekte/oeffnen", { pfad: pfad });
+    await projektNeuAufbauen();
+    melden(t("Projekt {name} geöffnet.", { name: ergebnis.name }), "erfolg");
+  } catch (fehler) {
+    melden(fehler.message, "fehler");
+  }
+}
+
+async function projektEntfernen(projekt) {
+  const frage = t("{name} aus der Liste nehmen? Die Dateien bleiben liegen.",
+    { name: projekt.name || projekt.pfad });
+  if (!window.confirm(frage)) return;
+  try {
+    await sende("/api/projekte/entfernen", { pfad: projekt.pfad });
+    await zeigeProjekte();
+  } catch (fehler) {
+    melden(fehler.message, "fehler");
+  }
+}
+
+async function projektAufnehmen() {
+  const pfad = $("#pj-pfad").value.trim();
+  if (!pfad) return;
+  try {
+    await sende("/api/projekte/aufnehmen", { pfad: pfad });
+    $("#pj-pfad").value = "";
+    $("#pj-aufnehmen").hidden = true;
+    await zeigeProjekte();
+    melden(t("Projekt aufgenommen."), "erfolg");
+  } catch (fehler) {
+    melden(fehler.message, "fehler");
+  }
+}
+
+async function projektAnlegen() {
+  const verzeichnis = $("#pj-verzeichnis").value.trim();
+  if (!verzeichnis) {
+    melden(t("Es wurde kein Verzeichnis angegeben."), "fehler");
+    return;
+  }
+  const knopf = $("#pj-anlegen");
+  knopf.disabled = true;
+  try {
+    const ergebnis = await sende("/api/projekte/anlegen", {
+      verzeichnis: verzeichnis,
+      name: $("#pj-name").value.trim(),
+      kunde: $("#pj-kunde").value.trim(),
+      quellsystem: $("#pj-quellsystem").value,
+      analyst: $("#pj-analyst").value.trim(),
+    });
+    for (const id of ["#pj-verzeichnis", "#pj-name", "#pj-kunde", "#pj-analyst"]) {
+      $(id).value = "";
+    }
+    $("#pj-neu").hidden = true;
+    await projektNeuAufbauen();
+    melden(t("Projekt {name} angelegt. Als Nächstes die Lieferung unter "
+      + "'Eingang' hochladen.", { name: ergebnis.name }), "erfolg");
+  } catch (fehler) {
+    melden(fehler.message, "fehler");
+  } finally {
+    knopf.disabled = false;
+  }
+}
+
+/** Nach einem Projektwechsel: alles neu holen, was zum Projekt gehört. */
+async function projektNeuAufbauen() {
+  Z.projekt = await hole("/api/projekt");
+  Z.lauf = null;
+  Z.laufId = "";
+  REGELN = {};
+  dublettenDaten = null;
+  projektzeileSchreiben();
+  await ladeLaeufe();
+  await zeigeProjekte();
+}
+
+function projektBedienung() {
+  $("#projektwechsel").addEventListener("click", () => zuAnsicht("projekte"));
+  const umschalten = (id, sichtbar) => { $(id).hidden = !sichtbar; };
+  $("#pj-neu-auf").addEventListener("click", () => {
+    umschalten("#pj-neu", $("#pj-neu").hidden);
+    umschalten("#pj-aufnehmen", false);
+    if (!$("#pj-neu").hidden) $("#pj-verzeichnis").focus();
+  });
+  $("#pj-neu-zu").addEventListener("click", () => umschalten("#pj-neu", false));
+  $("#pj-anlegen").addEventListener("click", projektAnlegen);
+  $("#pj-aufnehmen-auf").addEventListener("click", () => {
+    umschalten("#pj-aufnehmen", $("#pj-aufnehmen").hidden);
+    umschalten("#pj-neu", false);
+    if (!$("#pj-aufnehmen").hidden) $("#pj-pfad").focus();
+  });
+  $("#pj-aufnehmen-zu").addEventListener("click", () => umschalten("#pj-aufnehmen", false));
+  $("#pj-aufnehmen-knopf").addEventListener("click", projektAufnehmen);
+  $("#pj-pfad").addEventListener("keydown", (ereignis) => {
+    if (ereignis.key === "Enter") projektAufnehmen();
+  });
+}
+
 /* ---------------------------------------------------------------- Eingang
  *
  * Die einzige Ansicht, die etwas schreibt. Was der Browser schickt, geht an
@@ -2119,7 +2290,7 @@ function spracheWechseln(sprache) {
   // Die Auswahllisten tragen übersetzte Beschriftungen und werden aus den
   // Daten aufgebaut - sie müssen mit.
   fuelleBefundfilter();
-  if (Z.lauf) kopfzeileSchreiben();
+  kopfzeileSchreiben();
   if (Z.laeufe.length) laufAuswahlFuellen();
   meldungenLeeren();
   ANSICHTEN[Z.ansicht].zeichnen();
@@ -2145,6 +2316,7 @@ const ANSICHTEN = {
   dubletten: { titel: "Dubletten", zeichnen: zeigeDubletten },
   abdeckung: { titel: "Abdeckung", zeichnen: zeigeAbdeckung },
   coverage: { titel: "Prüfumfang", zeichnen: zeigeCoverage },
+  projekte: { titel: "Projekte", zeichnen: zeigeProjekte },
   eingang: { titel: "Eingang", zeichnen: zeigeEingang },
   lieferung: { titel: "Lieferung", zeichnen: zeigeLieferung },
   ausnahmen: { titel: "Ausnahmen", zeichnen: zeigeAusnahmen },
@@ -2185,18 +2357,28 @@ function projektzeileSchreiben() {
   const projekt = Z.projekt;
   if (!projekt) return;
   document.title = projekt.name + " - " + t("Stammdatenprüfung");
-  $("#projekt-fuss").textContent =
-    projekt.name + (projekt.kunde ? " / " + projekt.kunde : "") + " - "
-    + t("Quellsystem {system} - {n} Datei(en) im Eingang", {
-        system: projekt.quellsystem || t("unbekannt"),
-        n: projekt.eingangsdateien.length,
-      });
+  // Oben der Umschalter: welcher Kunde ist gerade offen.
+  $("#projektwahl-name").textContent = projekt.name;
+  $("#projektwahl-unter").textContent = projekt.kunde
+    || projekt.quellsystem
+    || t("Projekt wechseln");
+  $("#projekt-fuss").textContent = t("Quellsystem {system} - {n} Datei(en) im Eingang", {
+    system: projekt.quellsystem || t("unbekannt"),
+    n: projekt.eingangsdateien.length,
+  });
 }
 
 /** Die Zeile unter der Überschrift: welcher Lauf gerade angezeigt wird. */
 function kopfzeileSchreiben() {
   const lauf = Z.lauf;
-  if (!lauf) return;
+  if (!lauf) {
+    // Auch dieser Satz gehört übersetzt. Er stand bisher nur dort, wo der
+    // Lauf gewählt wird, und blieb nach einem Sprachwechsel deutsch.
+    $("#kopf-unter").textContent = Z.laeufe.length
+      ? t("Kein Lauf ausgewählt.")
+      : t("Es liegt noch kein Lauf vor. Die Prüfung lässt sich links starten.");
+    return;
+  }
   $("#kopf-unter").textContent =
     t("Lauf {lauf} vom {stand} - Katalog {katalog} - Werkzeug {version}", {
       lauf: lauf.lauf_id,
@@ -2221,8 +2403,7 @@ async function waehleLauf(laufId) {
   Z.laufId = laufId;
   Z.lauf = null;
   if (!laufId) {
-    $("#kopf-unter").textContent =
-      t("Es liegt noch kein Lauf vor. Die Prüfung lässt sich links starten.");
+    kopfzeileSchreiben();
     ANSICHTEN[Z.ansicht].zeichnen();
     return;
   }
@@ -2339,6 +2520,7 @@ async function starten() {
   $("#ab-nur-fehlend").addEventListener("change", zeichneAbdeckungstabellen);
 
   eingangBedienung();
+  projektBedienung();
 
   $("#c-suche").addEventListener("input", zeichneRegeln);
   $("#c-nur-entfallen").addEventListener("change", zeichneRegeln);

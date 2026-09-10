@@ -246,6 +246,8 @@ class UiHandler(BaseHTTPRequestHandler):
                 self._json(api.befunde(state, teile[1], werte))
             elif len(teile) == 4 and teile[0] == "laeufe" and teile[2] == "befunde":
                 self._json(api.befund(state, teile[1], teile[3]))
+            elif teile == ["projekte"]:
+                self._json(api.projekte(state))
             elif teile == ["eingang"]:
                 self._json(api.eingang(state))
             elif teile == ["ausnahmen"]:
@@ -268,6 +270,10 @@ class UiHandler(BaseHTTPRequestHandler):
             "/api/ausnahmen": api.ausnahme_setzen,
             "/api/ausnahmen/entfernen": api.ausnahme_entfernen,
             "/api/eingang/entfernen": api.eingang_entfernen,
+            "/api/projekte/oeffnen": api.projekt_oeffnen,
+            "/api/projekte/aufnehmen": api.projekt_aufnehmen,
+            "/api/projekte/entfernen": api.projekt_entfernen,
+            "/api/projekte/anlegen": api.projekt_anlegen,
             "/api/status": api.status_setzen,
             "/api/lauf/starten": api.lauf_starten,
         }

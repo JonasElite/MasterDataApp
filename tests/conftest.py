@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -14,6 +15,26 @@ if str(SRC) not in sys.path:
 
 TOOLS = Path(__file__).resolve().parents[1] / "tools"
 RULES_DIR = Path(__file__).resolve().parents[1] / "rules"
+
+
+@pytest.fixture(autouse=True, scope="session")
+def eigene_projektliste(tmp_path_factory):
+    """Kein Test schreibt in die Projektliste des Benutzers.
+
+    ``sapmdq init`` und ``sapmdq ui`` tragen ihr Projekt in die Liste unter
+    ``~/.sapmdq`` ein. Ohne diese Umleitung stünden nach einem Testlauf
+    Testprojekte in der Liste dessen, der ihn gestartet hat.
+    """
+    from sapmdq.projekte import HOME_VARIABLE
+
+    heim = tmp_path_factory.mktemp("benutzerheim")
+    alt = os.environ.get(HOME_VARIABLE)
+    os.environ[HOME_VARIABLE] = str(heim)
+    yield heim
+    if alt is None:
+        os.environ.pop(HOME_VARIABLE, None)
+    else:
+        os.environ[HOME_VARIABLE] = alt
 
 
 @pytest.fixture

@@ -99,6 +99,8 @@ def test_jeder_text_aus_dem_markup_hat_eine_uebersetzung(woerterbuch):
             "SAP-Stammdatenprüfung",
             "http://127.0.0.1:8765/?token=…",
             "critical", "high", "medium", "low", "info",
+            # Produktnamen von SAP - sie heißen in beiden Sprachen so.
+            "ECC", "S/4HANA",
         }
     )
     assert not fehlend, "ohne englische Fassung im Markup:\n  " + "\n  ".join(fehlend)

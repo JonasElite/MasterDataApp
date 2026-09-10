@@ -37,6 +37,7 @@ const EN = {
   "Befunde": "Findings",
   "Dubletten": "Duplicates",
   "Prüfumfang": "Scope",
+  "Projekte": "Projects",
   "Eingang": "Inbox",
   "Lieferung": "Delivery",
   "Ausnahmen": "Exceptions",
@@ -705,6 +706,62 @@ const EN = {
   "Die Datei ist größer als {n} MB. Bitte legen Sie sie direkt in das Eingangsverzeichnis.":
     "The file is larger than {n} MB. Please place it in the input directory directly.",
   "Die Datei ließ sich nicht schreiben: {fehler}": "The file could not be written: {fehler}",
+
+
+  // ----------------------------------------------------------------- Projekte
+  "Projekt": "Project",
+  "Projekt wechseln": "Switch project",
+  "Die Projekte, mit denen dieser Arbeitsplatz schon gearbeitet hat. Die Liste steht im Benutzerverzeichnis, nicht im Projekt - sie gehört zu Ihnen, nicht zum Kunden.":
+    "The projects this workstation has worked with. The list lives in your user directory, not in the project - it belongs to you, not to the client.",
+  "Neues Projekt": "New project",
+  "Vorhandenes aufnehmen": "Add existing",
+  "Neues Projekt anlegen": "Create a new project",
+  "Angelegt werden das Verzeichnis, die Projektkonfiguration und die Vorlagen - dasselbe wie beim Befehl \"sapmdq init\". Anschließend ist das neue Projekt geöffnet.":
+    "This creates the directory, the project configuration and the templates - the same as the \"sapmdq init\" command does. The new project is then open.",
+  "Vorhandenes Projekt aufnehmen": "Add an existing project",
+  "Der Pfad zur Datei \"projekt.yaml\" - das Verzeichnis genügt auch. Aufgenommen wird nur, was sich lesen lässt.":
+    "The path to the \"projekt.yaml\" file - the directory will do as well. Only what can be read is added.",
+  "Quellsystem": "Source system",
+  "Verzeichnis": "Directory",
+  "Verzeichnis des neuen Projekts": "Directory of the new project",
+  "z. B. /Kunden/Mustermann/stammdaten": "e.g. /clients/example/masterdata",
+  "Name des Projekts": "Name of the project",
+  "Kunde": "Client",
+  "Name des Kunden": "Name of the client",
+  "Analyst": "Analyst",
+  "wer prüft": "who is checking",
+  "Anlegen und öffnen": "Create and open",
+  "Abbrechen": "Cancel",
+  "Aufnehmen": "Add",
+  "Pfad zur projekt.yaml": "Path to projekt.yaml",
+  "Pfad zum vorhandenen Projekt": "Path to the existing project",
+  "{n} Läufe": "{n} runs",
+  "{n} Datei(en) im Eingang": "{n} file(s) in the inbox",
+  "zuletzt {lauf}": "last {lauf}",
+  "nicht lesbar": "not readable",
+  "geöffnet": "open",
+  "öffnen": "open",
+  "aus der Liste nehmen": "remove from list",
+  "Nimmt das Projekt aus dieser Liste. Die Dateien bleiben liegen.":
+    "Removes the project from this list. The files stay where they are.",
+  "Projekt {name} geöffnet.": "Project {name} opened.",
+  "{name} aus der Liste nehmen? Die Dateien bleiben liegen.":
+    "Remove {name} from the list? The files stay where they are.",
+  "Projekt aufgenommen.": "Project added.",
+  "Es wurde kein Verzeichnis angegeben.": "No directory was given.",
+  "Projekt {name} angelegt. Als Nächstes die Lieferung unter 'Eingang' hochladen.":
+    "Project {name} created. Next, upload the delivery under 'Inbox'.",
+
+  // Meldungen des Servers zur Projektverwaltung.
+  "Es wurde kein Pfad angegeben.": "No path was given.",
+  "Dieses Projekt lässt sich nicht öffnen: {grund}": "This project cannot be opened: {grund}",
+  "Dort liegt kein lesbares Projekt: {grund}": "There is no readable project there: {grund}",
+  "Das gerade geöffnete Projekt lässt sich nicht aus der Liste nehmen.":
+    "The project that is currently open cannot be removed from the list.",
+  "Dieses Projekt steht nicht in der Liste: {pfad}": "This project is not in the list: {pfad}",
+  "Das Projekt ließ sich nicht anlegen: {grund}": "The project could not be created: {grund}",
+  "Während eines Prüfungslaufs lässt sich das Projekt nicht wechseln.":
+    "The project cannot be switched while a check is running.",
 
 };
 

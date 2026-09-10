@@ -27,6 +27,12 @@
       <span class="marke-text">Stammdaten&shy;prüfung</span>
     </div>
 
+    <button id="projektwechsel" class="projektwahl" aria-label="Projekt wechseln">
+      <span class="projektwahl-feld">Projekt</span>
+      <span id="projektwahl-name" class="projektwahl-name"></span>
+      <span id="projektwahl-unter" class="projektwahl-unter"></span>
+    </button>
+
     <nav aria-label="Bereiche">
       <button class="nav" data-ansicht="lagebild" aria-current="page">Lagebild</button>
       <button class="nav" data-ansicht="befunde">Befunde</button>
@@ -37,6 +43,7 @@
       <button class="nav" data-ansicht="lieferung">Lieferung</button>
       <button class="nav" data-ansicht="ausnahmen">Ausnahmen</button>
       <button class="nav" data-ansicht="laeufe">Läufe</button>
+      <button class="nav" data-ansicht="projekte">Projekte</button>
     </nav>
 
     <div class="seitenleiste-fuss">
@@ -116,6 +123,72 @@
            Prüfumfangs zu lesen. Was nicht geprüft werden konnte, geht nicht ein.</p>
         <div id="lb-bewertung"></div>
       </div>
+    </section>
+
+    <!-- -------------------------------------------------------- Projekte -->
+    <section id="ansicht-projekte" class="ansicht" hidden>
+      <p class="leise">Die Projekte, mit denen dieser Arbeitsplatz schon
+         gearbeitet hat. Die Liste steht im Benutzerverzeichnis, nicht im
+         Projekt - sie gehört zu Ihnen, nicht zum Kunden.</p>
+
+      <div class="werkzeugleiste">
+        <button id="pj-neu-auf" class="knopf knopf-haupt">Neues Projekt</button>
+        <button id="pj-aufnehmen-auf" class="knopf">Vorhandenes aufnehmen</button>
+        <p id="pj-liste-pfad" class="leise fest"></p>
+      </div>
+
+      <div id="pj-neu" class="karte" hidden>
+        <h2>Neues Projekt anlegen</h2>
+        <p class="leise">Angelegt werden das Verzeichnis, die
+           Projektkonfiguration und die Vorlagen - dasselbe wie beim Befehl
+           "sapmdq init". Anschließend ist das neue Projekt geöffnet.</p>
+        <div class="formular">
+          <label class="feld">
+            <span class="feldchen">Verzeichnis</span>
+            <input id="pj-verzeichnis" type="text" placeholder="z. B. /Kunden/Mustermann/stammdaten"
+                   aria-label="Verzeichnis des neuen Projekts">
+          </label>
+          <div class="formular-reihe">
+            <label class="feld">
+              <span class="feldchen">Name</span>
+              <input id="pj-name" type="text" placeholder="Name des Projekts" aria-label="Name des Projekts">
+            </label>
+            <label class="feld">
+              <span class="feldchen">Kunde</span>
+              <input id="pj-kunde" type="text" placeholder="Name des Kunden" aria-label="Name des Kunden">
+            </label>
+            <label class="feld">
+              <span class="feldchen">Quellsystem</span>
+              <select id="pj-quellsystem" aria-label="Quellsystem">
+                <option value="ECC">ECC</option>
+                <option value="S4">S/4HANA</option>
+              </select>
+            </label>
+            <label class="feld">
+              <span class="feldchen">Analyst</span>
+              <input id="pj-analyst" type="text" placeholder="wer prüft" aria-label="Analyst">
+            </label>
+          </div>
+          <div class="formular-reihe">
+            <button id="pj-anlegen" class="knopf knopf-haupt">Anlegen und öffnen</button>
+            <button id="pj-neu-zu" class="knopf knopf-leise">Abbrechen</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="pj-aufnehmen" class="karte" hidden>
+        <h2>Vorhandenes Projekt aufnehmen</h2>
+        <p class="leise">Der Pfad zur Datei "projekt.yaml" - das Verzeichnis
+           genügt auch. Aufgenommen wird nur, was sich lesen lässt.</p>
+        <div class="formular-reihe">
+          <input id="pj-pfad" type="text" class="lang" placeholder="Pfad zur projekt.yaml"
+                 aria-label="Pfad zum vorhandenen Projekt">
+          <button id="pj-aufnehmen-knopf" class="knopf">Aufnehmen</button>
+          <button id="pj-aufnehmen-zu" class="knopf knopf-leise">Abbrechen</button>
+        </div>
+      </div>
+
+      <div id="pj-karten" class="projektliste"></div>
     </section>
 
     <!-- --------------------------------------------------------- Eingang -->

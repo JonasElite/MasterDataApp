@@ -50,6 +50,19 @@ personenbezogene Daten. Drei Grenzen sind deshalb fest eingebaut:
   nur für diese Sitzung.
 * Ausgeliefert werden ausschließlich Dateien aus dem Paketverzeichnis.
 
+Die Oberfläche schreibt an zwei Stellen: sie nimmt Lieferdateien in das
+Eingangsverzeichnis entgegen (*Eingang*) und legt Projektverzeichnisse an
+(*Projekte*). Beides geschieht unter demselben Benutzer, der auch die
+Kommandozeile bedient - die Oberfläche kann nichts, was `sapmdq init` und ein
+Dateimanager nicht auch könnten. Der Dateiname eines Uploads wird geprüft und
+im Zweifel abgewiesen, nicht bereinigt; Einzelheiten in
+[oberflaeche.md](oberflaeche.md).
+
+Welche Projekte dieser Arbeitsplatz kennt, steht in `~/.sapmdq/projekte.yaml`
+(verlegbar über `SAPMDQ_HOME`). Ein Pfad kann einen Kundennamen enthalten;
+die Datei gehört damit zu den personenbeziehbaren Angaben und ist beim
+Aufräumen eines Arbeitsplatzes mitzulöschen.
+
 `--host` hebt die erste Grenze auf. Der Fall wird als Warnung protokolliert und
 ist nur in einer abgesicherten Umgebung vertretbar - eine im Netz erreichbare
 Oberfläche ohne Anmeldung widerspricht DS-02. Für den Zugriff von einem

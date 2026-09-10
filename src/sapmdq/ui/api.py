@@ -777,3 +777,167 @@ def eingang_entfernen(state: UiState, daten: Mapping[str, Any]) -> dict[str, Any
     ziel.unlink()
     logger.info("Eingangsdatei entfernt: %s", ziel.name)
     return {"entfernt": ziel.name}
+
+
+# ------------------------------------------------------------------ Projekte
+def _projektangabe(pfad: Path, aktuell: Path | None) -> dict[str, Any]:
+    """Beschreibt ein Projekt für die Liste.
+
+    Name und Kunde werden aus der Konfiguration gelesen, nicht aus der Liste:
+    wer sie in der Datei ändert, sieht die Änderung sofort. Lässt sich die
+    Konfiguration nicht laden - verschobenes Verzeichnis, kaputtes YAML -,
+    bleibt der Eintrag trotzdem stehen und sagt, was los ist. Ein Projekt,
+    das stillschweigend aus der Liste verschwindet, ist schwerer zu finden
+    als eines mit einer roten Zeile.
+    """
+    from sapmdq.config import load_config
+    from sapmdq.errors import SapMdqError
+
+    angabe: dict[str, Any] = {
+        "pfad": str(pfad),
+        "verzeichnis": str(pfad.parent),
+        "aktuell": aktuell is not None and pfad == aktuell,
+        "lesbar": False,
+        "name": pfad.parent.name,
+    }
+    try:
+        config = load_config(pfad)
+    except (SapMdqError, OSError) as fehler:
+        angabe["fehler"] = str(fehler)
+        return angabe
+
+    laufverzeichnis = config.paths.output_dir / "runs"
+    laeufe = (
+        sorted(p.name for p in laufverzeichnis.iterdir() if p.is_dir())
+        if laufverzeichnis.is_dir()
+        else []
+    )
+    eingang = config.paths.input_dir
+    angabe.update(
+        {
+            "lesbar": True,
+            "name": config.project.name,
+            "kunde": config.project.customer,
+            "quellsystem": config.project.source_system,
+            "analyst": config.project.analyst,
+            "laeufe": len(laeufe),
+            "letzter_lauf": laeufe[-1] if laeufe else "",
+            "eingangsdateien": (
+                len([p for p in eingang.iterdir() if p.is_file()]) if eingang.is_dir() else 0
+            ),
+        }
+    )
+    return angabe
+
+
+def projekte(state: UiState) -> dict[str, Any]:
+    """Alle bekannten Projekte, zuletzt geöffnetes zuerst."""
+    from sapmdq import projekte as liste
+
+    aktuell = Path(state.config.source_path).resolve() if state.config.source_path else None
+    eintraege = liste.laden()
+    bekannt = {eintrag.pfad for eintrag in eintraege}
+
+    angaben = []
+    for eintrag in eintraege:
+        angabe = _projektangabe(eintrag.pfad, aktuell)
+        angabe["zuletzt_geoeffnet"] = eintrag.zuletzt_geoeffnet
+        angaben.append(angabe)
+
+    # Das laufende Projekt gehört in die Liste, auch wenn es noch nie
+    # aufgenommen wurde - etwa weil die Liste gerade gelöscht wurde.
+    if aktuell is not None and aktuell not in bekannt:
+        angaben.insert(0, {**_projektangabe(aktuell, aktuell), "zuletzt_geoeffnet": ""})
+
+    return {
+        "aktuell": str(aktuell) if aktuell else "",
+        "liste": str(liste.listenpfad()),
+        "projekte": angaben,
+        "quellsysteme": ["ECC", "S4"],
+    }
+
+
+def _pfadangabe(daten: Mapping[str, Any], feld: str = "pfad") -> str:
+    pfad = str(daten.get(feld, "")).strip()
+    if not pfad:
+        raise uebersetzbar("Es wurde kein Pfad angegeben.")
+    return pfad
+
+
+def projekt_oeffnen(state: UiState, daten: Mapping[str, Any]) -> dict[str, Any]:
+    """Bindet die Sitzung an ein anderes Projekt."""
+    from sapmdq import projekte as liste
+    from sapmdq.errors import SapMdqError
+
+    pfad = _pfadangabe(daten)
+    try:
+        ziel = liste.pruefen(pfad)
+    except (SapMdqError, OSError) as fehler:
+        raise uebersetzbar(
+            "Dieses Projekt lässt sich nicht öffnen: {grund}", 400, grund=str(fehler)
+        ) from None
+
+    try:
+        config = state.wechseln(ziel)
+    except RuntimeError:
+        raise uebersetzbar(
+            "Während eines Prüfungslaufs lässt sich das Projekt nicht wechseln.", 409
+        ) from None
+
+    liste.geoeffnet(ziel)
+    return {"geoeffnet": str(ziel), "name": config.project.name}
+
+
+def projekt_aufnehmen(state: UiState, daten: Mapping[str, Any]) -> dict[str, Any]:
+    """Nimmt ein bestehendes Projekt in die Liste auf."""
+    from sapmdq import projekte as liste
+    from sapmdq.errors import SapMdqError
+
+    pfad = _pfadangabe(daten)
+    try:
+        ziel = liste.aufnehmen(pfad)
+    except (SapMdqError, OSError) as fehler:
+        raise uebersetzbar(
+            "Dort liegt kein lesbares Projekt: {grund}", 400, grund=str(fehler)
+        ) from None
+    return {"aufgenommen": str(ziel)}
+
+
+def projekt_entfernen(state: UiState, daten: Mapping[str, Any]) -> dict[str, Any]:
+    """Nimmt ein Projekt aus der Liste - die Dateien bleiben liegen."""
+    from sapmdq import projekte as liste
+
+    pfad = _pfadangabe(daten)
+    if state.config.source_path and Path(pfad).expanduser().resolve() == Path(
+        state.config.source_path
+    ).resolve():
+        raise uebersetzbar(
+            "Das gerade geöffnete Projekt lässt sich nicht aus der Liste nehmen.", 409
+        )
+    if not liste.entfernen(pfad):
+        raise uebersetzbar("Dieses Projekt steht nicht in der Liste: {pfad}", 404, pfad=pfad)
+    return {"entfernt": pfad}
+
+
+def projekt_anlegen(state: UiState, daten: Mapping[str, Any]) -> dict[str, Any]:
+    """Legt ein neues Projektverzeichnis an, nimmt es auf und öffnet es."""
+    from sapmdq import projekte as liste
+    from sapmdq.errors import SapMdqError
+
+    verzeichnis = _pfadangabe(daten, "verzeichnis")
+    try:
+        ziel = liste.anlegen(
+            verzeichnis,
+            name=str(daten.get("name", "")),
+            kunde=str(daten.get("kunde", "")),
+            quellsystem=str(daten.get("quellsystem", "ECC")).upper() or "ECC",
+            analyst=str(daten.get("analyst", "")),
+        )
+    except (SapMdqError, OSError) as fehler:
+        raise uebersetzbar(
+            "Das Projekt ließ sich nicht anlegen: {grund}", 400, grund=str(fehler)
+        ) from None
+
+    liste.aufnehmen(ziel, geoeffnet=True)
+    config = state.wechseln(ziel)
+    return {"angelegt": str(ziel), "name": config.project.name}

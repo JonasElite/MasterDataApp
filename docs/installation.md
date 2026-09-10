@@ -85,6 +85,10 @@ testprojekt/out/runs/<Zeitstempel>/
 sapmdq ui -c testprojekt/projekt.yaml
 ```
 
+Beim nächsten Mal genügt `sapmdq ui` ohne Angabe: die Oberfläche öffnet das
+zuletzt geöffnete Projekt, und unter *Projekte* lässt sich zu einem anderen
+wechseln oder ein neues anlegen.
+
 Der Befehl gibt eine Adresse aus und öffnet den Browser. Die Adresse enthält
 das Merkmal dieser Sitzung; ohne es antwortet der Server nicht. Zum Beenden
 `Strg+C`. Einzelheiten in [oberflaeche.md](oberflaeche.md).

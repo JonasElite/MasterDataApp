@@ -55,6 +55,7 @@ als Parameter in die Abfrage und nicht in ihren Text.
 | Dubletten | Cluster mit Gegenüberstellung der Stammsätze (FA-501 bis FA-505) |
 | Abdeckung | welche Geschäftsprozesse und SAP-Tabellen das Werkzeug überhaupt abdeckt und was je Prozess geprüft wird |
 | Eingang | die Dateien, aus denen der nächste Lauf liest - mit Hochladen aus dem Browser und Entfernen |
+| Projekte | alle bekannten Projekte; eines öffnen, ein neues anlegen, eines aus der Liste nehmen |
 | Prüfumfang | Coverage-Grad je Bereich, Nachforderungsliste nach Wirkung, alle Regeln mit Begründung für entfallene (FA-3xx) |
 | Lieferung | Urteil über die Verwertbarkeit, Dateien mit Hash und Stichtag, Tabellen, Ergebnisse der Lieferungsprüfungen (FA-2xx) |
 | Ausnahmen | alle hinterlegten Ausnahmen mit Geltungsbereich, Begründung und Ablauf (FA-602) |
@@ -258,6 +259,64 @@ sonst passte der ausgelieferte Bericht nicht mehr zu ihr. Damit die Pflege
 trotzdem sichtbar ist, legt die Oberfläche den heutigen Stand über die
 Anzeige und kennzeichnet ihn: eine Ausnahme erscheint als *vorgemerkt*, ein
 geänderter Stand mit einem Stern und dem Vermerk, was im Bericht steht.
+
+## Projekte
+
+Ein Berater betreut mehrere Kunden. Die Oberfläche war anfangs an genau ein
+Projekt gebunden - ein anderer Kunde hieß: beenden, neu starten. Der
+Umschalter oben in der Seitenleiste zeigt, welches Projekt offen ist, und
+führt zur Ansicht *Projekte*: alle bekannten Projekte als Karten, mit Kunde,
+Quellsystem, Zahl der Läufe und Zahl der Dateien im Eingang.
+
+```bash
+sapmdq ui                      # oeffnet das zuletzt geoeffnete Projekt
+sapmdq ui -c kunde_b/projekt.yaml
+```
+
+Ohne `-c` nimmt die Oberfläche das zuletzt geöffnete Projekt, sonst eine
+`projekt.yaml` im aktuellen Verzeichnis. Findet sich keines, sagt der Befehl,
+wie eines entsteht - ein leerer Bildschirm wäre die schlechtere Antwort.
+
+**Ein neues Projekt** legt die Ansicht mit denselben Vorlagen an wie
+`sapmdq init`: Verzeichnis, `projekt.yaml`, Begleitzettel-Vorlage und
+Ausnahmeliste. Name, Kunde, Quellsystem und Analyst werden gleich eingetragen;
+alles Weitere - Mandanten, Buchungskreise, gemeldete Satzanzahlen - steht als
+Kommentar in der erzeugten Datei und gehört in den Editor. Eine bestehende
+`projekt.yaml` wird nie überschrieben: dort stehen die Angaben des Kunden.
+
+### Wo die Liste steht
+
+In `~/.sapmdq/projekte.yaml`, verlegbar über die Umgebungsvariable
+`SAPMDQ_HOME`. Bewusst **nicht** im Projektverzeichnis: ein Projekt gehört dem
+Kunden und in die Versionsverwaltung; welche Kunden dieser Rechner kennt,
+gehört dorthin nicht hinein.
+
+Gespeichert sind nur der Pfad und der Zeitpunkt des letzten Öffnens. Name und
+Kunde liest die Ansicht bei jeder Anzeige aus der Konfiguration - eine Kopie
+in der Liste würde altern und irgendwann etwas anderes behaupten als die Datei
+selbst.
+
+Ein Pfad kann einen Kundennamen enthalten; die Liste ist damit eine
+personenbeziehbare Angabe wie das Projektverzeichnis selbst. Sie liegt auf
+demselben Rechner unter demselben Benutzer und verlässt ihn nicht (DS-02).
+*Aus der Liste nehmen* entfernt den Eintrag und rührt das Projekt nicht an -
+die Dateien bleiben, wo sie sind.
+
+Ein Eintrag, dessen Projekt verschoben oder gelöscht wurde, verschwindet
+nicht, sondern erscheint rot mit dem Grund. Ein Projekt, das stillschweigend
+aus der Liste fällt, ist schwerer wiederzufinden als eines mit einer roten
+Zeile.
+
+### Was ein Wechsel bedeutet
+
+Nach einem Wechsel gehören Läufe, Befunde, Ausnahmen und der Eingang zu einem
+anderen Kunden. Die Oberfläche lädt deshalb alles neu und behält nichts vom
+vorigen Projekt - auch nicht das Protokoll des letzten Laufs.
+
+**Während ein Lauf arbeitet, ist der Wechsel gesperrt.** Er schreibt in das
+Arbeits- und Ausgabeverzeichnis des Projekts, aus dem er gestartet wurde; die
+Oberfläche zeigte sonst ein anderes Projekt an als das, an dem gerade
+gearbeitet wird.
 
 ## Eingang
 

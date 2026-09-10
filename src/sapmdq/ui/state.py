@@ -17,8 +17,10 @@ from pathlib import Path
 from typing import Any
 
 from sapmdq.config import ProjectConfig
-from sapmdq.logging_setup import LOGGER_NAME, RedactingFilter
+from sapmdq.logging_setup import LOGGER_NAME, RedactingFilter, get_logger
 from sapmdq.util.timeutil import iso_timestamp
+
+logger = get_logger("ui.state")
 
 #: Wieviele Protokollzeilen die Oberfläche zum laufenden Auftrag vorhält.
 LOG_LINES = 400
@@ -88,6 +90,29 @@ class UiState:
         if self.config.source_path:
             self.config = load_config(self.config.source_path)
         return self.config
+
+    def wechseln(self, pfad: str | Path) -> ProjectConfig:
+        """Bindet die Sitzung an ein anderes Projekt.
+
+        Während ein Lauf arbeitet, geht das nicht: er schreibt in das
+        Arbeits- und Ausgabeverzeichnis des Projekts, aus dem er gestartet
+        wurde. Ein Wechsel mittendrin ließe die Oberfläche ein anderes
+        Projekt anzeigen als das, an dem gerade gearbeitet wird.
+        """
+        from sapmdq.config import load_config
+
+        with self._sperre:
+            if self.laeuft:
+                raise RuntimeError(
+                    "Während eines Prüfungslaufs lässt sich das Projekt nicht wechseln."
+                )
+            neu = load_config(pfad)
+            self.config = neu
+            # Der Auftrag gehört zum vorigen Projekt. Sein Protokoll und seine
+            # Lauf-Kennung wären hier irreführend.
+            self.auftrag = Auftrag()
+        logger.info("Projekt gewechselt: %s", neu.project.name)
+        return neu
 
     # ------------------------------------------------------------------ Lauf
     @property

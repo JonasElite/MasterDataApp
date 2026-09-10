@@ -186,6 +186,7 @@ sonst wäre die Reproduzierbarkeit von der Tagesform des Dienstes abhängig.
 | Neues Prüfverfahren (Prüfziffer) | `rules/validators.py` und `rules/udf.py` | nein |
 | Neues Eingangsformat | `ingest/readers.py` | nein |
 | Neue Ansicht der Oberfläche | `ui/api.py`, `ui/server.py`, `ui/static/` | nein |
+| Aufbau eines neuen Projekts ändern | `projekte.py` (Vorlagen und `anlegen`) | nein |
 | Übersetzung einer Regel | `rules/i18n/<sprache>.yaml` | ja |
 | Neuer Geschäftsprozess auf der Abdeckungsseite | `rules/prozesse.yaml` | ja |
 | Weitere Sprache der Oberfläche | `ui/static/texte.js` und `rules/i18n/` | nein |

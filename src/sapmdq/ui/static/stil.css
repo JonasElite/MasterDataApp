@@ -467,6 +467,40 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .upload.fertig .upload-stand { color: var(--gut); }
 .upload.fertig .fortschrittsleiste > span { background: var(--gut); }
 
+/* ------------------------------------------------------------- Projekte */
+
+.projektwahl {
+  display: block; width: 100%; text-align: left;
+  background: var(--flaeche-2); border: 1px solid var(--rand);
+  border-radius: var(--radius); padding: 8px 10px; cursor: pointer;
+  color: inherit; font: inherit;
+}
+.projektwahl:hover { border-color: var(--akzent); }
+.projektwahl-feld { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-leise); }
+.projektwahl-name { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.projektwahl-unter { display: block; font-size: 12px; color: var(--text-leise); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.projektliste { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+
+.projektkarte {
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-radius: var(--radius); box-shadow: var(--schatten);
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+}
+.projektkarte.aktuell { border-color: var(--akzent); box-shadow: 0 0 0 1px var(--akzent), var(--schatten); }
+.projektkarte.fehlt { border-color: var(--critical); }
+.projektkarte h3 { margin: 0; font-size: 15px; letter-spacing: -.01em; }
+.projektkarte .pfad { font-family: var(--schrift-fest); font-size: 11px; color: var(--text-leise); overflow-wrap: anywhere; }
+.projektkarte .zahlen { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--text-leise); }
+.projektkarte .knoepfe { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 4px; }
+
+/* In einer Reihe teilen sich die Felder die Breite; allein stehend soll ein
+   Feld nur so hoch sein wie sein Inhalt und nicht die Karte auseinanderziehen. */
+.feld { display: flex; flex-direction: column; gap: 3px; flex: none; }
+.formular-reihe > .feld { flex: 1 1 180px; }
+.feld input, .feld select { width: 100%; }
+input.lang { flex: 1 1 320px; }
+
 /* Gedruckt wird jede Folie auf eine eigene Seite - so entsteht aus dem
    Praesentationsmodus ohne Umweg ein PDF zum Weitergeben. */
 @media print {

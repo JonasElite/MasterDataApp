@@ -64,26 +64,19 @@ def _log_level(args: argparse.Namespace) -> int:
 # ------------------------------------------------------------------ Befehle
 def cmd_init(args: argparse.Namespace) -> int:
     """Legt ein Projektverzeichnis mit Vorlagen an."""
-    target = Path(args.directory).resolve()
-    for sub in ("data/input", "work", "out", "regeln_kundenspezifisch"):
-        (target / sub).mkdir(parents=True, exist_ok=True)
+    from sapmdq import projekte
 
-    catalog_dir = Path(__file__).resolve().parents[2] / "rules"
-    config_path = target / "projekt.yaml"
-    if config_path.exists() and not args.force:
-        print(f"{config_path} besteht bereits. Mit --force überschreiben.")
+    target = Path(args.directory).resolve()
+    try:
+        config_path = projekte.anlegen(
+            target, name=args.name or "", ueberschreiben=args.force
+        )
+    except ConfigError as fehler:
+        print(f"{fehler}. Mit --force überschreiben.")
         return EXIT_USAGE
 
-    config_path.write_text(
-        _PROJECT_TEMPLATE.format(
-            name=args.name or target.name,
-            catalog=catalog_dir if catalog_dir.is_dir() else "rules",
-            today=date.today().isoformat(),
-        ),
-        encoding="utf-8",
-    )
-    (target / "manifest_vorlage.yaml").write_text(_MANIFEST_TEMPLATE, encoding="utf-8")
-    (target / "whitelist.yaml").write_text(_WHITELIST_TEMPLATE, encoding="utf-8")
+    # In die Liste der bekannten Projekte, damit die Oberfläche es findet.
+    projekte.aufnehmen(config_path)
 
     print(f"Projektverzeichnis angelegt: {target}")
     print("")
@@ -547,154 +540,44 @@ def cmd_purge(args: argparse.Namespace) -> int:
 
 
 # ------------------------------------------------------------------ Vorlagen
-_PROJECT_TEMPLATE = """\
-# Projektkonfiguration der SAP-Stammdatenprüfung
-# Angelegt am {today}
-#
-# Diese Datei beschreibt einen Lauf vollständig. Sie gehört in die
-# Versionsverwaltung - nicht die Daten, auf die sie sich bezieht.
 
-project:
-  name: {name}
-  customer: ""
-  # ECC oder S4 - bestimmt das Datenmodell (Annahme A-03, offener Punkt OP-01)
-  source_system: ECC
-  analyst: ""
 
-paths:
-  input_dir: data/input
-  work_dir: work
-  output_dir: out
-
-delivery:
-  # Vom Kunden gemeldete Satzanzahl je Tabelle (FA-201). Ohne diese Angaben
-  # lässt sich nicht prüfen, ob die Lieferung vollständig ist.
-  expected_row_counts: {{}}
-  #   LFA1: 12345
-  #   LFB1: 23456
-
-  # Stichtag der Extraktion, falls nicht im Begleitzettel dokumentiert (FA-204)
-  extraction_date: null
-
-  # Erwartete Mandanten (FA-203). Bei mehreren Mandanten in der Lieferung ist
-  # diese Angabe verpflichtend, sonst bricht der Lauf ab.
-  expected_clients: []
-
-  # Filter auf Buchungskreise; leer bedeutet alle (FA-108)
-  company_codes: []
-
-  # Zulässige Abweichung der Satzanzahl in Prozent
-  row_count_tolerance_pct: 0.0
-
-ingestion:
-  encoding: auto        # auto | utf-8 | latin-1 | utf-16 | cp1252
-  delimiter: auto       # auto | ";" | "\\t" | "|" | ","
-  decimal_notation: auto  # auto | comma | point
-
-  # Manuelle Zuordnung Datei zu Tabelle, falls die Erkennung nicht greift
-  file_table_map: {{}}
-  #   "kreditoren_alt.csv": LFA1
-
-  # Zusätzliche Spaltenüberschriften je Tabelle
-  header_overrides: {{}}
-  #   LFA1:
-  #     "Lieferantennr.": LIFNR
-
-rules:
-  catalog_dirs:
-    - {catalog}
-    # - regeln_kundenspezifisch     # eigene Regeln ohne Eingriff in den Kern
-
-  enabled: []           # leer bedeutet: alle aktiven Regeln
-  disabled: []
-  disabled_categories: []
-
-  severity_overrides: {{}}
-  #   VEN-COMP-002: low
-
-  params: {{}}
-  #   VEN-LC-003:
-  #     months_inactive: 24
-
-  # Externe Validierung (VIES) - nur nach dokumentierter Freigabe (DS-04, FA-408)
-  allow_external_validation: false
-
-dedup:
-  enabled: true
-  name_threshold: 88.0
-  combined_threshold: 85.0
-  max_block_size: 5000
-
-findings:
-  whitelist_file: whitelist.yaml
-  status_file: status.csv
-  data_owners:
-    default: ""
-  #   vendor: "Einkauf"
-  #   customer: "Vertrieb"
-
-  # Vergleichslauf; ohne Angabe wird der letzte Lauf herangezogen (FA-605)
-  baseline_run: null
-
-report:
-  formats: [md, xlsx, csv]
-  max_rows_per_sheet: 100000
-  include_pptx: false
-
-privacy:
-  pseudonymize: false
-  pseudonymize_salt_file: .salt
-  # Aufbewahrungsfrist nach Projektende in Tagen (DS-03, offener Punkt OP-08)
-  retention_days: null
-  # Benanntes Projektteam mit Zugriff auf dieses Verzeichnis (DS-02)
-  authorized_team: []
-"""
-
-_MANIFEST_TEMPLATE = """\
-# Begleitzettel der Datenlieferung
-#
-# Diese Datei legt der Kunde seiner Lieferung bei (Kapitel 8.4). Sie gehört
-# in das Eingangsverzeichnis und heißt dort "manifest.yaml".
-#
-# Ohne sie lässt sich nicht prüfen, ob die Lieferung vollständig ist -
-# der Satzanzahlabgleich nach FA-201 braucht eine Gegenzahl.
-
-delivery:
-  extraction_date: 2026-01-31
-  client: "100"
-  source_system: ECC
-  contact: ""
-
-tables:
-  LFA1:
-    file: LFA1.csv
-    rows: 0
-    extraction_date: 2026-01-31
-  # LFB1: {rows: 0}
-  # MARA: {rows: 0}
-"""
-
-_WHITELIST_TEMPLATE = """\
-# Dauerhafte Ausnahmen (FA-602)
-#
-# Jede Ausnahme braucht eine Begründung und sollte benennen, wer sie erteilt
-# hat. Ein Ablaufdatum ist empfehlenswert: eine Ausnahme, die niemand mehr
-# überprüft, wird mit der Zeit zur Lücke.
-#
-# Diese Datei überdauert Folgelieferungen und gehört in die Versionsverwaltung.
-
-entries: []
-#  - rule_id: VEN-DUP-002
-#    object_key: "0000004711"
-#    reason: "Konzernkasse - alle Gesellschaften nutzen dasselbe Konto, siehe Protokoll 2026-03-04"
-#    approved_by: "M. Muster"
-#    approved_on: 2026-03-04
-#    expires_on: 2027-03-04
-#    reference: "TICKET-1234"
-"""
 
 
 # ------------------------------------------------------------- Aufbau der CLI
+def _projekt_der_oberflaeche(args: argparse.Namespace) -> ProjectConfig:
+    """Sucht das Projekt, mit dem die Oberfläche startet.
+
+    Mit ``-c`` ist die Sache klar. Ohne ``-c`` wird das zuletzt geöffnete
+    Projekt genommen, sonst eine ``projekt.yaml`` im aktuellen Verzeichnis.
+    Ein Berater, der mehrere Kunden betreut, tippt damit nur noch
+    ``sapmdq ui`` und wechselt in der Oberfläche.
+
+    Die Oberfläche zeigt immer ein Projekt an; "gar keins" gibt es nicht.
+    Findet sich keines, ist das eine Meldung mit einem nächsten Schritt und
+    kein leerer Bildschirm.
+    """
+    from sapmdq import projekte
+
+    if args.config:
+        return load_config(args.config)
+
+    for eintrag in projekte.laden():
+        try:
+            return load_config(eintrag.pfad)
+        except (SapMdqError, OSError):
+            continue  # verschoben oder gelöscht - der nächste Eintrag zählt
+
+    hier = Path("projekt.yaml")
+    if hier.is_file():
+        return load_config(hier)
+
+    raise ConfigError(
+        "Kein Projekt gefunden. Mit 'sapmdq ui -c pfad/projekt.yaml' ein "
+        "vorhandenes öffnen oder mit 'sapmdq init verzeichnis' ein neues anlegen."
+    )
+
+
 def cmd_ui(args: argparse.Namespace) -> int:
     """Startet die örtliche Oberfläche (NFA-03, NFA-04).
 
@@ -706,8 +589,19 @@ def cmd_ui(args: argparse.Namespace) -> int:
 
     from sapmdq.ui.server import start_ui
 
-    config = _load(args)
+    from sapmdq import projekte
+
     setup_logging(level=_log_level(args))
+    try:
+        config = _projekt_der_oberflaeche(args)
+    except ConfigError as fehler:
+        print(str(fehler))
+        return EXIT_USAGE
+
+    # Wer die Oberfläche für ein Projekt öffnet, findet es beim nächsten Mal
+    # in der Projektliste wieder - ohne den Pfad noch einmal zu suchen.
+    if config.source_path:
+        projekte.aufnehmen(config.source_path, geoeffnet=True)
 
     server, adresse = start_ui(
         config,
@@ -874,7 +768,7 @@ def build_parser() -> argparse.ArgumentParser:
     ui = subparsers.add_parser(
         "ui", help="örtliche Oberfläche im Browser öffnen"
     )
-    add_common(ui)
+    add_common(ui, config_required=False)
     ui.add_argument(
         "--port",
         type=int,
