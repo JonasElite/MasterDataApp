@@ -346,6 +346,7 @@ def _erechnung(result: RunResult) -> dict[str, Any] | None:
     leerer Abschnitt sähe aus wie ein Ergebnis.
     """
     from sapmdq.einvoice import BEREICH, bewerten
+    from sapmdq.einvoice.abgrenzung import bezugsgroessen
 
     if result.catalog is None:
         return None
@@ -353,27 +354,23 @@ def _erechnung(result: RunResult) -> dict[str, Any] | None:
     if not regeln:
         return None
 
-    befunde_je_regel = {
-        ausfuehrung.rule.id: ausfuehrung.finding_count
-        for ausfuehrung in result.all_executions
-    }
     nicht_pruefbar = {
         faehigkeit.rule.id: faehigkeit.reason
         for faehigkeit in (result.coverage.blocked if result.coverage else [])
     }
     abgrenzung = result.abgrenzung
-    grundgesamtheit = abgrenzung.grundgesamtheit if abgrenzung else 0
     belegsicht = result.belegsicht
     einvoice = result.config.einvoice
+    mit_belegen = belegsicht is not None and belegsicht.ermittelt
 
     gruppen = bewerten(
         regeln,
-        befunde_je_regel,
+        result.befunde_je_regel,
         nicht_pruefbar,
-        grundgesamtheit,
+        bezugsgroessen(result),
         einvoice.ampel_schwelle,
         result.volumen_je_regel,
-        belegsicht.volumen if belegsicht and belegsicht.ermittelt else 0.0,
+        belegsicht.volumen if mit_belegen else 0.0,
         einvoice.volumen_schwelle,
     )
     return {

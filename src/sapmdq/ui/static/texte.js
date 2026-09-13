@@ -868,7 +868,7 @@ const EN = {
     "Credit notes and cancellation invoices - no outgoing revenue",
   "Steuerfreie Umsätze nach § 4 UStG - keine Ausstellungspflicht":
     "Tax-exempt turnover under § 4 UStG - no issuing obligation",
-  "Partner": "Partners",
+  "{n} von {gesamt}": "{n} of {gesamt}",
   "Volumen": "Volume",
   "{betrag} Rechnungsvolumen der betroffenen Debitoren":
     "{betrag} invoice volume of the customers affected",

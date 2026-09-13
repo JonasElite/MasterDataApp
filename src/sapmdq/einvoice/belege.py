@@ -132,9 +132,11 @@ def _sd_quelle(con: duckdb.DuckDBPyConnection) -> str | None:
     storno = "COALESCE(FKSTO, '') = 'X'" if "FKSTO" in spalten else "FALSE"
     art = "COALESCE(FKART, '')" if "FKART" in spalten else "''"
     waehrung = "COALESCE(WAERK, '')" if "WAERK" in spalten else "''"
+    mandant = "MANDT" if "MANDT" in spalten else "''"
     return f"""
         SELECT
             'SD' AS quelle,
+            {mandant} AS mandant,
             VBELN AS beleg,
             KUNRG AS debitor,
             FKDAT AS datum,
@@ -169,21 +171,38 @@ def _fi_quelle(con: duckdb.DuckDBPyConnection) -> str | None:
         if "SHKZG" in zeile
         else "1"
     )
+    mandant = "k.MANDT" if "MANDT" in kopf else "''"
+    # Ein Beleg kann mehrere Debitorenzeilen tragen - Teilzahlungen,
+    # Splitbuchungen. Sie werden zu einer Zeile je Beleg und Debitor
+    # zusammengefasst; sonst zaehlte derselbe Beleg mehrfach als Rechnung.
     return f"""
         SELECT
             'FI' AS quelle,
-            k.BELNR AS beleg,
-            b.KUNNR AS debitor,
-            k.{datum} AS datum,
-            CAST(b.WRBTR AS DOUBLE) * {vorzeichen} AS netto,
-            {waehrung} AS waehrung,
-            {art} AS belegart,
-            {storno} AS storniert
-        FROM BKPF k
-        JOIN BSEG b
-          ON k.BUKRS = b.BUKRS AND k.BELNR = b.BELNR AND k.GJAHR = b.GJAHR
-        WHERE {kontoart}
-          AND b.KUNNR IS NOT NULL AND trim(b.KUNNR) <> ''
+            mandant,
+            beleg,
+            debitor,
+            max(datum) AS datum,
+            sum(netto) AS netto,
+            max(waehrung) AS waehrung,
+            max(belegart) AS belegart,
+            bool_or(storniert) AS storniert
+        FROM (
+            SELECT
+                {mandant} AS mandant,
+                k.BELNR AS beleg,
+                b.KUNNR AS debitor,
+                k.{datum} AS datum,
+                CAST(b.WRBTR AS DOUBLE) * {vorzeichen} AS netto,
+                {waehrung} AS waehrung,
+                {art} AS belegart,
+                {storno} AS storniert
+            FROM BKPF k
+            JOIN BSEG b
+              ON k.BUKRS = b.BUKRS AND k.BELNR = b.BELNR AND k.GJAHR = b.GJAHR
+            WHERE {kontoart}
+              AND b.KUNNR IS NOT NULL AND trim(b.KUNNR) <> ''
+        )
+        GROUP BY mandant, beleg, debitor
     """
 
 
@@ -229,7 +248,7 @@ def ermittle_belegsicht(
     if not ausdruecke:
         con.execute(
             f"CREATE OR REPLACE TABLE {AGGREGAT} "
-            "(debitor VARCHAR, belege BIGINT, volumen DOUBLE)"
+            "(mandant VARCHAR, debitor VARCHAR, belege BIGINT, volumen DOUBLE)"
         )
         return Belegsicht(
             nicht_ermittelbar=(
@@ -298,11 +317,15 @@ def ermittle_belegsicht(
         ausschluesse.append(Belegausschluss(kennung, grund, int(zeile[0]), float(zeile[1])))
         verbleibend = f"{verbleibend} AND NOT ({ausdruck})"
 
+    # Der Mandant gehoert in den Schluessel. Ohne ihn verschmelzen Debitor
+    # 100 aus Mandant 100 und aus Mandant 200 zu einem Kunden mit der Summe
+    # beider Umsaetze - und der Volumenanteil waere still falsch.
     con.execute(
         f"CREATE OR REPLACE TABLE {AGGREGAT} AS "
-        "SELECT debitor, count(*) AS belege, COALESCE(sum(netto), 0) AS volumen "
+        "SELECT mandant, debitor, count(*) AS belege, "
+        "COALESCE(sum(netto), 0) AS volumen "
         f"FROM _erechnung_rohbelege WHERE {verbleibend} "
-        "GROUP BY debitor"
+        "GROUP BY mandant, debitor"
     )
     im_umfang = con.execute(
         f"SELECT COALESCE(sum(belege), 0), COALESCE(sum(volumen), 0) FROM {AGGREGAT}"
@@ -371,6 +394,8 @@ def jahresumsatz_je_buchungskreis(
         f"SELECT BUKRS, COALESCE(sum(CAST(NETWR AS DOUBLE)), 0) FROM VBRK "
         f"WHERE BUKRS IS NOT NULL {storno} GROUP BY BUKRS"
     ).fetchall()
+    # Der Buchungskreis ist mandantenübergreifend eindeutig; eine Trennung
+    # nach Mandant wäre hier anders als beim Debitor keine Verbesserung.
     return {str(bukrs).upper(): float(summe) * faktor for bukrs, summe in zeilen}
 
 
@@ -395,6 +420,9 @@ def volumen_je_regel(
       Aggregat trägt den Wert aus dem Beleg. Verglichen wird deshalb ohne
       führende Nullen - sonst fände die Verknüpfung nichts, und der Anteil
       wäre überall null. Ein Fehler, der wie ein Ergebnis aussähe.
+    * Verglichen wird zusätzlich der Mandant. Eine Lieferung mit mehreren
+      Mandanten führt dieselbe Debitorennummer mehrfach, und die Umsätze
+      gehören nicht zusammengezählt.
     """
     ids = [
         str(regel.id)
@@ -413,6 +441,7 @@ def volumen_je_regel(
         FROM read_parquet({quote_literal(befundpfad)}) f
         JOIN {AGGREGAT} b
           ON ltrim(split_part(f.object_key, '/', 1), '0') = ltrim(b.debitor, '0')
+         AND COALESCE(f.mandt, '') = COALESCE(b.mandant, '')
         WHERE NOT f.whitelisted AND f.rule_id IN {_liste(ids)}
         GROUP BY f.rule_id
         """

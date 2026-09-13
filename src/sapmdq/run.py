@@ -37,6 +37,8 @@ from sapmdq.logging_setup import get_logger, setup_logging
 from sapmdq.report.score import compute_score
 from sapmdq.results import RunResult
 from sapmdq.einvoice import ermittle_abgrenzung, parameter_setzen
+from sapmdq.einvoice.abgrenzung import BEREICH as EINVOICE_BEREICH
+from sapmdq.einvoice.abgrenzung import wirksame_befunde
 from sapmdq.einvoice.belege import (
     ermittle_belegsicht,
     jahresumsatz_je_buchungskreis,
@@ -348,12 +350,18 @@ def _erechnung_auswerten(con: duckdb.DuckDBPyConnection, result: RunResult, cata
     )
     result.abgrenzung = ermittle_abgrenzung(con, einvoice, tabellen, umsaetze)
 
-    if result.belegsicht.ermittelt and result.findings_path:
-        result.volumen_je_regel = volumen_je_regel(
-            con,
-            str(result.findings_path),
-            [rule for rule in catalog.rules if rule.object_area == "einvoice"],
+    regeln = [rule for rule in catalog.rules if rule.object_area == "einvoice"]
+    if result.findings_path:
+        # Ausnahmen sind hier schon abgezogen. Die Zahl aus der
+        # Regelausführung zählt sie mit; in der Ansicht stünde dann ein
+        # Befund, den das Lagebild längst nicht mehr führt.
+        result.befunde_je_regel = wirksame_befunde(
+            con, str(result.findings_path), [rule.id for rule in regeln]
         )
+        if result.belegsicht.ermittelt:
+            result.volumen_je_regel = volumen_je_regel(
+                con, str(result.findings_path), regeln
+            )
 
 
 def _compute_score(con: duckdb.DuckDBPyConnection, result: RunResult):
@@ -368,6 +376,14 @@ def _compute_score(con: duckdb.DuckDBPyConnection, result: RunResult):
         "WHERE NOT whitelisted GROUP BY 1, 2"
     ).fetchall()
     for area, severity, count in rows:
+        # Die E-Rechnungsregeln zählen Debitoren, Belege, Steuerkennzeichen
+        # und Zahlungsbedingungen durcheinander. Ein Score über all das,
+        # geteilt durch die Zahl der Debitoren, wäre eine Zahl ohne
+        # Bedeutung - und zöge den Gesamtscore mit. Der Bereich hat mit der
+        # Ampel je Gruppe ein eigenes, passenderes Maß (siehe
+        # docs/erechnung.md).
+        if area == EINVOICE_BEREICH:
+            continue
         findings_by_area.setdefault(area, {})[severity] = count
 
     # Als "geprüft" zählen die Sätze der führenden Tabelle je Bereich -
@@ -376,10 +392,6 @@ def _compute_score(con: duckdb.DuckDBPyConnection, result: RunResult):
     leading_tables = {
         "vendor": "LFA1", "customer": "KNA1", "material": "MARA",
         "business_partner": "BUT000", "cross": "LFA1",
-        # Die E-Rechnungsregeln zählen ganz überwiegend Debitoren; die
-        # wenigen Sätze über Buchungskreis und Zahlungsbedingung wiegen
-        # gegen den Debitorenstamm nicht auf.
-        "einvoice": "KNA1",
     }
     records_by_area: dict[str, int] = {}
     for area, table in leading_tables.items():
@@ -389,6 +401,8 @@ def _compute_score(con: duckdb.DuckDBPyConnection, result: RunResult):
 
     rules_by_area: dict[str, tuple[int, int]] = {}
     for area, (executable, total) in result.coverage.coverage_by_area().items():
+        if area == EINVOICE_BEREICH:
+            continue
         rules_by_area[area] = (executable, total)
 
     return compute_score(

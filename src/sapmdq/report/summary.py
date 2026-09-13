@@ -353,7 +353,7 @@ def _erechnung_abschnitt(result: RunResult) -> list[str]:
     Oberfläche. Was hier auf keinen Fall fehlen darf, ist der Vorbehalt -
     ohne Belegdaten zählt die Auswertung Geschäftspartner und nicht Umsatz.
     """
-    from sapmdq.einvoice import BEREICH, bewerten
+    from sapmdq.einvoice import BEREICH, bewerten, bezugsgroessen
 
     abgrenzung = result.abgrenzung
     catalog = result.catalog
@@ -363,6 +363,7 @@ def _erechnung_abschnitt(result: RunResult) -> list[str]:
     if not regeln:
         return []
 
+    belegsicht = result.belegsicht
     lines = ["## E-Rechnungs-Readiness (EN 16931)", ""]
     if not abgrenzung.ermittelt:
         lines.append(abgrenzung.nicht_ermittelbar)
@@ -395,22 +396,17 @@ def _erechnung_abschnitt(result: RunResult) -> list[str]:
         + [["Grundgesamtheit", str(abgrenzung.grundgesamtheit)]],
     )
 
-    befunde_je_regel = {
-        ausfuehrung.rule.id: ausfuehrung.finding_count
-        for ausfuehrung in result.all_executions
-    }
     nicht_pruefbar = {
         faehigkeit.rule.id: faehigkeit.reason
         for faehigkeit in (result.coverage.blocked if result.coverage else [])
     }
-    belegsicht = result.belegsicht
     einvoice = result.config.einvoice
     schwelle = einvoice.ampel_schwelle
     gruppen = bewerten(
         regeln,
-        befunde_je_regel,
+        result.befunde_je_regel,
         nicht_pruefbar,
-        abgrenzung.grundgesamtheit,
+        bezugsgroessen(result),
         schwelle,
         result.volumen_je_regel,
         belegsicht.volumen if belegsicht and belegsicht.ermittelt else 0.0,
@@ -452,11 +448,26 @@ def _erechnung_abschnitt(result: RunResult) -> list[str]:
     lines.append("### Bewertung je Gruppe")
     lines.append("")
     mit_volumen = belegsicht is not None and belegsicht.ermittelt
+    mengen = bezugsgroessen(result)
+    bezug = "; ".join(
+        teil for teil in (
+            f"{mengen['KUNNR']} Debitoren" if "KUNNR" in mengen else "",
+            f"{mengen['VBELN']} Rechnungen" if "VBELN" in mengen else "",
+        ) if teil
+    )
     lines.append(
-        f"Rot ab {schwelle:.0%} der Grundgesamtheit"
+        f"Rot ab {schwelle:.0%} der Bezugsgröße"
         + (f" oder {einvoice.volumen_schwelle:.0%} des Rechnungsvolumens" if mit_volumen else "")
         + " bei einer kritischen Regel. Der Maßstab ist fachlich gesetzt und "
         "nicht aus der Norm abgeleitet."
+    )
+    lines.append("")
+    lines.append(
+        f"Die Quote bezieht sich auf das, was die Regel zählt ({bezug}). "
+        "Wo es keine Bezugsgröße gibt - Buchungskreis, Steuerkennzeichen, "
+        "Währung, Mengeneinheit -, steht ein Strich, und schon ein Befund "
+        "setzt die Gruppe auf Rot: ein Kennzeichen ohne Zuordnung blockiert "
+        "jede Rechnung, die darauf zeigt."
     )
     lines.append("")
     zeilen = []
@@ -478,7 +489,7 @@ def _erechnung_abschnitt(result: RunResult) -> list[str]:
                 anteil,
             ])
     lines += _table(
-        ["Gruppe", "Ampel", "Regel", "Prüfung", "Norm", "Befunde", "Partner", "Volumen"],
+        ["Gruppe", "Ampel", "Regel", "Prüfung", "Norm", "Befunde", "Quote", "Volumen"],
         zeilen,
     )
     if mit_volumen:

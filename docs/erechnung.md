@@ -73,9 +73,16 @@ erfunden.
 
 Führende Quelle sind die Fakturen aus dem Vertrieb (`VBRK`/`VBRP`).
 Buchhaltungsbelege (`BKPF`/`BSEG`) kommen additiv dazu, für Häuser, die
-direkt in FI fakturieren; gelesen wird dort nur die Debitorenzeile, sonst
-zählte der Betrag doppelt. Fehlt beides, sagt die Oberfläche das - statt
-eine Null zu zeigen.
+direkt in FI fakturieren. Dort gilt zweierlei: gelesen wird nur die
+Debitorenzeile (`KOART = 'D'`), sonst zählte der Betrag über die
+Sachkontenzeile doppelt; und mehrere Debitorenzeilen desselben Belegs -
+Teilzahlungen, Splitbuchungen - werden zu einer Rechnung zusammengefasst.
+Fehlt beides, sagt die Oberfläche das, statt eine Null zu zeigen.
+
+Das Aggregat je Debitor trägt den **Mandanten** im Schlüssel. Ohne ihn
+verschmölzen Debitor 100 aus Mandant 100 und aus Mandant 200 zu einem Kunden
+mit der Summe beider Umsätze, und der Volumenanteil wäre still falsch. Dieselbe
+Prüfung gilt bei der Verknüpfung der Befunde mit dem Aggregat.
 
 ### Abgrenzung auf Belegebene
 
@@ -140,7 +147,7 @@ einvoice:
   revenue_threshold: 800000
   prior_year_revenue:
     "1000": 4200000             # ohne Belegdaten eine Angabe des Kunden
-  ampel_schwelle: 0.05         # Partnerquote
+  ampel_schwelle: 0.05         # Quote bezogen auf die Bezugsgröße
   volumen_schwelle: 0.10       # Anteil am Rechnungsvolumen
   kleinbetrag: 250
 ```
@@ -188,11 +195,33 @@ ist keine Bilanzzahl.
 Fehlt beides, bleibt der Stichtag **ausdrücklich unbestimmt** - ein
 geratener Stichtag wäre schlimmer als gar keiner.
 
+## Bezugsgrößen
+
+Eine Quote braucht einen Nenner, und der hängt daran, **was die Regel
+zählt** - nicht daran, worüber sie etwas aussagt. Maßgeblich ist die erste
+Schlüsselspalte der Regel:
+
+| Schlüssel | Bezugsgröße | Beispiel |
+|---|---|---|
+| `KUNNR` | Debitoren der Grundgesamtheit | `ERE-COMP-005` - 4 von 105 |
+| `VBELN` | Rechnungen im Umfang | `ERE-COMP-008` - 2 von 333 |
+| alles andere | keine | `ERE-REF-003` zählt Steuerkennzeichen, `ERE-REF-005` Mengeneinheiten |
+
+Wo es keine Bezugsgröße gibt, steht ein Strich statt einer Zahl, und schon
+ein Befund setzt die Gruppe auf Rot. Das ist kein Notbehelf: ein
+Steuerkennzeichen ohne Zuordnung oder eine Mengeneinheit ohne ISO-Code
+blockiert **jede** Rechnung, die darauf zeigt. Eine Quote von "eins von vier
+Kennzeichen" verharmloste das.
+
+Umgekehrt gilt: zwei undatierte Rechnungen aus fünf Millionen sind kein
+Alarm. Ohne die Bezugsgröße `VBELN` wäre die Gruppe *Beleg* bei realen
+Datenmengen praktisch immer rot gewesen.
+
 ## Ampel je Gruppe
 
 | Stufe | Kriterium |
 |---|---|
-| Rot | eine kritische Regel über der Partnerschwelle **oder** über der Volumenschwelle - oder mit Befunden, wo es keine Bezugsgröße gibt |
+| Rot | eine kritische Regel über der Quotenschwelle **oder** über der Volumenschwelle - oder mit Befunden, wo es keine Bezugsgröße gibt |
 | Gelb | Befunde vorhanden, aber unter der Schwelle |
 | Grün | keine Befunde |
 | Grau | mangels Daten nicht prüfbar |
@@ -204,10 +233,21 @@ Ergebnis. Ein Test hält fest, dass Grau nie zu Grün wird.
 Die Schwelle ist fachlich gesetzt und nicht aus der Norm abgeleitet. Sie steht
 deshalb in der Oberfläche und im Bericht neben der Ampel.
 
-Bei Buchungskreis, Länderschlüssel und Zahlungsbedingung gibt es keine Quote:
-die Bezugsgröße ist nicht der Debitorenstamm. Dort zählt der Befund selbst -
-ohne USt-IdNr. des Rechnungsstellers ist keine einzige Rechnung erzeugbar,
-gleich wie gut die Debitoren gepflegt sind.
+**Freigegebene Ausnahmen zählen nicht mit.** Die Befundzahl in dieser
+Ansicht ist dieselbe wie im Lagebild - die aus der Regelausführung würde
+jeden Treffer zählen, auch den, für den eine Ausnahme hinterlegt ist.
+
+### Kein Score für diesen Bereich
+
+Der Data-Quality-Score lässt den Objektbereich `einvoice` aus. Er teilt
+gewichtete Befunde durch geprüfte Stammsätze; hier zählen die Regeln aber
+Debitoren, Rechnungen, Steuerkennzeichen und Zahlungsbedingungen
+durcheinander. Eine solche Zahl durch die Zahl der Debitoren geteilt ergäbe
+einen Wert, der nichts bedeutet - und der den Gesamtscore mitzöge.
+
+Die Befunde erscheinen weiterhin in der Verteilung je Bereich; gezählt wird
+also, nur bewertet nicht. Das Maß für diesen Bereich ist die Ampel je
+Gruppe.
 
 ## Datenbedarf
 

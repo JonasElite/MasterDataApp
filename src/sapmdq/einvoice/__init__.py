@@ -22,6 +22,7 @@ from sapmdq.einvoice.abgrenzung import (
     Ausschluss,
     Gruppe,
     bewerten,
+    bezugsgroessen,
     ermittle_abgrenzung,
     parameter_setzen,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "Ausschluss",
     "Gruppe",
     "bewerten",
+    "bezugsgroessen",
     "ermittle_abgrenzung",
     "parameter_setzen",
 ]

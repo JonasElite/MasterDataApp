@@ -818,8 +818,16 @@ function gruppenBlock(gruppe) {
       { titel: "Grad", zelle: (z) => schweregradMerkmal(z.schweregrad) },
       { titel: "Norm", zelle: (z) => z.anforderung },
       { titel: "Befunde", zahl: true, zelle: (z) => z.pruefbar ? zahl(z.befunde) : "-" },
-      { titel: "Partner", zahl: true, zelle: (z) =>
-          z.quote === null || z.quote === undefined ? "-" : prozent(z.quote, 1) },
+      // Die Quote braucht ihre Bezugsgröße daneben, sonst weiss niemand,
+      // ob sich "2 %" auf Debitoren oder auf Rechnungen bezieht.
+      { titel: "Quote", zahl: true, zelle: (z) =>
+          z.quote === null || z.quote === undefined
+            ? "-"
+            : el("span", {
+                text: prozent(z.quote, 1),
+                title: t("{n} von {gesamt}",
+                        { n: zahl(z.befunde), gesamt: zahl(z.bezugsgroesse) }),
+              }) },
       { titel: "Volumen", zahl: true, zelle: (z) =>
           z.volumenanteil === null || z.volumenanteil === undefined
             ? "-"

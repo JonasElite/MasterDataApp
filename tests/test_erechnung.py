@@ -147,12 +147,13 @@ class TestFristen:
 class _Regel:
     """Ein Regelabbild, das nur die für die Bewertung nötigen Felder trägt."""
 
-    def __init__(self, rule_id, object_type, severity="critical"):
+    def __init__(self, rule_id, object_type, severity="critical", key="KUNNR"):
         self.id = rule_id
         self.name = rule_id
         self.object_area = "einvoice"
         self.object_type = object_type
         self.requirement = "EN 16931"
+        self.key_columns = [key]
 
         class _Grad:
             value = severity
@@ -163,7 +164,9 @@ class _Regel:
 class TestAmpel:
     def _bewerten(self, befunde, nicht_pruefbar=None, grundgesamtheit=100, schwelle=0.05):
         regeln = [_Regel("A-1", "Debitor"), _Regel("A-2", "Debitor", "high")]
-        return bewerten(regeln, befunde, nicht_pruefbar or {}, grundgesamtheit, schwelle)[0]
+        return bewerten(
+            regeln, befunde, nicht_pruefbar or {}, {"KUNNR": grundgesamtheit}, schwelle
+        )[0]
 
     def test_ohne_befunde_gruen(self):
         assert self._bewerten({}).ampel == "gruen"
@@ -188,13 +191,32 @@ class TestAmpel:
 
     def test_ohne_bezugsgroesse_zaehlt_der_befund_selbst(self):
         """Beim Buchungskreis gibt es keine Quote - ein Befund ist fatal."""
-        gruppe = bewerten([_Regel("B-1", "Buchungskreis")], {"B-1": 1}, {}, 1000, 0.05)[0]
+        regel = _Regel("B-1", "Buchungskreis", key="BUKRS")
+        gruppe = bewerten([regel], {"B-1": 1}, {}, {"KUNNR": 1000}, 0.05)[0]
         assert gruppe.ampel == "rot"
         assert gruppe.regeln[0]["quote"] is None
 
+    def test_belegregeln_werden_an_den_rechnungen_gemessen(self):
+        """Zwei undatierte Rechnungen aus fünf Millionen sind kein Alarm."""
+        regel = _Regel("E-1", "Beleg", key="VBELN")
+        gruppe = bewerten(
+            [regel], {"E-1": 2}, {}, {"KUNNR": 100, "VBELN": 5_000_000}, 0.05
+        )[0]
+        assert gruppe.regeln[0]["quote"] == 0.0
+        assert gruppe.regeln[0]["bezugsgroesse"] == 5_000_000
+        assert gruppe.ampel == "gelb"
+
+    def test_ohne_belege_bleibt_die_belegregel_ohne_quote(self):
+        """Dann zählt der Befund wieder für sich - lieber laut als falsch."""
+        regel = _Regel("E-1", "Beleg", key="VBELN")
+        gruppe = bewerten([regel], {"E-1": 2}, {}, {"KUNNR": 100}, 0.05)[0]
+        assert gruppe.regeln[0]["quote"] is None
+        assert gruppe.ampel == "rot"
+
     def test_gruppiert_wird_nach_dem_gegenstand_der_regel(self):
         gruppen = bewerten(
-            [_Regel("A-1", "Debitor"), _Regel("B-1", "Buchungskreis")], {}, {}, 10, 0.05
+            [_Regel("A-1", "Debitor"), _Regel("B-1", "Buchungskreis")],
+            {}, {}, {"KUNNR": 10}, 0.05,
         )
         assert [g.name for g in gruppen] == ["Buchungskreis", "Debitor"]
 
@@ -484,20 +506,21 @@ class TestVolumengewichtung:
             self.id = rule_id
             self.key_columns = key_columns
 
-    def _befunde(self, con, tmp_path, zeilen):
+    def _befunde(self, con, tmp_path, zeilen, mandant="100"):
         pfad = tmp_path / "befunde.parquet"
-        werte = ", ".join(f"('{r}', '{k}', {w})" for r, k, w in zeilen)
+        werte = ", ".join(f"('{r}', '{k}', {w}, '{mandant}')" for r, k, w in zeilen)
         con.execute(
-            f"COPY (SELECT * FROM (VALUES {werte}) AS t(rule_id, object_key, whitelisted)) "
+            f"COPY (SELECT * FROM (VALUES {werte}) "
+            "AS t(rule_id, object_key, whitelisted, mandt)) "
             f"TO '{pfad}' (FORMAT PARQUET)"
         )
         return str(pfad)
 
-    def _aggregat(self, con, zeilen):
-        werte = ", ".join(f"('{d}', {b}, {v})" for d, b, v in zeilen)
+    def _aggregat(self, con, zeilen, mandant="100"):
+        werte = ", ".join(f"('{mandant}', '{d}', {b}, {v})" for d, b, v in zeilen)
         con.execute(
             f"CREATE OR REPLACE TABLE {AGGREGAT} AS SELECT * FROM (VALUES {werte}) "
-            "AS t(debitor, belege, volumen)"
+            "AS t(mandant, debitor, belege, volumen)"
         )
 
     def test_volumen_der_betroffenen_debitoren(self, con, tmp_path):
@@ -543,7 +566,7 @@ class TestAmpelMitVolumen:
             regeln,
             {"A-1": 1},
             {},
-            1000,
+            {"KUNNR": 1000},
             0.05,
             {"A-1": {"volumen": volumenanteil * 1000.0, "debitoren": 1, "belege": 1}},
             1000.0,
@@ -558,3 +581,110 @@ class TestAmpelMitVolumen:
 
     def test_unter_beiden_schwellen_bleibt_es_gelb(self):
         assert self._gruppe(0.02).ampel == "gelb"
+
+
+# ------------------------------------------------ Mandant und Ausnahmen
+class TestMandantentrennung:
+    def test_derselbe_debitor_in_zwei_mandanten_bleibt_getrennt(self, con):
+        """Sonst verschmelzen zwei Kunden zu einem mit der Summe beider Umsätze."""
+        _fakturen(con, [
+            ("1", "0000000100", "2025-01-01", 1000, "F2", "", "EUR"),
+        ])
+        con.execute(
+            "INSERT INTO VBRK VALUES ('200', '2', '0000000100', DATE '2025-01-02', "
+            "9000, 'F2', '', 'EUR')"
+        )
+        ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+        zeilen = con.execute(
+            f"SELECT mandant, volumen FROM {AGGREGAT} ORDER BY mandant"
+        ).fetchall()
+        assert zeilen == [("100", 1000.0), ("200", 9000.0)]
+
+    def test_das_volumen_wird_nur_im_eigenen_mandanten_verknuepft(self, con, tmp_path):
+        con.execute(
+            f"CREATE OR REPLACE TABLE {AGGREGAT} AS SELECT * FROM (VALUES "
+            "('100', '100', 1, 1000.0), ('200', '100', 1, 9000.0)) "
+            "AS t(mandant, debitor, belege, volumen)"
+        )
+        pfad = tmp_path / "befunde.parquet"
+        con.execute(
+            "COPY (SELECT * FROM (VALUES ('R-1', '0000000100', false, '100')) "
+            "AS t(rule_id, object_key, whitelisted, mandt)) "
+            f"TO '{pfad}' (FORMAT PARQUET)"
+        )
+
+        class _R:
+            id = "R-1"
+            key_columns = ["KUNNR"]
+
+        ergebnis = volumen_je_regel(con, str(pfad), [_R()])
+        assert ergebnis["R-1"]["volumen"] == 1000.0
+
+
+class TestFiBelege:
+    def _fi(self, con, zeilen):
+        """zeilen: (Beleg, Buzei, Kontoart, Debitor, SollHaben, Betrag)."""
+        con.execute(
+            "CREATE OR REPLACE TABLE BKPF AS SELECT * FROM (VALUES "
+            "('100','1000','4711','2025','RV', DATE '2025-03-01','EUR','')) "
+            "AS t(MANDT,BUKRS,BELNR,GJAHR,BLART,BLDAT,WAERS,STBLG)"
+        )
+        werte = ", ".join(
+            f"('100','1000','{b}','2025','{z}','{k}','{d}','{s}',{w})"
+            for b, z, k, d, s, w in zeilen
+        )
+        con.execute(
+            "CREATE OR REPLACE TABLE BSEG AS SELECT * FROM (VALUES " + werte + ") "
+            "AS t(MANDT,BUKRS,BELNR,GJAHR,BUZEI,KOART,KUNNR,SHKZG,WRBTR)"
+        )
+
+    def test_ein_beleg_mit_zwei_debitorenzeilen_ist_eine_rechnung(self, con):
+        """Teilzahlungen und Splitbuchungen dürfen nicht doppelt zählen."""
+        self._fi(con, [
+            ("4711", "001", "D", "0000000100", "S", 3000.0),
+            ("4711", "002", "D", "0000000100", "S", 2000.0),
+        ])
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["BKPF", "BSEG"])
+        assert sicht.quellen == ["BKPF/BSEG"]
+        assert sicht.belege_gesamt == 1
+        assert sicht.volumen == 5000.0
+
+    def test_die_sachkontenzeile_zaehlt_nicht_mit(self, con):
+        """Sie trägt denselben Betrag noch einmal, nur ohne Kunden."""
+        self._fi(con, [
+            ("4711", "001", "D", "0000000100", "S", 5000.0),
+            ("4711", "002", "S", "", "H", 5000.0),
+        ])
+        assert ermittle_belegsicht(con, EInvoiceConfig(), ["BKPF", "BSEG"]).volumen == 5000.0
+
+    def test_die_habenzeile_geht_negativ_ein(self, con):
+        self._fi(con, [("4711", "001", "D", "0000000100", "H", 800.0)])
+        assert ermittle_belegsicht(con, EInvoiceConfig(), ["BKPF", "BSEG"]).volumen == -800.0
+
+
+class TestAusnahmenInDerAmpel:
+    def test_freigegebene_befunde_zaehlen_nicht_mehr(self, con, tmp_path):
+        """Sonst widersprechen sich Befundzahl und Volumenanteil in einer Zeile."""
+        from sapmdq.einvoice.abgrenzung import wirksame_befunde
+
+        pfad = tmp_path / "befunde.parquet"
+        con.execute(
+            "COPY (SELECT * FROM (VALUES "
+            "('R-1', false), ('R-1', true), ('R-2', true)) AS t(rule_id, whitelisted)) "
+            f"TO '{pfad}' (FORMAT PARQUET)"
+        )
+        assert wirksame_befunde(con, str(pfad), ["R-1", "R-2"]) == {"R-1": 1}
+
+
+class TestScore:
+    def test_die_e_rechnung_geht_nicht_in_den_score_ein(self, lauf):
+        """Belegbefunde durch die Zahl der Debitoren wären eine Zahl ohne Sinn."""
+        _, zusammenfassung = lauf
+        bereiche = {b["bereich"] for b in zusammenfassung["bewertung"]["bereiche"]}
+        assert "einvoice" not in bereiche
+        assert "customer" in bereiche
+
+    def test_die_befunde_erscheinen_trotzdem_in_der_verteilung(self, lauf):
+        """Gezählt wird der Bereich weiter - nur bewertet nicht."""
+        _, zusammenfassung = lauf
+        assert zusammenfassung["befunde"]["je_bereich"].get("einvoice", 0) > 0
