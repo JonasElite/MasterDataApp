@@ -42,7 +42,10 @@ ERWARTETE_BEFUNDE = {
     "MAT-FMT-001": 4,    # falsche EAN-Prüfziffer
     "MAT-DUP-001": 1,    # doppelte Materialkurzbezeichnung
     "MAT-DUP-002": 1,    # gleiche EAN bei mehreren Materialien
-    "CUS-COMP-001": 5,   # Debitor ohne USt-IdNr.
+    # 5 aus der eigenen Gruppe, dazu die 2 Debitoren, die statt der USt-IdNr.
+    # eine Steuernummer tragen: für den Stammsatz ein Mangel, für die
+    # E-Rechnung nicht - die Norm lässt die Steuernummer zu.
+    "CUS-COMP-001": 7,   # Debitor ohne USt-IdNr.
     "CUS-COMP-002": 3,   # ohne Ort oder Postleitzahl
     "CUS-COMP-003": 3,   # ohne Buchungskreisdaten
     "CUS-COMP-004": 3,   # ohne Abstimmkonto
@@ -63,6 +66,28 @@ ERWARTETE_BEFUNDE = {
     "CUS-LC-001": 7,     # Löschvormerkung, Satz weiter im Bestand
     "CUS-DUP-001": 1,    # gleiche USt-IdNr. ohne Namensähnlichkeit
     "CUS-DUP-002": 2,    # Schreibvarianten desselben Kunden
+    # E-Rechnungs-Readiness. Die Zahlen weichen bewusst von den
+    # gleichnamigen Stammdatenregeln ab: geprüft wird nur die
+    # Grundgesamtheit - inländische B2B-Debitoren ohne Löschvormerkung,
+    # ohne CpD und ohne Privatkundenkontengruppe.
+    "ERE-COMP-001": 1,   # Buchungskreis ohne USt-IdNr.
+    "ERE-COMP-002": 1,   # Anschrift des Rechnungsstellers ohne Straße
+    # Die 5 Debitoren aus CUS-COMP-001, die auch keine Steuernummer haben.
+    # Die zwei weiteren aus jener Gruppe tragen eine und sind hier zu Recht
+    # kein Befund - genau darin unterscheiden sich die beiden Sichten.
+    "ERE-COMP-003": 5,   # Empfänger ohne USt-IdNr. und ohne Steuernummer
+    "ERE-FMT-001": 4,    # USt-IdNr. formal ungültig
+    # 3 aus der eigenen Gruppe ohne Straße, dazu die je 3 Sätze aus
+    # CUS-COMP-002 (Ort oder PLZ fehlt) und CUS-RISK-001 (reines Postfach,
+    # also keine Straße). Alle drei Gruppen liegen im Inland; die
+    # Überschneidung ist gewollt und zeigt, dass ein Stammdatenmangel
+    # zugleich ein Hindernis für die E-Rechnung sein kann.
+    "ERE-COMP-004": 9,   # Anschrift des Empfängers unvollständig
+    "ERE-COMP-005": 4,   # keine elektronische Adresse
+    "ERE-COMP-006": 3,   # keine Zahlungsbedingung im Buchungskreis
+    "ERE-REF-001": 1,    # Länderschlüssel ohne ISO-Code
+    "ERE-REF-002": 1,    # Zahlungsbedingung ohne ableitbares Datum
+    "ERE-CONS-001": 1,   # zweistufige Skontostaffel
 }
 
 
@@ -84,6 +109,10 @@ rules:
   catalog_dirs: ["{RULES_DIR}"]
 report:
   formats: [md]
+einvoice:
+  b2c_account_groups: [PRIV]
+  prior_year_revenue:
+    "1000": 4200000
 """,
         encoding="utf-8",
     )

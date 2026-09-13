@@ -783,3 +783,92 @@ rules:
       city or postal code differ, it is unclear which address applies -
       invoices and dunning letters then go to different addresses.
     remediation: Reconcile the addresses and push the leading version through.
+
+  # ---------------------------------------------------- E-invoicing readiness
+  ERE-COMP-001:
+    name: Company code without VAT registration number
+    description: >
+      The seller's VAT registration number or tax number is mandatory under the
+      standard. If it is missing on the company code, no compliant invoice can
+      be produced for that company code at all - however well the customers are
+      maintained.
+    remediation: >
+      Maintain the company code's VAT registration number in the global
+      settings (transaction OBY6).
+  ERE-COMP-002:
+    name: Seller address incomplete
+    description: >
+      The standard requires the seller's complete address including the country
+      code. If it is missing from the assigned address, the invoice is formally
+      incomplete.
+    remediation: Complete the address of the company code.
+  ERE-COMP-003:
+    name: Buyer without VAT registration number and without tax number
+    description: >
+      Domestic B2B invoices need an identifier for the buyer - a VAT
+      registration number, or a tax number as a substitute. Unlike the general
+      master data rule, this one covers only the customers actually subject to
+      the issuing obligation, and accepts the tax number as a substitute.
+    remediation: >
+      Obtain the VAT registration number from the customer and maintain it; as
+      a substitute, record the tax number in STCD1.
+  ERE-FMT-001:
+    name: Buyer VAT registration number is not formally valid
+    description: >
+      A VAT registration number that does not match the structure or check
+      digit of its country is rejected by the receiving system. The document
+      can be produced, but it cannot be delivered.
+    remediation: >
+      Correct the VAT registration number and have it confirmed through the
+      VIES check.
+  ERE-COMP-004:
+    name: Buyer address incomplete
+    description: >
+      Street, postal code, city and country code are mandatory under the
+      standard. If one of them is missing, the invoice is not compliant - even
+      if nobody minded on paper.
+    remediation: Obtain the address from the customer and maintain it in full.
+  ERE-REF-001:
+    name: Country key cannot be mapped to ISO 3166-1
+    description: >
+      The standard requires the country code as ISO 3166-1 alpha-2. An SAP
+      country key without a stored ISO code cannot be mapped; the invoice would
+      be empty at that point.
+    remediation: >
+      Add the ISO code for the country key in customizing (transaction OY01).
+  ERE-COMP-005:
+    name: Buyer without an electronic address
+    description: >
+      Without a stored e-mail address or network identifier there is no way to
+      deliver the invoice. Experience shows this is where most migrations get
+      stuck - it only surfaces once paper dispatch ends.
+    remediation: >
+      Obtain the e-mail address for invoice dispatch from the customer and
+      maintain it in the address management; for Peppol, the network
+      identifier.
+  ERE-COMP-006:
+    name: Buyer without payment terms in the company code
+    description: >
+      Without payment terms no due date can be derived. The standard requires
+      it as a mandatory entry; in the paper process it often only surfaced at
+      the dunning stage.
+    remediation: Maintain the payment terms in the company code data.
+  ERE-REF-002:
+    name: Payment terms with no derivable due date
+    description: >
+      The payment terms must yield a concrete date. Terms without a day figure
+      and without a due month can only be expressed as free text - and free
+      text has no place in the structured part of the invoice.
+    remediation: >
+      Store a day figure or a due month in the payment terms (transaction
+      OBB8).
+  ERE-CONS-001:
+    name: Multi-level discount schedule
+    description: >
+      The standard provides for one discount arrangement per invoice. A two- or
+      three-level schedule cannot be represented in full; the further levels
+      are lost or end up as free text. This is not a defect in the master
+      record but a decision to be taken before the migration.
+    remediation: >
+      Decide which discount level is carried into the invoice and document the
+      decision in the migration concept.

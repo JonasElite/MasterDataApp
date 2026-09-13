@@ -247,6 +247,9 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
                 [[rule_id, reason] for rule_id, reason in sorted(result.coverage.disabled_rules.items())],
             )
 
+    # ------------------------------------------------------- E-Rechnung
+    lines += _erechnung_abschnitt(result)
+
     # -------------------------------------------------------- Regelfehler
     if result.failed_rules:
         lines.append("## Regelfehler")
@@ -340,3 +343,99 @@ def write_summary(con: duckdb.DuckDBPyConnection, result: RunResult, target: Pat
     target.write_text(build_summary(con, result), encoding="utf-8")
     logger.info("Management-Summary geschrieben: %s", target)
     return target
+
+
+def _erechnung_abschnitt(result: RunResult) -> list[str]:
+    """E-Rechnungs-Readiness im geschriebenen Bericht.
+
+    Kurz gehalten: Betroffenheit, Frist, Grundgesamtheit und die Ampel je
+    Gruppe. Die satzgenaue Liste steht im Excel-Export, die Regeln in der
+    Oberfläche. Was hier auf keinen Fall fehlen darf, ist der Vorbehalt -
+    ohne Belegdaten zählt die Auswertung Geschäftspartner und nicht Umsatz.
+    """
+    from sapmdq.einvoice import BEREICH, bewerten
+
+    abgrenzung = result.abgrenzung
+    catalog = result.catalog
+    if abgrenzung is None or catalog is None:
+        return []
+    regeln = [regel for regel in catalog.rules if regel.object_area == BEREICH]
+    if not regeln:
+        return []
+
+    lines = ["## E-Rechnungs-Readiness (EN 16931)", ""]
+    if not abgrenzung.ermittelt:
+        lines.append(abgrenzung.nicht_ermittelbar)
+        lines.append("")
+        return lines
+
+    bestimmte = [frist for frist in abgrenzung.fristen if frist.bestimmt]
+    if bestimmte:
+        frueheste = min(frist.stichtag for frist in bestimmte)
+        lines.append(
+            f"Ab {frueheste} sind inländische B2B-Rechnungen strukturiert "
+            f"auszustellen. Betroffen sind {abgrenzung.grundgesamtheit} Debitoren "
+            f"von {abgrenzung.debitoren_gesamt} in der Lieferung."
+        )
+    else:
+        lines.append(
+            f"Betroffen sind {abgrenzung.grundgesamtheit} inländische B2B-Debitoren "
+            f"von {abgrenzung.debitoren_gesamt} in der Lieferung. Der Stichtag "
+            "hängt am Vorjahresumsatz je Buchungskreis; ohne diese Angabe bleibt "
+            "er unbestimmt (einvoice.prior_year_revenue)."
+        )
+    lines.append("")
+
+    lines.append("### Abgrenzung")
+    lines.append("")
+    lines += _table(
+        ["Menge", "Sätze"],
+        [["Debitoren in der Lieferung", str(abgrenzung.debitoren_gesamt)]]
+        + [[a.grund, f"-{a.saetze}"] for a in abgrenzung.ausschluesse]
+        + [["Grundgesamtheit", str(abgrenzung.grundgesamtheit)]],
+    )
+
+    befunde_je_regel = {
+        ausfuehrung.rule.id: ausfuehrung.finding_count
+        for ausfuehrung in result.all_executions
+    }
+    nicht_pruefbar = {
+        faehigkeit.rule.id: faehigkeit.reason
+        for faehigkeit in (result.coverage.blocked if result.coverage else [])
+    }
+    schwelle = result.config.einvoice.ampel_schwelle
+    gruppen = bewerten(
+        regeln, befunde_je_regel, nicht_pruefbar, abgrenzung.grundgesamtheit, schwelle
+    )
+
+    lines.append("### Bewertung je Gruppe")
+    lines.append("")
+    lines.append(
+        f"Rot ab {schwelle:.0%} der Grundgesamtheit bei einer kritischen Regel. "
+        "Der Maßstab ist fachlich gesetzt und nicht aus der Norm abgeleitet."
+    )
+    lines.append("")
+    zeilen = []
+    for gruppe in gruppen:
+        for regel in gruppe.regeln:
+            quote = "-" if regel["quote"] is None else f"{regel['quote']:.1%}"
+            zeilen.append([
+                gruppe.name,
+                gruppe.ampel,
+                regel["id"],
+                regel["name"],
+                regel["anforderung"],
+                "nicht prüfbar" if not regel["pruefbar"] else str(regel["befunde"]),
+                quote,
+            ])
+    lines += _table(
+        ["Gruppe", "Ampel", "Regel", "Prüfung", "Norm", "Befunde", "Quote"], zeilen
+    )
+    lines.append(
+        "Belege sind nicht im Umfang. Die Zahlen sagen, wieviele Geschäftspartner "
+        "betroffen sind - nicht, wieviel Umsatz. Steuerkennzeichen sowie Positions- "
+        "und Summenprüfungen fehlen aus demselben Grund. Das Ergebnis ist eine "
+        "Indikation und keine Steuerberatung."
+    )
+    lines.append("")
+    return lines

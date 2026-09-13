@@ -375,6 +375,60 @@ class PrivacyConfig:
 
 
 @dataclass
+class EInvoiceConfig:
+    """E-Rechnungs-Readiness (EN 16931).
+
+    Die Werte steuern die Abgrenzung: welche Debitoren überhaupt unter die
+    inländische Ausstellungspflicht fallen. Sie stehen bewusst in der
+    Konfiguration und nicht im Regeltext - Kontengruppen und Fristen sind
+    kundenspezifisch beziehungsweise gesetzlich beweglich.
+    """
+
+    #: Ansässigkeitsland des Rechnungsstellers. Die Pflicht trifft
+    #: inländische B2B-Umsätze; beide Seiten müssen dort ansässig sein.
+    inland: list[str] = field(default_factory=lambda: ["DE"])
+    #: Kontengruppen, die Privatkunden führen. Sie fallen nicht unter die
+    #: Pflicht und würden die Quote sonst verwässern.
+    b2c_account_groups: list[str] = field(default_factory=list)
+    #: Kontengruppen für Einmalkunden (CpD). Ihre Stammdaten sind
+    #: naturgemäß leer; geprüft würde dort erst der Beleg.
+    cpd_account_groups: list[str] = field(default_factory=lambda: ["CPD", "CPDA"])
+    #: Umsatzschwelle in Euro, ab der die Pflicht am 01.01.2027 greift.
+    revenue_threshold: float = 800_000.0
+    #: Vorjahresumsatz je Buchungskreis. Ohne Belegdaten ist das eine
+    #: Angabe des Kunden; fehlt sie, bleibt die Frist unbestimmt.
+    prior_year_revenue: dict[str, float] = field(default_factory=dict)
+    #: Ab welchem Anteil der Grundgesamtheit eine kritische Regel die
+    #: Gruppe auf Rot setzt. Fachlich gesetzt, nicht aus der Norm
+    #: abgeleitet - und deshalb im Bericht offengelegt.
+    ampel_schwelle: float = 0.05
+
+    @classmethod
+    def from_dict(cls, raw: Mapping[str, Any]) -> "EInvoiceConfig":
+        inland = [str(v).upper() for v in _as_list(raw.get("inland"), "einvoice.inland")]
+        umsaetze = {
+            str(k).upper(): float(v)
+            for k, v in _as_mapping(
+                raw.get("prior_year_revenue"), "einvoice.prior_year_revenue"
+            ).items()
+        }
+        return cls(
+            inland=inland or ["DE"],
+            b2c_account_groups=[
+                str(v).upper()
+                for v in _as_list(raw.get("b2c_account_groups"), "einvoice.b2c_account_groups")
+            ],
+            cpd_account_groups=[
+                str(v).upper()
+                for v in _as_list(raw.get("cpd_account_groups"), "einvoice.cpd_account_groups")
+            ] or ["CPD", "CPDA"],
+            revenue_threshold=float(raw.get("revenue_threshold", 800_000.0)),
+            prior_year_revenue=umsaetze,
+            ampel_schwelle=float(raw.get("ampel_schwelle", 0.05)),
+        )
+
+
+@dataclass
 class ProjectConfig:
     """Gesamte Konfiguration eines Laufs."""
 
@@ -387,6 +441,7 @@ class ProjectConfig:
     findings: FindingsConfig = field(default_factory=FindingsConfig)
     report: ReportConfig = field(default_factory=ReportConfig)
     privacy: PrivacyConfig = field(default_factory=PrivacyConfig)
+    einvoice: EInvoiceConfig = field(default_factory=EInvoiceConfig)
 
     #: Herkunft und Fingerabdruck - gehen in das Ausführungsprotokoll ein.
     source_path: Path | None = None
@@ -401,7 +456,7 @@ class ProjectConfig:
     def from_dict(cls, raw: Mapping[str, Any], base: Path, source_path: Path | None = None) -> "ProjectConfig":
         unknown = set(raw) - {
             "project", "paths", "delivery", "ingestion",
-            "rules", "dedup", "findings", "report", "privacy",
+            "rules", "dedup", "findings", "report", "privacy", "einvoice",
         }
         if unknown:
             raise ConfigError(
@@ -417,6 +472,7 @@ class ProjectConfig:
             findings=FindingsConfig.from_dict(_as_mapping(raw.get("findings"), "findings"), base),
             report=ReportConfig.from_dict(_as_mapping(raw.get("report"), "report")),
             privacy=PrivacyConfig.from_dict(_as_mapping(raw.get("privacy"), "privacy"), base),
+            einvoice=EInvoiceConfig.from_dict(_as_mapping(raw.get("einvoice"), "einvoice")),
         )
         config.source_path = source_path
         return config

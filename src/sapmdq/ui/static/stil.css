@@ -501,6 +501,39 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .feld input, .feld select { width: 100%; }
 input.lang { flex: 1 1 320px; }
 
+/* ----------------------------------------------------------- E-Rechnung */
+
+/* Die Ampel ist eine Statusskala mit vier Stufen; grau ist keine Abwesenheit
+   von Farbe, sondern die Aussage "mangels Daten nicht geprueft". Deshalb
+   steht die Stufe ueberall auch als Wort daneben. */
+.ampelstufe {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+}
+.ampelstufe .punkt { width: 10px; height: 10px; }
+.ampelstufe.rot   { color: var(--critical); }
+.ampelstufe.gelb  { color: var(--medium); }
+.ampelstufe.gruen { color: var(--gut); }
+.ampelstufe.grau  { color: var(--text-leise); }
+
+.er-gruppe { border-top: 1px solid var(--rand-leise); padding-top: 12px; margin-top: 12px; }
+.er-gruppe:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+.er-gruppe-kopf { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.er-gruppe-name { font-size: 15px; font-weight: 600; }
+
+/* Der Trichter der Abgrenzung: von allen Debitoren zur Grundgesamtheit. */
+.trichter { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.trichter-zeile { display: grid; grid-template-columns: 1fr 90px; gap: 12px; align-items: baseline; }
+.trichter-zeile.abzug { color: var(--text-leise); padding-left: 14px; }
+.trichter-zeile.summe {
+  border-top: 1px solid var(--rand); padding-top: 8px; margin-top: 4px;
+  font-weight: 600; font-size: 15px;
+}
+.trichter-wert { text-align: right; font-variant-numeric: tabular-nums; }
+.trichter-grund { font-size: 12px; color: var(--text-leise); }
+
+.fristkarten { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px; }
+
 /* Gedruckt wird jede Folie auf eine eigene Seite - so entsteht aus dem
    Praesentationsmodus ohne Umweg ein PDF zum Weitergeben. */
 @media print {

@@ -96,6 +96,7 @@ const BEREICHE = {
   customer: "Debitoren",
   material: "Material",
   business_partner: "Geschäftspartner",
+  einvoice: "E-Rechnung",
   bank: "Bankdaten",
   cross: "Übergreifend",
   delivery: "Lieferung",
@@ -620,6 +621,138 @@ function pruefmeldung(pruefung) {
     werte[name] = typeof wert === "string" ? t(wert) : wert;
   }
   return t(pruefung.meldung_vorlage, werte);
+}
+
+/* ------------------------------------------------------------- E-Rechnung
+ *
+ * Die Ansicht beantwortet eine Frage, die der uebrige Katalog nicht stellt:
+ * ob aus den Stammdaten heraus eine Rechnung nach EN 16931 erzeugt werden
+ * kann. Drei Teile, in dieser Reihenfolge:
+ *
+ *   1. Wen es trifft und ab wann (Abgrenzung und Frist),
+ *   2. woran es scheitert (Ampel je Gruppe),
+ *   3. was die Auswertung nicht sagt.
+ *
+ * Der dritte Teil steht nicht aus Bescheidenheit da. Ohne Belegdaten fehlt
+ * die Gewichtung nach Umsatz, und wer diese Zahl fuer eine Risikozahl haelt,
+ * zieht die falschen Schluesse.
+ */
+
+const AMPELSTUFEN = { rot: "rot", gelb: "gelb", gruen: "grün", grau: "grau" };
+
+function ampelstufe(stufe) {
+  return el("span", { class: "ampelstufe " + (stufe || "grau") }, [
+    el("span", { class: "punkt" }),
+    el("span", { text: AMPELSTUFEN[stufe] || AMPELSTUFEN.grau }),
+  ]);
+}
+
+function zeigeErechnung() {
+  const daten = (Z.lauf || {}).erechnung;
+  if (!daten) {
+    setzen($("#er-frist"), [el("p", { class: "nichts", text: Z.lauf
+      ? "Dieser Lauf enthält keine E-Rechnungsprüfung. Der Objektbereich ist im Regelkatalog abgeschaltet."
+      : "Kein Lauf ausgewählt." })]);
+    setzen($("#er-abgrenzung"), []);
+    setzen($("#er-gruppen"), []);
+    setzen($("#er-grenzen"), []);
+    $("#er-massstab").textContent = "";
+    return;
+  }
+
+  fristKarten(daten);
+  abgrenzungTrichter(daten.abgrenzung);
+
+  $("#er-massstab").textContent = t(
+    "Rot ab {schwelle} der Grundgesamtheit bei einer kritischen Regel. "
+    + "Fachlich gesetzt, nicht aus der Norm abgeleitet.",
+    { schwelle: prozent(daten.schwelle, 0) });
+  setzen($("#er-gruppen"), (daten.gruppen || []).map(gruppenBlock));
+
+  setzen($("#er-grenzen"), [
+    el("li", { text: "Belege sind nicht im Umfang. Die Zahlen sagen, wieviele Geschäftspartner betroffen sind - nicht, wieviel Umsatz. Wenige sehr aktive Kunden können das Bild in beide Richtungen verschieben." }),
+    el("li", { text: "Steuerkennzeichen, Positions- und Summenprüfungen fehlen. Sie setzen Belegdaten voraus." }),
+    el("li", { text: "Fertige XRechnung- oder ZUGFeRD-Dateien werden nicht validiert. Dafür gibt es den KoSIT-Validator." }),
+    el("li", { text: "Die Abgrenzung bildet gesetzliche Tatbestände ab und ersetzt keine Einzelfallwürdigung. Das Ergebnis ist eine Indikation." }),
+  ]);
+}
+
+function fristKarten(daten) {
+  const abgrenzung = daten.abgrenzung || {};
+  const fristen = abgrenzung.fristen || [];
+  if (!fristen.length) {
+    setzen($("#er-frist"), [el("div", { class: "meldung hinweis" }, [
+      t("Ohne die Buchungskreise (T001) lässt sich die Frist nicht zuordnen."),
+    ])]);
+    return;
+  }
+  setzen($("#er-frist"), [el("div", { class: "fristkarten" }, fristen.map((frist) =>
+    kachel(
+      frist.buchungskreis + (frist.name ? " - " + frist.name : ""),
+      frist.bestimmt ? frist.stichtag : t("unbestimmt"),
+      frist.bestimmt
+        ? t("Vorjahresumsatz {umsatz}", { umsatz: zahl(Math.round(frist.umsatz)) + " EUR" })
+        : t("Vorjahresumsatz nicht hinterlegt - ohne ihn bleibt der Stichtag offen"),
+      frist.bestimmt ? "warnung" : ""
+    )))]);
+}
+
+function abgrenzungTrichter(abgrenzung) {
+  if (!abgrenzung) {
+    setzen($("#er-abgrenzung"), [el("p", { class: "nichts", text: "Keine Angaben." })]);
+    return;
+  }
+  if (abgrenzung.nicht_ermittelbar) {
+    setzen($("#er-abgrenzung"), [
+      el("div", { class: "meldung warnung" }, [abgrenzung.nicht_ermittelbar]),
+    ]);
+    return;
+  }
+
+  const zeilen = [
+    el("div", { class: "trichter-zeile" }, [
+      el("span", { text: "Debitoren in der Lieferung" }),
+      el("span", { class: "trichter-wert", text: zahl(abgrenzung.debitoren_gesamt) }),
+    ]),
+  ];
+  for (const ausschluss of abgrenzung.ausschluesse || []) {
+    zeilen.push(el("div", { class: "trichter-zeile abzug" }, [
+      el("span", {}, [
+        el("div", { text: t(ausschluss.grund) }),
+      ]),
+      el("span", { class: "trichter-wert", text: "-" + zahl(ausschluss.saetze) }),
+    ]));
+  }
+  zeilen.push(el("div", { class: "trichter-zeile summe" }, [
+    el("span", { text: "Grundgesamtheit - inländische B2B-Debitoren" }),
+    el("span", { class: "trichter-wert", text: zahl(abgrenzung.grundgesamtheit) }),
+  ]));
+  setzen($("#er-abgrenzung"), [el("div", { class: "trichter" }, zeilen)]);
+}
+
+function gruppenBlock(gruppe) {
+  return el("div", { class: "er-gruppe" }, [
+    el("div", { class: "er-gruppe-kopf" }, [
+      el("span", { class: "er-gruppe-name", text: gruppe.name }),
+      ampelstufe(gruppe.ampel),
+    ]),
+    tabelle([
+      { titel: "Regel", fest: true, zelle: (z) => z.id },
+      // Der Name kommt aus dem Regelindex, damit auch hier die englische
+      // Fassung erscheint, wenn Englisch gewählt ist.
+      { titel: "Prüfung", zelle: (z) => regelName(z.id, z.name) },
+      { titel: "Grad", zelle: (z) => schweregradMerkmal(z.schweregrad) },
+      { titel: "Norm", zelle: (z) => z.anforderung },
+      { titel: "Befunde", zahl: true, zelle: (z) => z.pruefbar ? zahl(z.befunde) : "-" },
+      { titel: "Quote", zahl: true, zelle: (z) =>
+          z.quote === null || z.quote === undefined ? "-" : prozent(z.quote, 1) },
+      { titel: "Status", zelle: (z) => z.pruefbar
+          ? (z.befunde ? merkmal("Handlungsbedarf", "high") : merkmal("in Ordnung", "gut"))
+          : el("span", { class: "merkmal leise", text: "nicht prüfbar", title: z.grund }) },
+    ], gruppe.regeln, (zeile) => {
+      if (zeile.pruefbar && zeile.befunde) zuAnsicht("befunde", { regel: zeile.id });
+    }),
+  ]);
 }
 
 /* --------------------------------------------------------------- Projekte
@@ -2069,6 +2202,53 @@ function baueFolien() {
     ])));
   }
 
+  // ------------------------------------------------------------ E-Rechnung
+  //
+  // Eine Folie, nicht drei: im Kundentermin zählt, wen es trifft, ab wann,
+  // und woran es hängt. Die Regelliste steht in der Ansicht.
+  const erechnung = lauf.erechnung;
+  if (erechnung && (erechnung.gruppen || []).length) {
+    folien.push(folie("E-Rechnungs-Readiness", () => {
+      const abgrenzung = erechnung.abgrenzung || {};
+      const grundgesamtheit = abgrenzung.grundgesamtheit || 0;
+      const betroffen = new Set();
+      let kritisch = 0;
+      for (const gruppe of erechnung.gruppen) {
+        for (const regel of gruppe.regeln) {
+          if (!regel.pruefbar || !regel.befunde) continue;
+          if (regel.schweregrad === "critical") kritisch += 1;
+          betroffen.add(regel.id);
+        }
+      }
+      const frist = (abgrenzung.fristen || []).find((f) => f.bestimmt);
+      return el("div", {}, [
+        el("h2", { text: "E-Rechnungs-Readiness" }),
+        el("p", { class: "aussage", text: frist
+          ? t("Ab {stichtag} sind inländische B2B-Rechnungen strukturiert "
+              + "auszustellen. Betroffen sind {n} Debitoren.",
+              { stichtag: frist.stichtag, n: zahl(grundgesamtheit) })
+          : t("Betroffen sind {n} inländische B2B-Debitoren. Der Stichtag "
+              + "hängt am Vorjahresumsatz und ist noch nicht hinterlegt.",
+              { n: zahl(grundgesamtheit) }) }),
+        el("div", { class: "kacheln" }, erechnung.gruppen.map((gruppe) =>
+          kachel(
+            gruppe.name,
+            // Durch t(), sonst steht auf der englischen Folie "ROT".
+            t(AMPELSTUFEN[gruppe.ampel] || AMPELSTUFEN.grau).toUpperCase(),
+            t("auffällig: {n} von {gesamt}", {
+              n: gruppe.regeln.filter((r) => r.pruefbar && r.befunde).length,
+              gesamt: gruppe.regeln.length,
+            }),
+            gruppe.ampel === "rot" ? "critical" : gruppe.ampel === "gruen" ? "gut" : "warnung",
+          ))),
+        el("p", { class: "unterzeile", text:
+          t("{n} kritische Prüfungen mit Befunden. Die Auswertung zählt "
+            + "Geschäftspartner, nicht Rechnungsvolumen - Belege sind nicht "
+            + "im Umfang.", { n: kritisch }) }),
+      ]);
+    }));
+  }
+
   // ---------------------------------------------------------- Nachforderung
   const offen = (coverage.nachforderung || [])
     .filter((k) => !k.geliefert)
@@ -2314,6 +2494,7 @@ const ANSICHTEN = {
   lagebild: { titel: "Lagebild", zeichnen: zeigeLagebild },
   befunde: { titel: "Befunde", zeichnen: zeigeBefunde },
   dubletten: { titel: "Dubletten", zeichnen: zeigeDubletten },
+  erechnung: { titel: "E-Rechnung", zeichnen: zeigeErechnung },
   abdeckung: { titel: "Abdeckung", zeichnen: zeigeAbdeckung },
   coverage: { titel: "Prüfumfang", zeichnen: zeigeCoverage },
   projekte: { titel: "Projekte", zeichnen: zeigeProjekte },

@@ -594,9 +594,13 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     knb1: list[dict] = []
     knbk: list[dict] = []
     knvv: list[dict] = []
+    #: Zentrale Adressverwaltung: E-Mail-Adressen (ADR6) und Anschriften
+    #: (ADRC). Beide braucht die E-Rechnungsprüfung.
+    adr6: list[dict] = []
+    adrc: list[dict] = []
 
     customer_count = max(120, vendor_count // 3)
-    KUNDEN_MANGELNAMEN = 45
+    KUNDEN_MANGELNAMEN = 70
     kundennamen = eindeutige_namen(rng, customer_count + KUNDEN_MANGELNAMEN)
 
     def debitor_saetze(kunnr: str, felder: dict, mit_buchungskreis: bool = True,
@@ -614,10 +618,22 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
             "STCEG": make_vat(land, rng),
             "STCD1": "" if land in ("DE", "AT", "NL", "FR", "IT") else f"{rng.randint(100000000, 999999999)}",
             "LOEVM": "", "SPERR": "", "AUFSD": "", "LIFSD": "", "FAKSD": "",
-            "XCPDK": "", "STKZN": "", "ADRNR": "", "TELF1": "",
+            "XCPDK": "", "STKZN": "", "ADRNR": f"{500000 + int(kunnr)}", "TELF1": "",
         }
+        ohne_email = allgemein.pop("_ohne_email", False) or felder.pop("_ohne_email", False)
         allgemein.update(felder)
         kna1.append(allgemein)
+
+        # Die E-Mail-Adresse steht in SAP nicht am Stammsatz, sondern in der
+        # zentralen Adressverwaltung. Ohne sie gibt es keinen Weg, eine
+        # E-Rechnung zuzustellen - deshalb ist sie hier die Vorgabe und ihr
+        # Fehlen der gezielt eingebaute Mangel.
+        if not ohne_email and allgemein["ADRNR"]:
+            adr6.append({
+                "CLIENT": mandant, "ADDRNUMBER": allgemein["ADRNR"],
+                "PERSNUMBER": "", "CONSNUMBER": "001",
+                "SMTP_ADDR": f"rechnung{kunnr}@example.invalid", "FLGDEFAULT": "X",
+            })
 
         if mit_buchungskreis:
             knb1.append({
@@ -780,9 +796,10 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         [neuer_debitor(LAND1="DE", STCEG="") for _ in range(5)],
     )
     kundengruppe(
-        "CUS-COMP-002: 3 Debitoren ohne Ort oder Postleitzahl",
-        [neuer_debitor(PSTLZ="") for _ in range(2)]
-        + [neuer_debitor(ORT01="")],
+        "CUS-COMP-002: 3 Debitoren ohne Ort oder Postleitzahl (im Inland, "
+        "damit sie auch in der E-Rechnungsprüfung erscheinen)",
+        [neuer_debitor(LAND1="DE", PSTLZ="") for _ in range(2)]
+        + [neuer_debitor(LAND1="DE", ORT01="")],
     )
     kundengruppe(
         "CUS-FMT-001: 4 Debitoren mit ungültiger USt-IdNr.",
@@ -803,7 +820,8 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     )
     kundengruppe(
         "CUS-RISK-001: 3 Debitoren mit reiner Postfachanschrift",
-        [neuer_debitor(STRAS="", PFACH=f"{rng.randint(1000, 9999)}") for _ in range(3)],
+        [neuer_debitor(LAND1="DE", STRAS="", PFACH=f"{rng.randint(1000, 9999)}")
+         for _ in range(3)],
     )
     kundengruppe(
         "CUS-LC-001: 4 Debitoren mit alter Löschvormerkung ohne Archivierung",
@@ -813,7 +831,11 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     kundengruppe(
         "CUS-CONS-003: 3 Debitoren zentral zur Löschung vorgemerkt, im "
         "Buchungskreis aber nicht",
-        [neuer_debitor(LOEVM="X") for _ in range(3)],
+        # Das Anlagedatum ist festgelegt: die drei Sätze zählen auch für
+        # CUS-LC-001 mit, und diese Zahl soll nicht davon abhängen, welches
+        # Datum der Zufallsgenerator gerade zieht.
+        [neuer_debitor(LOEVM="X", _erdat=heute - timedelta(days=1200))
+         for _ in range(3)],
     )
     # Der Buchungskreis der drei Sätze muss offen bleiben, sonst ist es kein
     # Widerspruch mehr. debitor_saetze übernimmt LOEVM - hier zurücksetzen.
@@ -852,11 +874,12 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         "CUS-COMP-004: 3 Buchungskreisdatensätze ohne Abstimmkonto | betroffen: "
         + ", ".join(satz["KUNNR"] for satz in knb1[3:6])
     )
-    for satz in knb1[8:11]:
+    ohne_zahlungsbedingung = [neuer_debitor(LAND1="DE") for _ in range(3)]
+    for satz in knb1[-3:]:
         satz["ZTERM"] = ""
     defekte.append(
         "CUS-COMP-005: 3 Buchungskreisdatensätze ohne Zahlungsbedingung | betroffen: "
-        + ", ".join(satz["KUNNR"] for satz in knb1[8:11])
+        + ", ".join(satz["KUNNR"] for satz in ohne_zahlungsbedingung)
     )
 
     # CUS-REF-001: Abstimmkonto, das es im Buchungskreis nicht gibt.
@@ -887,11 +910,107 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         f"betroffen: {knvv[5]['KUNNR']}"
     )
 
+    # ------------------------------------- Mängel der E-Rechnungs-Readiness
+    #
+    # Sie hängen nicht am Stammsatz an sich, sondern daran, ob aus ihm eine
+    # Rechnung nach EN 16931 erzeugt werden kann. Die Beispiellieferung
+    # enthält für jede Regel einen Fall - und dazu die Mengen, die
+    # ausgeschlossen gehören.
+
+    kundengruppe(
+        "ERE-COMP-005: 4 Debitoren ohne E-Mail-Adresse in der Adressverwaltung",
+        [neuer_debitor(LAND1="DE", _ohne_email=True) for _ in range(4)],
+    )
+    kundengruppe(
+        "ERE-COMP-004: 3 Debitoren ohne Straße - für die E-Rechnung eine "
+        "Pflichtangabe, im Papierprozess bisher unauffällig",
+        [neuer_debitor(LAND1="DE", STRAS="") for _ in range(3)],
+    )
+    # Steuernummer statt USt-IdNr.: die allgemeine Stammdatenregel meldet das,
+    # die E-Rechnungsregel nicht - die Norm lässt die Steuernummer zu. Der
+    # Fall zeigt den Unterschied zwischen beiden Sichten.
+    kundengruppe(
+        "CUS-COMP-001 ohne ERE-COMP-003: 2 Debitoren ohne USt-IdNr., aber mit "
+        "Steuernummer",
+        [neuer_debitor(LAND1="DE", STCEG="", STCD1=f"151/815/{nummer:05d}")
+         for nummer in (30001, 30002)],
+    )
+    # Privatkunden: sie fallen nicht unter die B2B-Pflicht und werden über die
+    # Kontengruppe ausgeschlossen. Ohne diese Abgrenzung stünden sie als
+    # Befund in der Liste und die Quote wäre unbrauchbar.
+    kundengruppe(
+        "Abgrenzung: 6 Privatkunden (Kontengruppe PRIV) - kein Befund, sondern "
+        "eine Ausschlussmenge",
+        [neuer_debitor(LAND1="DE", KTOKD="PRIV", STKZN="X", STCEG="", STCD1="")
+         for _ in range(6)],
+    )
+    # Einmalkunden: Stammdaten naturgemäß leer, prüfbar erst am Beleg.
+    kundengruppe(
+        "Abgrenzung: 2 Einmalkunden (CpD) - kein Befund, sondern eine "
+        "Ausschlussmenge",
+        [neuer_debitor(LAND1="DE", KTOKD="CPD", XCPDK="X", STCEG="") for _ in range(2)],
+    )
+    # Ein Länderschlüssel ohne ISO-Code: ein Customizing-Mangel, der jede
+    # Rechnung an diese Kunden an einer Pflichtangabe scheitern lässt.
+    kundengruppe(
+        "ERE-REF-001: 2 Debitoren mit Länderschlüssel 'EN' ohne ISO-Code",
+        [neuer_debitor(LAND1="EN", STCEG="", STCD1=f"GB12345678{ziffer}",
+                       ORT01="London", PSTLZ="EC1A 1BB",
+                       STRAS=f"Fleet Street {ziffer}")
+         for ziffer in (1, 2)],
+    )
+
+    # Zahlungsbedingungen: eine ohne ableitbares Datum, eine mit zweistufiger
+    # Skontostaffel. Beide werden über eigene Debitoren in Umlauf gebracht.
+    ere_zahlung = [neuer_debitor(LAND1="DE") for _ in range(2)]
+    knb1[-2]["ZTERM"] = "ZB99"
+    knb1[-1]["ZTERM"] = "ZB04"
+    defekte.append(
+        "ERE-REF-002: 1 Zahlungsbedingung ohne ableitbares Fälligkeitsdatum "
+        f"(ZB99) | betroffen: {ere_zahlung[0]['KUNNR']}"
+    )
+    defekte.append(
+        "ERE-CONS-001: 1 Zahlungsbedingung mit zweistufiger Skontostaffel "
+        f"(ZB04) | betroffen: {ere_zahlung[1]['KUNNR']}"
+    )
+
     # ------------------------------------------------------ Customizing
+    #
+    # Der eigene Buchungskreis ist bewusst nicht in Ordnung: ohne USt-IdNr.
+    # und ohne Straße in der zugeordneten Adresse lässt sich keine einzige
+    # normkonforme Rechnung erzeugen, wie gut die Debitoren auch gepflegt
+    # sind. Im Kundentermin ist das erfahrungsgemäß der erste Befund.
     t001 = [{"MANDT": mandant, "BUKRS": "1000", "BUTXT": "Musterwerk AG",
-             "LAND1": "DE", "WAERS": "EUR", "KTOPL": "INT"}]
-    t052 = [{"MANDT": mandant, "ZTERM": z, "ZTAGG": "00", "ZTAG1": t}
-            for z, t in (("ZB01", 30), ("ZB02", 14), ("ZB03", 60))]
+             "LAND1": "DE", "WAERS": "EUR", "KTOPL": "INT",
+             "STCEG": "", "ADRNR": "0000009000"}]
+    defekte.append(
+        "ERE-COMP-001: 1 Buchungskreis ohne USt-IdNr. | betroffen: 1000"
+    )
+    adrc.append({
+        "CLIENT": mandant, "ADDRNUMBER": "0000009000", "DATE_FROM": "19000101",
+        "NATION": "", "NAME1": "Musterwerk AG", "STREET": "", "HOUSE_NUM1": "",
+        "POST_CODE1": "12345", "CITY1": "Musterstadt", "COUNTRY": "DE",
+    })
+    defekte.append(
+        "ERE-COMP-002: 1 Buchungskreis mit unvollständiger Anschrift "
+        "(Straße fehlt) | betroffen: 1000"
+    )
+    def zahlungsbedingung(zterm, tag1=0, prz1=0, tag2=0, prz2=0, tag3=0, faell=0):
+        """Ein T052-Satz mit allen Spalten.
+
+        Alle Sätze brauchen dieselben Schlüssel: write_csv bildet die
+        Kopfzeile aus der ersten Zeile, und ein später ergänztes Feld fiele
+        sonst still unter den Tisch.
+        """
+        return {"MANDT": mandant, "ZTERM": zterm, "ZTAGG": "00",
+                "ZTAG1": tag1, "ZPRZ1": prz1, "ZTAG2": tag2, "ZPRZ2": prz2,
+                "ZTAG3": tag3, "ZFAEL": faell, "ZMONA": 0}
+
+    t052 = [zahlungsbedingung(z, tag1=t) for z, t in
+            (("ZB01", 30), ("ZB02", 14), ("ZB03", 60))]
+    # ZB99 löst sich in kein Datum auf, ZB04 trägt eine zweistufige Staffel.
+    t052.append(zahlungsbedingung("ZB99"))
+    t052.append(zahlungsbedingung("ZB04", tag1=14, prz1=2.0, tag2=30, prz2=1.0, tag3=60))
     # Zahlwege für jedes vorkommende Land - sonst meldet VEN-REF-004 für
     # jeden ausländischen Kreditor eine Lücke im Customizing.
     t042z = [
@@ -902,8 +1021,15 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     t005 = [{"MANDT": mandant, "LAND1": land, "INTCA": land,
              "XEGLD": "X" if land in ("DE", "AT", "NL", "FR", "IT") else ""}
             for land in ("DE", "AT", "CH", "NL", "FR", "IT")]
+    # Altschlüssel ohne gepflegten ISO-Code - in gewachsenen Systemen ein
+    # häufiger Fund, für die E-Rechnung ein Ausfall.
+    t005.append({"MANDT": mandant, "LAND1": "EN", "INTCA": "", "XEGLD": ""})
+    defekte.append(
+        "ERE-REF-001: 1 Länderschlüssel ohne ISO-Code | betroffen: EN"
+    )
     t077k = [{"MANDT": mandant, "KTOKK": "KRED", "NUMKR": "01"}]
-    t077d = [{"MANDT": mandant, "KTOKD": "KUNA", "NUMKR": "02"}]
+    t077d = [{"MANDT": mandant, "KTOKD": k, "NUMKR": n}
+             for k, n in (("KUNA", "02"), ("PRIV", "03"), ("CPD", "04"))]
     tvko = [{"MANDT": mandant, "VKORG": "1000", "VTEXT": "Vertrieb Inland",
              "BUKRS": "1000", "WAERS": "EUR"}]
     t134 = [{"MANDT": mandant, "MTART": a, "KKREF": k} for a, k in
@@ -927,6 +1053,8 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     write_csv(target / "KNB1.csv", knb1, list(knb1[0]))
     write_csv(target / "KNBK.csv", knbk, list(knbk[0]))
     write_csv(target / "KNVV.csv", knvv, list(knvv[0]))
+    write_csv(target / "ADR6.csv", adr6, list(adr6[0]))
+    write_csv(target / "ADRC.csv", adrc, list(adrc[0]))
     write_csv(target / "MARA.csv", mara, list(mara[0]))
     write_csv(target / "MAKT.csv", makt, list(makt[0]))
     write_csv(target / "MARC.csv", marc, list(marc[0]))
@@ -942,6 +1070,7 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     zaehlung = {
         "LFA1": len(lfa1), "LFB1": len(lfb1), "LFM1": len(lfm1), "LFBK": len(lfbk),
         "KNA1": len(kna1), "KNB1": len(knb1), "KNBK": len(knbk), "KNVV": len(knvv),
+        "ADR6": len(adr6), "ADRC": len(adrc),
         "MARA": len(mara), "MAKT": len(makt), "MARC": len(marc), "MBEW": len(mbew),
         "T001": len(t001), "T052": len(t052), "T042Z": len(t042z), "T005": len(t005),
         "T077K": len(t077k), "T134": len(t134), "T025": len(t025), "T023": len(t023),

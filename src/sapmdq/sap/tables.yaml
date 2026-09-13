@@ -743,6 +743,10 @@ tables:
       KTOPL: {aliases: [Kontenplan]}
       PERIV: {aliases: ["Geschaeftsjahresvariante"]}
       KKBER: {aliases: [Kreditkontrollbereich]}
+      # Angaben des Rechnungsstellers. Fuer die E-Rechnung sind sie
+      # Pflichtangaben der Norm (BT-31, BT-35 ff.) und keine Nebensache.
+      STCEG: {aliases: ["USt-IdNr.", "Umsatzsteuer-Identifikationsnummer"]}
+      ADRNR: {alpha: 10, aliases: [Adressnummer, Adresse]}
 
   T005:
     description: Länder

@@ -32,7 +32,7 @@ category: completeness        # completeness | format | consistency |
                               # referential | duplicate | lifecycle | risk | external
 severity: medium              # critical | high | medium | low
 version: "1.0.0"              # bei fachlicher Aenderung erhoehen
-object_area: vendor           # vendor | customer | material | business_partner | cross
+object_area: vendor           # vendor | customer | material | business_partner | cross | einvoice
 object_type: Kreditor         # was der Objektschluessel bezeichnet
 
 key_columns: [LIFNR]          # bilden den Objektschluessel

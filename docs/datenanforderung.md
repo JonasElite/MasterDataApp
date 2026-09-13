@@ -89,7 +89,8 @@ Erweitern die Prüfung um Bereiche, die sonst entfallen.
 | LFBK | Kreditorenstamm - Bankverbindungen | 9 | vendor |
 | CDHDR | Änderungsbelege - Kopf | 4 | cross |
 | SKB1 | Sachkontenstamm - Buchungskreis | 3 | customizing |
-| ADRC | Zentrale Adressverwaltung | 2 | cross |
+| ADRC | Zentrale Adressverwaltung | 3 | cross |
+| ADR6 | E-Mail-Adressen zur Adressverwaltung - Zustellweg der E-Rechnung | 1 | cross |
 | BNKA | Bankenstamm | 2 | cross |
 | CDPOS | Änderungsbelege - Positionen | 2 | cross |
 | KNBK | Debitorenstamm - Bankverbindungen | 2 | customer |
@@ -131,4 +132,4 @@ unverändert.
 ## Weitere bekannte Tabellen
 
 Diese Tabellen kann das Werkzeug lesen, ohne dass eine mitgelieferte Regel sie
-verwendet. Sie sind für kundeneigene Regeln nutzbar: ADR6, SKA1, T001K, T007A, T059P, T059Z, TBSL, TIBAN.
+verwendet. Sie sind für kundeneigene Regeln nutzbar: SKA1, T001K, T007A, T059P, T059Z, TBSL, TIBAN.

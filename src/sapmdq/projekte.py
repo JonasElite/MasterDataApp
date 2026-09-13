@@ -239,6 +239,29 @@ delivery:
   # Zulässige Abweichung der Satzanzahl in Prozent
   row_count_tolerance_pct: 0.0
 
+# E-Rechnungs-Readiness (EN 16931). Die Angaben steuern die Abgrenzung:
+# welche Debitoren ueberhaupt unter die inlaendische Ausstellungspflicht
+# fallen. Ohne sie prueft das Werkzeug jeden Debitor - auch Privatkunden -
+# und die Quote wird unbrauchbar.
+einvoice:
+  # Ansaessigkeitslaender. Die Pflicht trifft inlaendische B2B-Umsaetze.
+  inland: [DE]
+
+  # Kontengruppen der Privatkunden. Sie sind kundenspezifisch und muessen
+  # einmal je Projekt erhoben werden.
+  b2c_account_groups: []
+  #   - PRIV
+
+  # Kontengruppen der Einmalkunden (CpD)
+  cpd_account_groups: [CPD, CPDA]
+
+  # Vorjahresumsatz je Buchungskreis. Ueber 800.000 Euro gilt der 01.01.2027,
+  # sonst der 01.01.2028. Ohne Belegdaten ist das eine Angabe des Kunden;
+  # fehlt sie, bleibt die Frist ausdruecklich unbestimmt.
+  revenue_threshold: 800000
+  prior_year_revenue: {{}}
+  #   "1000": 4200000
+
 ingestion:
   encoding: auto        # auto | utf-8 | latin-1 | utf-16 | cp1252
   delimiter: auto       # auto | ";" | "\\t" | "|" | ","

@@ -338,6 +338,47 @@ def _delta(result: RunResult) -> dict[str, Any] | None:
     }
 
 
+def _erechnung(result: RunResult) -> dict[str, Any] | None:
+    """Der Abschnitt zur E-Rechnungs-Readiness (EN 16931).
+
+    Fehlt der Objektbereich im Katalog - weil die Regeln abgeschaltet sind
+    oder der Katalog sie nicht enthält -, gibt es den Abschnitt nicht. Ein
+    leerer Abschnitt sähe aus wie ein Ergebnis.
+    """
+    from sapmdq.einvoice import BEREICH, bewerten
+
+    if result.catalog is None:
+        return None
+    regeln = [regel for regel in result.catalog.rules if regel.object_area == BEREICH]
+    if not regeln:
+        return None
+
+    befunde_je_regel = {
+        ausfuehrung.rule.id: ausfuehrung.finding_count
+        for ausfuehrung in result.all_executions
+    }
+    nicht_pruefbar = {
+        faehigkeit.rule.id: faehigkeit.reason
+        for faehigkeit in (result.coverage.blocked if result.coverage else [])
+    }
+    abgrenzung = result.abgrenzung
+    grundgesamtheit = abgrenzung.grundgesamtheit if abgrenzung else 0
+
+    gruppen = bewerten(
+        regeln,
+        befunde_je_regel,
+        nicht_pruefbar,
+        grundgesamtheit,
+        result.config.einvoice.ampel_schwelle,
+    )
+    return {
+        "abgrenzung": abgrenzung.als_dict() if abgrenzung else None,
+        "gruppen": [gruppe.als_dict() for gruppe in gruppen],
+        "schwelle": result.config.einvoice.ampel_schwelle,
+        "inland": list(result.config.einvoice.inland),
+    }
+
+
 def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> dict[str, Any]:
     """Stellt die Zusammenfassung eines Laufs als Datenstruktur zusammen."""
     return {
@@ -365,6 +406,7 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> dict[str
         "lieferung": _lieferung(result),
         "coverage": _coverage(result),
         "abdeckung": _abdeckung(result),
+        "erechnung": _erechnung(result),
         "regellauf": _regellauf(result),
         "befunde": _befunde(con, result),
         "bewertung": _bewertung(result),

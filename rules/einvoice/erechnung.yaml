@@ -1,0 +1,408 @@
+# Regelwerk E-Rechnungs-Readiness (EN 16931).
+#
+# Die Regeln beantworten eine andere Frage als der übrige Katalog. Dort geht
+# es um die Qualität eines Stammsatzes an sich; hier geht es darum, ob aus
+# diesem Stammsatz heraus eine normkonforme Rechnung erzeugt werden kann.
+# Deshalb ein eigener Objektbereich: die Quote soll getrennt ausweisbar sein.
+#
+# Zwei Dinge unterscheiden diese Regeln vom Rest des Katalogs:
+#
+# 1. Sie greifen nur auf die Grundgesamtheit zu - inländische B2B-Debitoren
+#    ohne Löschvormerkung, ohne CpD, ohne Privatkundenkontengruppe. Der
+#    Filter steht in jeder Abfrage ausgeschrieben und nicht in einer Hülle,
+#    damit jede Regel für sich lesbar bleibt. Die Werte kommen aus dem
+#    Abschnitt "einvoice" der Projektkonfiguration.
+#
+# 2. Jede Regel nennt in "requirement" den Business Term der Norm. Die
+#    Referenzen sind vor Auslieferung gegen die beim Kunden maßgebliche
+#    Fassung der Norm und die gültige XRechnung-CIUS zu prüfen.
+#
+# Nicht enthalten: alles, was Belegdaten braucht. Steuerkennzeichen
+# (Gruppe C), Positions- und Summenprüfungen (Gruppe E) sowie die
+# Gewichtung nach Rechnungsvolumen setzen VBRK/VBRP beziehungsweise
+# BKPF/BSEG voraus und sind damit außerhalb dieses Schritts.
+
+rules:
+
+  # =================================================== Gruppe A - Steller
+  - id: ERE-COMP-001
+    name: Buchungskreis ohne Umsatzsteuer-Identifikationsnummer
+    description: >
+      Die USt-IdNr. oder Steuernummer des Rechnungsstellers ist eine
+      Pflichtangabe der Norm. Fehlt sie im Buchungskreis, lässt sich für
+      diesen Buchungskreis überhaupt keine normkonforme Rechnung erzeugen -
+      unabhängig davon, wie gut die Debitoren gepflegt sind.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Buchungskreis
+    key_columns: [BUKRS]
+    client_column: MANDT
+    requirement: "EN 16931 BT-31 (A-01)"
+    requires:
+      tables: [T001]
+      fields:
+        T001: [MANDT, BUKRS, BUTXT, LAND1, STCEG]
+    params: {}
+    remediation: >
+      USt-IdNr. des Buchungskreises in den Globalen Einstellungen pflegen
+      (Transaktion OBY6).
+    sql: |
+      SELECT MANDT, BUKRS, BUTXT, LAND1
+      FROM T001
+      WHERE STCEG IS NULL OR is_placeholder_text(STCEG)
+
+  - id: ERE-COMP-002
+    name: Anschrift des Rechnungsstellers unvollständig
+    description: >
+      Die Norm verlangt die vollständige Anschrift des Rechnungsstellers
+      einschließlich Ländercode. Fehlt sie in der zugeordneten Adresse, ist
+      die Rechnung formal unvollständig.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Buchungskreis
+    key_columns: [BUKRS]
+    client_column: MANDT
+    requirement: "EN 16931 BT-35 bis BT-40 (A-02)"
+    requires:
+      tables: [T001, ADRC]
+      fields:
+        T001: [MANDT, BUKRS, BUTXT, ADRNR]
+        ADRC: [ADDRNUMBER, STREET, POST_CODE1, CITY1, COUNTRY]
+    params: {}
+    remediation: Adresse des Buchungskreises vervollständigen.
+    sql: |
+      SELECT
+          t.MANDT, t.BUKRS, t.BUTXT,
+          concat_ws(', ',
+              CASE WHEN a.ADDRNUMBER IS NULL THEN 'Adresse nicht zugeordnet' END,
+              CASE WHEN a.STREET IS NULL OR is_placeholder_text(a.STREET) THEN 'Straße fehlt' END,
+              CASE WHEN a.POST_CODE1 IS NULL OR is_placeholder_text(a.POST_CODE1) THEN 'Postleitzahl fehlt' END,
+              CASE WHEN a.CITY1 IS NULL OR is_placeholder_text(a.CITY1) THEN 'Ort fehlt' END,
+              CASE WHEN a.COUNTRY IS NULL OR is_placeholder_text(a.COUNTRY) THEN 'Land fehlt' END
+          ) AS befund
+      FROM T001 t
+      LEFT JOIN (SELECT DISTINCT ADDRNUMBER, STREET, POST_CODE1, CITY1, COUNTRY FROM ADRC) a
+             ON t.ADRNR = a.ADDRNUMBER
+      WHERE t.ADRNR IS NOT NULL
+        AND (a.ADDRNUMBER IS NULL
+             OR a.STREET IS NULL OR is_placeholder_text(a.STREET)
+             OR a.POST_CODE1 IS NULL OR is_placeholder_text(a.POST_CODE1)
+             OR a.CITY1 IS NULL OR is_placeholder_text(a.CITY1)
+             OR a.COUNTRY IS NULL OR is_placeholder_text(a.COUNTRY))
+
+  # ================================================= Gruppe B - Empfänger
+  - id: ERE-COMP-003
+    name: Empfänger ohne USt-IdNr. und ohne Steuernummer
+    description: >
+      Für inländische B2B-Rechnungen ist eine Kennung des Empfängers
+      erforderlich - USt-IdNr. oder ersatzweise Steuernummer. Anders als die
+      allgemeine Stammdatenregel prüft diese nur die Debitoren, die
+      tatsächlich unter die Ausstellungspflicht fallen, und lässt die
+      Steuernummer als Ersatz gelten.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Debitor
+    key_columns: [KUNNR]
+    client_column: MANDT
+    requirement: "EN 16931 BT-48 (B-01)"
+    requires:
+      tables: [KNA1]
+      fields:
+        KNA1: [MANDT, KUNNR, NAME1, LAND1, KTOKD, STCEG, STCD1, LOEVM, XCPDK]
+    params:
+      # Vorgabe des Katalogs. Der Abschnitt "einvoice" der Projekt-
+      # konfiguration ersetzt diese Werte beim Lauf.
+      inland: [DE]
+      b2c_kontengruppen: []
+      cpd_kontengruppen: [CPD, CPDA]
+    remediation: >
+      USt-IdNr. beim Kunden erfragen und pflegen; ersatzweise die
+      Steuernummer in STCD1 hinterlegen.
+    sql: |
+      SELECT MANDT, KUNNR, NAME1, LAND1, KTOKD
+      FROM KNA1
+      WHERE COALESCE(LOEVM, '') <> 'X'
+        AND COALESCE(XCPDK, '') <> 'X'
+        AND COALESCE(KTOKD, '') NOT IN ${cpd_kontengruppen}
+        AND COALESCE(KTOKD, '') NOT IN ${b2c_kontengruppen}
+        AND COALESCE(LAND1, '') IN ${inland}
+        AND (STCEG IS NULL OR is_placeholder_text(STCEG))
+        AND (STCD1 IS NULL OR is_placeholder_text(STCD1))
+
+  - id: ERE-FMT-001
+    name: USt-IdNr. des Empfängers formal ungültig
+    description: >
+      Eine USt-IdNr., die Aufbau oder Prüfziffer ihres Landes nicht erfüllt,
+      wird vom Empfangssystem abgewiesen. Der Beleg ist damit zwar erzeugbar,
+      aber nicht zustellbar.
+    category: format
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Debitor
+    key_columns: [KUNNR]
+    client_column: MANDT
+    requirement: "EN 16931 BT-48 (B-01)"
+    requires:
+      tables: [KNA1]
+      fields:
+        KNA1: [MANDT, KUNNR, NAME1, LAND1, KTOKD, STCEG, LOEVM, XCPDK]
+    params:
+      # Vorgabe des Katalogs. Der Abschnitt "einvoice" der Projekt-
+      # konfiguration ersetzt diese Werte beim Lauf.
+      inland: [DE]
+      b2c_kontengruppen: []
+      cpd_kontengruppen: [CPD, CPDA]
+    remediation: USt-IdNr. berichtigen und über das Bestätigungsverfahren prüfen lassen.
+    sql: |
+      SELECT MANDT, KUNNR, NAME1, LAND1, STCEG, vat_id_reason(LAND1, STCEG) AS befund
+      FROM KNA1
+      WHERE COALESCE(LOEVM, '') <> 'X'
+        AND COALESCE(XCPDK, '') <> 'X'
+        AND COALESCE(KTOKD, '') NOT IN ${cpd_kontengruppen}
+        AND COALESCE(KTOKD, '') NOT IN ${b2c_kontengruppen}
+        AND COALESCE(LAND1, '') IN ${inland}
+        AND STCEG IS NOT NULL
+        AND NOT is_placeholder_text(STCEG)
+        AND NOT vat_id_valid(LAND1, STCEG)
+
+  - id: ERE-COMP-004
+    name: Anschrift des Empfängers unvollständig
+    description: >
+      Straße, Postleitzahl, Ort und Ländercode sind Pflichtangaben der Norm.
+      Fehlt eines davon, ist die Rechnung nicht normkonform - auch wenn sie
+      auf Papier bisher niemanden gestört hat.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Debitor
+    key_columns: [KUNNR]
+    client_column: MANDT
+    requirement: "EN 16931 BT-50 bis BT-55 (B-02)"
+    requires:
+      tables: [KNA1]
+      fields:
+        KNA1: [MANDT, KUNNR, NAME1, LAND1, KTOKD, STRAS, PSTLZ, ORT01, LOEVM, XCPDK]
+    params:
+      # Vorgabe des Katalogs. Der Abschnitt "einvoice" der Projekt-
+      # konfiguration ersetzt diese Werte beim Lauf.
+      inland: [DE]
+      b2c_kontengruppen: []
+      cpd_kontengruppen: [CPD, CPDA]
+    remediation: Anschrift beim Kunden erfragen und vollständig pflegen.
+    sql: |
+      SELECT
+          MANDT, KUNNR, NAME1, LAND1,
+          concat_ws(', ',
+              CASE WHEN STRAS IS NULL OR is_placeholder_text(STRAS) THEN 'Straße fehlt' END,
+              CASE WHEN PSTLZ IS NULL OR is_placeholder_text(PSTLZ) THEN 'Postleitzahl fehlt' END,
+              CASE WHEN ORT01 IS NULL OR is_placeholder_text(ORT01) THEN 'Ort fehlt' END,
+              CASE WHEN LAND1 IS NULL OR is_placeholder_text(LAND1) THEN 'Land fehlt' END
+          ) AS befund
+      FROM KNA1
+      WHERE COALESCE(LOEVM, '') <> 'X'
+        AND COALESCE(XCPDK, '') <> 'X'
+        AND COALESCE(KTOKD, '') NOT IN ${cpd_kontengruppen}
+        AND COALESCE(KTOKD, '') NOT IN ${b2c_kontengruppen}
+        AND COALESCE(LAND1, '') IN ${inland}
+        AND (STRAS IS NULL OR is_placeholder_text(STRAS)
+             OR PSTLZ IS NULL OR is_placeholder_text(PSTLZ)
+             OR ORT01 IS NULL OR is_placeholder_text(ORT01))
+
+  - id: ERE-REF-001
+    name: Länderschlüssel ohne ISO-Code
+    description: >
+      Die Norm verlangt den Ländercode nach ISO 3166-1 alpha-2. Ein
+      SAP-Länderschlüssel ohne hinterlegten ISO-Code lässt sich nicht
+      abbilden; die Rechnung wäre an dieser Stelle leer.
+
+      Gezählt wird je Länderschlüssel, nicht je Debitor: es ist ein
+      Customizing-Mangel, der mit einem Eintrag behoben ist. Geprüft werden
+      alle von Debitoren verwendeten Schlüssel, auch die ausländischen - sie
+      fallen heute nicht unter die Ausstellungspflicht, gehen aber in
+      dieselbe Rechnungsausgabe.
+    category: referential
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Länderschlüssel
+    key_columns: [LAND1]
+    client_column: MANDT
+    requirement: "EN 16931 BT-55 (B-03)"
+    requires:
+      tables: [KNA1, T005]
+      fields:
+        KNA1: [MANDT, KUNNR, LAND1, LOEVM]
+        T005: [MANDT, LAND1, INTCA]
+    params: {}
+    remediation: ISO-Code des Länderschlüssels im Customizing nachtragen (Transaktion OY01).
+    sql: |
+      SELECT
+          k.MANDT, k.LAND1,
+          count(DISTINCT k.KUNNR) AS betroffene_debitoren
+      FROM KNA1 k
+      JOIN T005 t ON k.MANDT = t.MANDT AND k.LAND1 = t.LAND1
+      WHERE COALESCE(k.LOEVM, '') <> 'X'
+        AND (t.INTCA IS NULL OR length(trim(t.INTCA)) <> 2)
+      GROUP BY k.MANDT, k.LAND1
+
+  - id: ERE-COMP-005
+    name: Empfänger ohne elektronische Adresse
+    description: >
+      Ohne hinterlegte E-Mail-Adresse oder Netzwerkkennung gibt es keinen Weg,
+      die Rechnung zuzustellen. Erfahrungsgemäß ist das der Punkt, an dem die
+      meisten Umstellungen hängen bleiben - er fällt erst auf, wenn der
+      Papierversand endet.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Debitor
+    key_columns: [KUNNR]
+    client_column: MANDT
+    requirement: "EN 16931 BT-49 (B-04, F-02)"
+    requires:
+      tables: [KNA1, ADR6]
+      fields:
+        KNA1: [MANDT, KUNNR, NAME1, LAND1, KTOKD, ADRNR, LOEVM, XCPDK]
+        ADR6: [ADDRNUMBER, SMTP_ADDR]
+    params:
+      # Vorgabe des Katalogs. Der Abschnitt "einvoice" der Projekt-
+      # konfiguration ersetzt diese Werte beim Lauf.
+      inland: [DE]
+      b2c_kontengruppen: []
+      cpd_kontengruppen: [CPD, CPDA]
+    remediation: >
+      E-Mail-Adresse für den Rechnungsversand beim Kunden erfragen und in der
+      Adressverwaltung pflegen; bei Peppol-Anbindung die Netzwerkkennung.
+    sql: |
+      SELECT k.MANDT, k.KUNNR, k.NAME1, k.LAND1
+      FROM KNA1 k
+      LEFT JOIN (
+          SELECT DISTINCT ADDRNUMBER
+          FROM ADR6
+          WHERE SMTP_ADDR IS NOT NULL AND NOT is_placeholder_text(SMTP_ADDR)
+      ) a ON k.ADRNR = a.ADDRNUMBER
+      WHERE COALESCE(k.LOEVM, '') <> 'X'
+        AND COALESCE(k.XCPDK, '') <> 'X'
+        AND COALESCE(k.KTOKD, '') NOT IN ${cpd_kontengruppen}
+        AND COALESCE(k.KTOKD, '') NOT IN ${b2c_kontengruppen}
+        AND COALESCE(k.LAND1, '') IN ${inland}
+        AND a.ADDRNUMBER IS NULL
+
+  # =========================================== Gruppe D - Zahlungsbedingung
+  - id: ERE-COMP-006
+    name: Empfänger ohne Zahlungsbedingung im Buchungskreis
+    description: >
+      Ohne Zahlungsbedingung lässt sich kein Fälligkeitsdatum ableiten. Die
+      Norm verlangt es als Pflichtangabe; im Papierprozess wurde es bisher
+      oft erst beim Mahnen bemerkt.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Debitor
+    key_columns: [KUNNR, BUKRS]
+    client_column: MANDT
+    requirement: "EN 16931 BT-9 (D-05)"
+    requires:
+      tables: [KNA1, KNB1]
+      fields:
+        KNA1: [MANDT, KUNNR, NAME1, LAND1, KTOKD, LOEVM, XCPDK]
+        KNB1: [MANDT, KUNNR, BUKRS, ZTERM, LOEVM]
+    params:
+      # Vorgabe des Katalogs. Der Abschnitt "einvoice" der Projekt-
+      # konfiguration ersetzt diese Werte beim Lauf.
+      inland: [DE]
+      b2c_kontengruppen: []
+      cpd_kontengruppen: [CPD, CPDA]
+    remediation: Zahlungsbedingung in den Buchungskreisdaten pflegen.
+    sql: |
+      SELECT b.MANDT, b.KUNNR, b.BUKRS, k.NAME1, k.LAND1
+      FROM KNB1 b
+      JOIN KNA1 k ON b.MANDT = k.MANDT AND b.KUNNR = k.KUNNR
+      WHERE COALESCE(k.LOEVM, '') <> 'X'
+        AND COALESCE(b.LOEVM, '') <> 'X'
+        AND COALESCE(k.XCPDK, '') <> 'X'
+        AND COALESCE(k.KTOKD, '') NOT IN ${cpd_kontengruppen}
+        AND COALESCE(k.KTOKD, '') NOT IN ${b2c_kontengruppen}
+        AND COALESCE(k.LAND1, '') IN ${inland}
+        AND (b.ZTERM IS NULL OR is_placeholder_text(b.ZTERM))
+
+  - id: ERE-REF-002
+    name: Zahlungsbedingung ohne ableitbares Fälligkeitsdatum
+    description: >
+      Aus der Zahlungsbedingung muss sich ein konkretes Datum ergeben. Eine
+      Bedingung ohne Tagesangabe und ohne Fälligkeitsmonat ist nur als
+      Freitext abbildbar - und Freitext ist im strukturierten Teil der
+      Rechnung nicht vorgesehen.
+    category: referential
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Zahlungsbedingung
+    key_columns: [ZTERM]
+    client_column: MANDT
+    requirement: "EN 16931 BT-9, BT-20 (D-01, D-03)"
+    requires:
+      tables: [KNB1, T052]
+      fields:
+        KNB1: [MANDT, KUNNR, BUKRS, ZTERM]
+        T052: [MANDT, ZTERM, ZTAG1, ZTAG2, ZTAG3, ZFAEL, ZMONA]
+    params: {}
+    remediation: >
+      Tagesangabe oder Fälligkeitsmonat in der Zahlungsbedingung hinterlegen
+      (Transaktion OBB8).
+    sql: |
+      SELECT
+          t.MANDT, t.ZTERM,
+          count(DISTINCT b.KUNNR) AS betroffene_debitoren
+      FROM T052 t
+      JOIN KNB1 b ON t.MANDT = b.MANDT AND t.ZTERM = b.ZTERM
+      WHERE COALESCE(t.ZTAG1, 0) = 0
+        AND COALESCE(t.ZTAG2, 0) = 0
+        AND COALESCE(t.ZTAG3, 0) = 0
+        AND COALESCE(t.ZFAEL, 0) = 0
+        AND COALESCE(t.ZMONA, 0) = 0
+      GROUP BY t.MANDT, t.ZTERM
+
+  - id: ERE-CONS-001
+    name: Mehrstufige Skontostaffel
+    description: >
+      Die Norm sieht je Rechnung eine Skontoregelung vor. Eine zwei- oder
+      dreistufige Staffel ist strukturell nicht vollständig abbildbar; die
+      weiteren Stufen gehen verloren oder landen im Freitext. Das ist kein
+      Fehler im Stammsatz, sondern eine Entscheidung, die vor der Umstellung
+      zu treffen ist.
+    category: consistency
+    severity: high
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Zahlungsbedingung
+    key_columns: [ZTERM]
+    client_column: MANDT
+    requirement: "EN 16931 BT-20 (D-02)"
+    requires:
+      tables: [KNB1, T052]
+      fields:
+        KNB1: [MANDT, KUNNR, ZTERM]
+        T052: [MANDT, ZTERM, ZTAG1, ZTAG2, ZTAG3, ZPRZ1, ZPRZ2]
+    params: {}
+    remediation: >
+      Festlegen, welche Skontostufe in die Rechnung übernommen wird, und die
+      Entscheidung im Umstellungskonzept dokumentieren.
+    sql: |
+      SELECT
+          t.MANDT, t.ZTERM, t.ZTAG1, t.ZTAG2, t.ZTAG3,
+          count(DISTINCT b.KUNNR) AS betroffene_debitoren
+      FROM T052 t
+      JOIN KNB1 b ON t.MANDT = b.MANDT AND t.ZTERM = b.ZTERM
+      WHERE COALESCE(t.ZTAG2, 0) > 0 AND COALESCE(t.ZPRZ2, 0) > 0
+      GROUP BY t.MANDT, t.ZTERM, t.ZTAG1, t.ZTAG2, t.ZTAG3

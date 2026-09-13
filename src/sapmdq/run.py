@@ -36,6 +36,7 @@ from sapmdq.ingest.pipeline import ingest_delivery
 from sapmdq.logging_setup import get_logger, setup_logging
 from sapmdq.report.score import compute_score
 from sapmdq.results import RunResult
+from sapmdq.einvoice import ermittle_abgrenzung, parameter_setzen
 from sapmdq.rules.capability import build_coverage
 from sapmdq.rules.catalog import load_catalog
 from sapmdq.rules.engine import combine_findings, run_rules
@@ -167,6 +168,10 @@ def execute_run(
 
         # --------------------------------------------- Regelkatalog laden
         catalog = load_catalog(config.rules.catalog_dirs, config.rules, ingestion.registry)
+        # Die Abgrenzung der E-Rechnungspflicht steht in der Projekt-
+        # konfiguration und nicht im Regeltext: Kontengruppen sind
+        # kundenspezifisch, Fristen sind gesetzlich beweglich.
+        catalog.rules = parameter_setzen(catalog.rules, config.einvoice)
         result.catalog = catalog
         audit.catalog_name = catalog.name
         audit.catalog_version = catalog.full_version
@@ -254,6 +259,14 @@ def execute_run(
         # ---------------------------------------------------------- Score
         result.score = _compute_score(con, result)
 
+        # ----------------------------------------------------- Abgrenzung
+        # Nur, wenn E-Rechnungsregeln überhaupt im Katalog stehen. Wer sie
+        # abgeschaltet hat, soll den Abschnitt auch nicht im Bericht finden.
+        if any(rule.object_area == "einvoice" for rule in catalog.rules):
+            result.abgrenzung = ermittle_abgrenzung(
+                con, config.einvoice, ingestion.tables.keys()
+            )
+
         # ---------------------------------------------------------- Delta
         if baseline_findings is not None:
             from sapmdq.findings.delta import compare_runs
@@ -331,6 +344,10 @@ def _compute_score(con: duckdb.DuckDBPyConnection, result: RunResult):
     leading_tables = {
         "vendor": "LFA1", "customer": "KNA1", "material": "MARA",
         "business_partner": "BUT000", "cross": "LFA1",
+        # Die E-Rechnungsregeln zählen ganz überwiegend Debitoren; die
+        # wenigen Sätze über Buchungskreis und Zahlungsbedingung wiegen
+        # gegen den Debitorenstamm nicht auf.
+        "einvoice": "KNA1",
     }
     records_by_area: dict[str, int] = {}
     for area, table in leading_tables.items():

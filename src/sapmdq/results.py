@@ -14,6 +14,7 @@ from sapmdq.audit import AuditRecord
 from sapmdq.config import ProjectConfig
 from sapmdq.findings.delta import DeltaReport
 from sapmdq.findings.enrich import EnrichmentResult
+from sapmdq.einvoice.abgrenzung import Abgrenzung
 from sapmdq.ingest.manifest import DeliveryManifest
 from sapmdq.ingest.pipeline import IngestionResult
 from sapmdq.report.score import ScoreReport
@@ -42,6 +43,8 @@ class RunResult:
     enrichment: EnrichmentResult | None = None
     score: ScoreReport | None = None
     delta: DeltaReport | None = None
+    #: Abgrenzung der E-Rechnungspflicht; None, wenn keine Regel dazu lief.
+    abgrenzung: "Abgrenzung | None" = None
     audit: AuditRecord | None = None
 
     #: Erzeugte Berichtsdateien.

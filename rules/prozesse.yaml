@@ -172,6 +172,39 @@ processes:
       - CUS-RISK-001
       - CUS-EXT-001
 
+  - id: erechnung
+    name: E-Rechnungs-Readiness
+    gruppe: quer
+    beschreibung: >
+      Ob aus dem heutigen Debitorenstamm heraus Rechnungen nach EN 16931
+      erzeugt werden können. Ab dem 01.01.2027 (Vorjahresumsatz über
+      800.000 Euro) beziehungsweise dem 01.01.2028 sind inländische
+      B2B-Rechnungen strukturiert auszustellen. Der Engpass liegt selten am
+      Format und fast immer an den Bestandsdaten.
+    schritte:
+      - Abgrenzung der betroffenen Geschäftspartner
+      - Angaben des Rechnungsstellers
+      - Angaben des Empfängers
+      - Zustellweg
+      - Zahlungsbedingung und Fälligkeit
+    schwerpunkte:
+      - Pflichtangaben des Rechnungsstellers - USt-IdNr. und vollständige Anschrift des Buchungskreises
+      - Pflichtangaben des Empfängers - USt-IdNr. oder Steuernummer, vollständige Anschrift, Ländercode nach ISO 3166-1
+      - Zustellbarkeit - elektronische Adresse je Debitor; der Punkt, an dem die meisten Umstellungen hängen bleiben
+      - Fälligkeit - Zahlungsbedingung vorhanden und in ein Datum auflösbar, mehrstufige Skontostaffeln erkannt
+      - Abgrenzung - Privatkunden, Einmalkunden und Auslandskunden werden beziffert ausgeschlossen, nicht stillschweigend
+    grenzen: >
+      Belege sind nicht im Umfang. Damit fehlen die Steuerlogik
+      (Kategorie-Codes und Befreiungsgründe je Steuerkennzeichen), die
+      Positions- und Summenprüfungen und vor allem die Gewichtung nach
+      Rechnungsvolumen: die Auswertung sagt, wieviele Geschäftspartner
+      betroffen sind, nicht wieviel Umsatz. Fertige XRechnung- oder
+      ZUGFeRD-Dateien werden nicht validiert; dafür gibt es den
+      KoSIT-Validator. Die Angaben sind eine Indikation und keine
+      Steuerberatung.
+    bereiche: [einvoice]
+    regeln: [CUS-DUP-001, CUS-DUP-002, CUS-FMT-002, CUS-REF-002]
+
   - id: iks
     name: Internes Kontrollsystem
     gruppe: quer

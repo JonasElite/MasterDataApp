@@ -37,6 +37,7 @@
       <button class="nav" data-ansicht="lagebild" aria-current="page">Lagebild</button>
       <button class="nav" data-ansicht="befunde">Befunde</button>
       <button class="nav" data-ansicht="dubletten">Dubletten</button>
+      <button class="nav" data-ansicht="erechnung">E-Rechnung</button>
       <button class="nav" data-ansicht="abdeckung">Abdeckung</button>
       <button class="nav" data-ansicht="coverage">Prüfumfang</button>
       <button class="nav" data-ansicht="eingang">Eingang</button>
@@ -122,6 +123,36 @@
         <p class="leise">Der Wert ist unter dem Vorbehalt des jeweils erreichten
            Prüfumfangs zu lesen. Was nicht geprüft werden konnte, geht nicht ein.</p>
         <div id="lb-bewertung"></div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------ E-Rechnung -->
+    <section id="ansicht-erechnung" class="ansicht" hidden>
+      <p class="leise">Ob aus dem heutigen Debitorenstamm heraus Rechnungen
+         nach EN 16931 erzeugt werden können. Geprüft wird die Datengrundlage
+         vor der Rechnung, nicht die fertige Datei.</p>
+
+      <div id="er-frist"></div>
+
+      <div class="karte">
+        <h2>Abgrenzung</h2>
+        <p class="leise">Wen die inländische Ausstellungspflicht trifft. Jede
+           Ausschlussmenge steht mit ihrer Zahl da - eine Quote ohne
+           nachvollziehbare Grundgesamtheit hält im Gespräch nicht stand.</p>
+        <div id="er-abgrenzung"></div>
+      </div>
+
+      <div class="karte">
+        <div class="karte-kopf">
+          <h2>Bewertung je Gruppe</h2>
+          <p id="er-massstab" class="leise"></p>
+        </div>
+        <div id="er-gruppen"></div>
+      </div>
+
+      <div class="karte">
+        <h2>Was diese Auswertung nicht sagt</h2>
+        <ul id="er-grenzen" class="grenzen"></ul>
       </div>
     </section>
 

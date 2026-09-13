@@ -71,6 +71,13 @@ sapmdq ui -c kundenprojekt/projekt.yaml
 sapmdq ui                                # oeffnet das zuletzt geoeffnete Projekt
 ```
 
+Neben der Stammdatenqualität prüft das Werkzeug die **E-Rechnungs-Readiness
+nach EN 16931**: ob aus dem heutigen Debitorenstamm heraus normkonforme
+Rechnungen erzeugt werden können, wen die Pflicht ab 2027 beziehungsweise
+2028 trifft und woran es scheitert. Belege sind dabei nicht im Umfang - die
+Auswertung zählt Geschäftspartner, nicht Rechnungsvolumen. Einzelheiten in
+[docs/erechnung.md](docs/erechnung.md).
+
 Das öffnet eine örtliche Oberfläche im Browser: eine Abdeckungsseite, die
 zeigt, welche Geschäftsprozesse und SAP-Tabellen abgedeckt sind und was je
 Prozess geprüft wird; ein Lagebild mit Punktwert,
@@ -158,16 +165,17 @@ Ablaufsteuerung.
 
 ## Regelkatalog
 
-Der mitgelieferte Katalog umfasst 106 Regeln. Zwei davon übertragen Daten
+Der mitgelieferte Katalog umfasst 116 Regeln. Zwei davon übertragen Daten
 an einen externen Dienst und sind ohne ausdrückliche Freigabe abgeschaltet -
-ohne Freigabe laufen also 104.
+ohne Freigabe laufen also 114. Zehn davon gehören zur E-Rechnungs-Readiness
+im eigenen Objektbereich `einvoice`.
 
 | Kategorie | Anzahl | Anforderung |
 |---|---|---|
-| Vollständigkeit | 22 | FA-401 |
-| Format / Syntax | 13 | FA-402 |
-| Konsistenz über Sichten | 23 | FA-403 |
-| Referenzintegrität | 21 | FA-404 |
+| Vollständigkeit | 28 | FA-401 |
+| Format / Syntax | 14 | FA-402 |
+| Konsistenz über Sichten | 24 | FA-403 |
+| Referenzintegrität | 23 | FA-404 |
 | Dubletten | 7 | FA-405 |
 | Aktualität / Lifecycle | 9 | FA-406 |
 | Risiko / Compliance | 9 | FA-407 |
@@ -249,7 +257,7 @@ außerhalb des Werkzeugs und sind organisatorisch zu regeln; siehe
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest              # 489 Tests
+python -m pytest              # 529 Tests
 python -m pytest tests/test_akzeptanzkriterien.py -v   # Abnahmenachweis
 ```
 

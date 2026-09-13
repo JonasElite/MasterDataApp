@@ -37,6 +37,7 @@ const EN = {
   "Befunde": "Findings",
   "Dubletten": "Duplicates",
   "Prüfumfang": "Scope",
+  "E-Rechnung": "E-invoicing",
   "Projekte": "Projects",
   "Eingang": "Inbox",
   "Lieferung": "Delivery",
@@ -762,6 +763,88 @@ const EN = {
   "Das Projekt ließ sich nicht anlegen: {grund}": "The project could not be created: {grund}",
   "Während eines Prüfungslaufs lässt sich das Projekt nicht wechseln.":
     "The project cannot be switched while a check is running.",
+
+
+  // ------------------------------------------------- Prozess E-Rechnung
+  "E-Rechnungs-Readiness": "E-invoicing readiness",
+  "Ob aus dem heutigen Debitorenstamm heraus Rechnungen nach EN 16931 erzeugt werden können. Ab dem 01.01.2027 (Vorjahresumsatz über 800.000 Euro) beziehungsweise dem 01.01.2028 sind inländische B2B-Rechnungen strukturiert auszustellen. Der Engpass liegt selten am Format und fast immer an den Bestandsdaten.":
+    "Whether invoices compliant with EN 16931 can be produced from today's customer master. From 1 January 2027 (prior-year revenue above EUR 800,000) or 1 January 2028, domestic B2B invoices must be issued in a structured format. The bottleneck is rarely the format and almost always the existing data.",
+  "Abgrenzung der betroffenen Geschäftspartner": "Scoping the business partners in question",
+  "Angaben des Rechnungsstellers": "Seller details",
+  "Angaben des Empfängers": "Buyer details",
+  "Zustellweg": "Delivery channel",
+  "Zahlungsbedingung und Fälligkeit": "Payment terms and due date",
+  "Pflichtangaben des Rechnungsstellers - USt-IdNr. und vollständige Anschrift des Buchungskreises":
+    "Mandatory seller details - VAT registration number and complete address of the company code",
+  "Pflichtangaben des Empfängers - USt-IdNr. oder Steuernummer, vollständige Anschrift, Ländercode nach ISO 3166-1":
+    "Mandatory buyer details - VAT registration number or tax number, complete address, ISO 3166-1 country code",
+  "Zustellbarkeit - elektronische Adresse je Debitor; der Punkt, an dem die meisten Umstellungen hängen bleiben":
+    "Deliverability - an electronic address per customer; the point where most migrations get stuck",
+  "Fälligkeit - Zahlungsbedingung vorhanden und in ein Datum auflösbar, mehrstufige Skontostaffeln erkannt":
+    "Due date - payment terms present and resolvable to a date, multi-level discount schedules identified",
+  "Abgrenzung - Privatkunden, Einmalkunden und Auslandskunden werden beziffert ausgeschlossen, nicht stillschweigend":
+    "Scoping - private, one-time and foreign customers are excluded with figures, not silently",
+  "Belege sind nicht im Umfang. Damit fehlen die Steuerlogik (Kategorie-Codes und Befreiungsgründe je Steuerkennzeichen), die Positions- und Summenprüfungen und vor allem die Gewichtung nach Rechnungsvolumen: die Auswertung sagt, wieviele Geschäftspartner betroffen sind, nicht wieviel Umsatz. Fertige XRechnung- oder ZUGFeRD-Dateien werden nicht validiert; dafür gibt es den KoSIT-Validator. Die Angaben sind eine Indikation und keine Steuerberatung.":
+    "Documents are out of scope. That leaves out the tax logic (category codes and exemption reasons per tax code), the line-item and total checks, and above all the weighting by invoice volume: the analysis says how many business partners are affected, not how much revenue. Finished XRechnung or ZUGFeRD files are not validated; the KoSIT validator does that. These figures are an indication, not tax advice.",
+
+
+  // --------------------------------------------------------- E-Rechnung
+  "Ob aus dem heutigen Debitorenstamm heraus Rechnungen nach EN 16931 erzeugt werden können. Geprüft wird die Datengrundlage vor der Rechnung, nicht die fertige Datei.":
+    "Whether invoices compliant with EN 16931 can be produced from today's customer master. What is checked is the data behind the invoice, not the finished file.",
+  "Abgrenzung": "Scope",
+  "Wen die inländische Ausstellungspflicht trifft. Jede Ausschlussmenge steht mit ihrer Zahl da - eine Quote ohne nachvollziehbare Grundgesamtheit hält im Gespräch nicht stand.":
+    "Who the domestic issuing obligation applies to. Every excluded set is shown with its figure - a rate without a traceable base does not hold up in conversation.",
+  "Bewertung je Gruppe": "Assessment by group",
+  "Was diese Auswertung nicht sagt": "What this analysis does not tell you",
+  "Dieser Lauf enthält keine E-Rechnungsprüfung. Der Objektbereich ist im Regelkatalog abgeschaltet.":
+    "This run contains no e-invoicing check. The object area is switched off in the rule catalogue.",
+  "Rot ab {schwelle} der Grundgesamtheit bei einer kritischen Regel. Fachlich gesetzt, nicht aus der Norm abgeleitet.":
+    "Red from {schwelle} of the base for a critical rule. Set on professional judgement, not derived from the standard.",
+  "Ohne die Buchungskreise (T001) lässt sich die Frist nicht zuordnen.":
+    "Without the company codes (T001) the deadline cannot be assigned.",
+  "unbestimmt": "undetermined",
+  "Vorjahresumsatz {umsatz}": "Prior-year revenue {umsatz}",
+  "Vorjahresumsatz nicht hinterlegt - ohne ihn bleibt der Stichtag offen":
+    "Prior-year revenue not recorded - without it the deadline stays open",
+  "Debitoren in der Lieferung": "Customers in the delivery",
+  "Grundgesamtheit - inländische B2B-Debitoren": "Base - domestic B2B customers",
+  "Zur Löschung vorgemerkt - kein Prüfgegenstand": "Flagged for deletion - not subject to the check",
+  "Einmalkunden (CpD) - Stammdaten naturgemäß leer, prüfbar erst am Beleg":
+    "One-time accounts (CpD) - master data empty by nature, checkable only on the document",
+  "Privatkunden nach Kontengruppe - keine B2B-Pflicht":
+    "Private customers by account group - no B2B obligation",
+  "Empfänger nicht im Inland ansässig - nicht von der inländischen Pflicht erfasst":
+    "Buyer not established domestically - not covered by the domestic obligation",
+  "Der Debitorenstamm (KNA1) fehlt in der Lieferung. Ohne ihn lässt sich nicht bestimmen, welche Geschäftspartner unter die Ausstellungspflicht fallen.":
+    "The customer master (KNA1) is missing from the delivery. Without it there is no way to determine which business partners fall under the issuing obligation.",
+  "Norm": "Standard",
+  "Quote": "Rate",
+  "Handlungsbedarf": "action needed",
+  "in Ordnung": "in order",
+  "nicht prüfbar": "not checkable",
+  "Debitor": "Customer",
+  "Länderschlüssel": "Country key",
+  "Zahlungsbedingung": "Payment terms",
+  "rot": "red",
+  "gelb": "amber",
+  "grün": "green",
+  "grau": "grey",
+  "Belege sind nicht im Umfang. Die Zahlen sagen, wieviele Geschäftspartner betroffen sind - nicht, wieviel Umsatz. Wenige sehr aktive Kunden können das Bild in beide Richtungen verschieben.":
+    "Documents are out of scope. The figures say how many business partners are affected - not how much revenue. A few very active customers can shift the picture either way.",
+  "Steuerkennzeichen, Positions- und Summenprüfungen fehlen. Sie setzen Belegdaten voraus.":
+    "Tax codes, line-item and total checks are missing. They require document data.",
+  "Fertige XRechnung- oder ZUGFeRD-Dateien werden nicht validiert. Dafür gibt es den KoSIT-Validator.":
+    "Finished XRechnung or ZUGFeRD files are not validated. The KoSIT validator does that.",
+  "Die Abgrenzung bildet gesetzliche Tatbestände ab und ersetzt keine Einzelfallwürdigung. Das Ergebnis ist eine Indikation.":
+    "The scoping reflects statutory circumstances and does not replace case-by-case judgement. The result is an indication.",
+
+  "Ab {stichtag} sind inländische B2B-Rechnungen strukturiert auszustellen. Betroffen sind {n} Debitoren.":
+    "From {stichtag}, domestic B2B invoices must be issued in a structured format. {n} customers are affected.",
+  "Betroffen sind {n} inländische B2B-Debitoren. Der Stichtag hängt am Vorjahresumsatz und ist noch nicht hinterlegt.":
+    "{n} domestic B2B customers are affected. The deadline depends on prior-year revenue and has not been recorded yet.",
+  "auffällig: {n} von {gesamt}": "flagged: {n} of {gesamt}",
+  "{n} kritische Prüfungen mit Befunden. Die Auswertung zählt Geschäftspartner, nicht Rechnungsvolumen - Belege sind nicht im Umfang.":
+    "{n} critical checks with findings. The analysis counts business partners, not invoice volume - documents are out of scope.",
 
 };
 
