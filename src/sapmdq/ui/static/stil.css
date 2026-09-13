@@ -112,6 +112,14 @@ code, .fest { font-family: var(--schrift-fest); font-size: .92em; }
 .marke-text { font-weight: 600; letter-spacing: -.01em; }
 
 nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-gruppe { display: contents; }
+.nav-titel {
+  margin: 14px 0 3px; padding: 0 10px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-leise);
+}
+.nav-gruppe:first-child .nav-titel { margin-top: 4px; }
+
 .nav {
   appearance: none; border: 0; background: none; color: var(--text);
   font: inherit; text-align: left; padding: 8px 10px;

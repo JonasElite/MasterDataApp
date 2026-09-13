@@ -652,6 +652,33 @@ function pruefmeldung(pruefung) {
 
 const AMPELSTUFEN = { rot: "rot", gelb: "gelb", gruen: "grün", grau: "grau" };
 
+/** Worauf sich die Quote einer Regel bezieht.
+ *
+ * Ganze Sätze statt eines eingesetzten Hauptworts: im Deutschen steht die
+ * Menge im Dativ ("von 4 Steuerkennzeichen"), im Englischen nicht, und ein
+ * Baukasten aus Wortteilen ergäbe in einer der beiden Sprachen Unsinn.
+ */
+const BEZUGSARTEN = {
+  KUNNR: {
+    betroffen: "{n} von {gesamt} Debitoren",
+    folie: "bis zu {quote} der Debitoren betroffen",
+  },
+  VBELN: {
+    betroffen: "{n} von {gesamt} Rechnungen",
+    folie: "bis zu {quote} der Rechnungen betroffen",
+  },
+  BUKRS: {
+    betroffen: "{n} von {gesamt} Buchungskreisen",
+    folie: "bis zu {quote} der Buchungskreise betroffen",
+  },
+  MWSKZ: {
+    betroffen: "{n} von {gesamt} Steuerkennzeichen",
+    folie: "bis zu {quote} der Steuerkennzeichen betroffen",
+  },
+};
+
+const bezugssatz = (art, feld) => (BEZUGSARTEN[art] || {})[feld] || "";
+
 function ampelstufe(stufe) {
   return el("span", { class: "ampelstufe " + (stufe || "grau") }, [
     el("span", { class: "punkt" }),
@@ -678,13 +705,13 @@ function zeigeErechnung() {
 
   const mitVolumen = daten.belegsicht && !daten.belegsicht.nicht_ermittelbar;
   $("#er-massstab").textContent = mitVolumen
-    ? t("Rot ab {schwelle} der Grundgesamtheit oder {volumen} des "
+    ? t("Rot ab {schwelle} der jeweiligen Bezugsgröße oder {volumen} des "
         + "Rechnungsvolumens bei einer kritischen Regel. Fachlich gesetzt, "
         + "nicht aus der Norm abgeleitet.",
         { schwelle: prozent(daten.schwelle, 0),
           volumen: prozent(daten.volumen_schwelle, 0) })
-    : t("Rot ab {schwelle} der Grundgesamtheit bei einer kritischen Regel. "
-        + "Fachlich gesetzt, nicht aus der Norm abgeleitet.",
+    : t("Rot ab {schwelle} der jeweiligen Bezugsgröße bei einer kritischen "
+        + "Regel. Fachlich gesetzt, nicht aus der Norm abgeleitet.",
         { schwelle: prozent(daten.schwelle, 0) });
   setzen($("#er-gruppen"), (daten.gruppen || []).map(gruppenBlock));
 
@@ -700,6 +727,29 @@ function zeigeErechnung() {
     "Fertige XRechnung- oder ZUGFeRD-Dateien werden nicht validiert. Dafür gibt es den KoSIT-Validator.",
     "Die Abgrenzung bildet gesetzliche Tatbestände ab und ersetzt keine Einzelfallwürdigung. Das Ergebnis ist eine Indikation.",
   ]).map((satz) => el("li", { text: satz })));
+}
+
+/** Die eine Zahl, die eine Gruppe auf der Folie beschreibt.
+ *
+ * "3 von 5 Prüfungen auffällig" sagt nichts darüber, wie schlimm es ist -
+ * fünf von fünf klingt nach Totalausfall, auch wenn jede Prüfung ein
+ * halbes Prozent trifft. Die höchste Quote sagt es.
+ */
+function gruppenAussage(gruppe) {
+  const auffaellig = gruppe.regeln.filter((r) => r.pruefbar && r.befunde);
+  if (!auffaellig.length) {
+    return gruppe.regeln.some((r) => r.pruefbar)
+      ? t("ohne Befund")
+      : t("mangels Daten nicht prüfbar");
+  }
+  const mitQuote = auffaellig.filter((r) => r.quote !== null && r.quote !== undefined);
+  if (!mitQuote.length) {
+    return t("{n} von {gesamt} Prüfungen auffällig",
+      { n: auffaellig.length, gesamt: gruppe.regeln.length });
+  }
+  const schwerste = mitQuote.reduce((a, b) => (b.quote > a.quote ? b : a));
+  return t(bezugssatz(schwerste.bezugsart, "folie"),
+    { quote: prozent(schwerste.quote, 1) });
 }
 
 function fristKarten(daten) {
@@ -818,16 +868,18 @@ function gruppenBlock(gruppe) {
       { titel: "Grad", zelle: (z) => schweregradMerkmal(z.schweregrad) },
       { titel: "Norm", zelle: (z) => z.anforderung },
       { titel: "Befunde", zahl: true, zelle: (z) => z.pruefbar ? zahl(z.befunde) : "-" },
-      // Die Quote braucht ihre Bezugsgröße daneben, sonst weiss niemand,
-      // ob sich "2 %" auf Debitoren oder auf Rechnungen bezieht.
-      { titel: "Quote", zahl: true, zelle: (z) =>
+      // Die Bezugsgröße gehört sichtbar daneben - innerhalb einer Gruppe
+      // kann sie wechseln. Bei den Steuerkennzeichen bezieht sich eine
+      // Zeile auf die Kennzeichen und die nächste auf die Rechnungen.
+      { titel: "Betroffen", zelle: (z) =>
           z.quote === null || z.quote === undefined
             ? "-"
-            : el("span", {
-                text: prozent(z.quote, 1),
-                title: t("{n} von {gesamt}",
-                        { n: zahl(z.befunde), gesamt: zahl(z.bezugsgroesse) }),
-              }) },
+            : el("span", { text: t(bezugssatz(z.bezugsart, "betroffen"), {
+                n: zahl(z.betroffen),
+                gesamt: zahl(z.bezugsgroesse),
+              }) }) },
+      { titel: "Quote", zahl: true, zelle: (z) =>
+          z.quote === null || z.quote === undefined ? "-" : prozent(z.quote, 1) },
       { titel: "Volumen", zahl: true, zelle: (z) =>
           z.volumenanteil === null || z.volumenanteil === undefined
             ? "-"
@@ -2346,10 +2398,7 @@ function baueFolien() {
             gruppe.name,
             // Durch t(), sonst steht auf der englischen Folie "ROT".
             t(AMPELSTUFEN[gruppe.ampel] || AMPELSTUFEN.grau).toUpperCase(),
-            t("auffällig: {n} von {gesamt}", {
-              n: gruppe.regeln.filter((r) => r.pruefbar && r.befunde).length,
-              gesamt: gruppe.regeln.length,
-            }),
+            gruppenAussage(gruppe),
             gruppe.ampel === "rot" ? "critical" : gruppe.ampel === "gruen" ? "gut" : "warnung",
           ))),
         el("p", { class: "unterzeile", text: mitVolumen

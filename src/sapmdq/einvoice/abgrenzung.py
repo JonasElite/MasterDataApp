@@ -270,21 +270,79 @@ def _fristen(
 # Die Ampel je Gruppe ist eine fachliche Setzung und keine Ableitung aus der
 # Norm. Sie steht deshalb im Bericht mit ihrem Maßstab daneben.
 
-def bezugsgroessen(result: Any) -> dict[str, int]:
+#: Feld im Befunddetail, das die Wirkung einer Regel beziffert, und die
+#: Bezugsgröße, gegen die sie zu halten ist.
+WIRKUNGSFELDER = {
+    "betroffene_belege": "VBELN",
+    "betroffene_debitoren": "KUNNR",
+}
+
+
+def bezugsgroessen(con: duckdb.DuckDBPyConnection, result: Any) -> dict[str, int]:
     """Die Mengen, auf die sich eine Quote beziehen kann.
 
-    Der Schlüssel ist die erste Schlüsselspalte der Regel. Zählt sie
-    Debitoren, ist die Grundgesamtheit die Bezugsgröße; zählt sie
-    Rechnungen, sind es die Rechnungen im Umfang. Für alles andere gibt es
-    keine, und dann steht in der Ansicht ein Strich statt einer Zahl, die
-    niemand deuten kann.
+    Debitoren und Rechnungen kommen aus der Abgrenzung. Buchungskreise und
+    Steuerkennzeichen werden gezählt: eine Regel über sie hat sonst keinen
+    Nenner, und ohne Nenner wird jede Gruppe rot, in der sie steht.
     """
     mengen: dict[str, int] = {}
     if result.abgrenzung is not None and result.abgrenzung.ermittelt:
         mengen["KUNNR"] = result.abgrenzung.grundgesamtheit
     if result.belegsicht is not None and result.belegsicht.ermittelt:
         mengen["VBELN"] = result.belegsicht.belege_im_umfang
+
+    geliefert = set(result.ingestion.tables) if result.ingestion else set()
+    for tabelle, spalte, schluessel in (
+        ("T001", "BUKRS", "BUKRS"),
+        ("STEUERZUORDNUNG", "MWSKZ", "MWSKZ"),
+    ):
+        if tabelle in geliefert:
+            anzahl = con.execute(
+                f"SELECT count(DISTINCT {spalte}) FROM {tabelle}"
+            ).fetchone()[0]
+            if anzahl:
+                mengen[schluessel] = int(anzahl)
     return mengen
+
+
+def wirkung_je_regel(
+    con: duckdb.DuckDBPyConnection, befundpfad: str, regel_ids: Iterable[str]
+) -> dict[str, tuple[int, str]]:
+    """Wieviele Rechnungen oder Debitoren eine Regel tatsächlich betrifft.
+
+    Regeln über Steuerkennzeichen, Mengeneinheiten oder Währungen melden
+    einen Befund je Schlüssel, nicht je Beleg. Ein Kennzeichen ohne
+    Zuordnung ist deshalb *ein* Befund - unabhängig davon, ob es in zwei
+    oder in zweihunderttausend Rechnungen steht. Die Regeln beziffern ihre
+    Wirkung im Detail; hier wird sie ausgelesen.
+
+    Ohne diesen Schritt hätte jede solche Regel keinen Nenner, und jede
+    Gruppe, in der sie steht, stünde auf Rot - egal wie klein die Wirkung
+    ist. Genau das war der Fall.
+    """
+    ids = [str(rule_id) for rule_id in regel_ids]
+    if not ids:
+        return {}
+    ausdruecke = ", ".join(
+        f"COALESCE(sum(TRY_CAST(json_extract_string(detail, '$.{feld}') AS BIGINT)), 0)"
+        for feld in WIRKUNGSFELDER
+    )
+    zeilen = con.execute(
+        f"SELECT rule_id, {ausdruecke} FROM read_parquet({quote_literal(befundpfad)}) "
+        f"WHERE NOT whitelisted AND rule_id IN {_liste(ids)} GROUP BY rule_id"
+    ).fetchall()
+
+    ergebnis: dict[str, tuple[int, str]] = {}
+    for zeile in zeilen:
+        rule_id = str(zeile[0])
+        for stelle, art in enumerate(WIRKUNGSFELDER.values(), start=1):
+            menge = int(zeile[stelle] or 0)
+            if menge:
+                # Eine Regel beziffert ihre Wirkung in einer Einheit. Die
+                # erste gefundene gewinnt; zwei zugleich gibt es nicht.
+                ergebnis[rule_id] = (menge, art)
+                break
+    return ergebnis
 
 
 def wirksame_befunde(
@@ -328,6 +386,7 @@ def bewerten(
     volumen_je_regel: dict[str, dict[str, float]] | None = None,
     gesamtvolumen: float = 0.0,
     volumen_schwelle: float = 0.10,
+    wirkung: dict[str, tuple[int, str]] | None = None,
 ) -> list[Gruppe]:
     """Fasst die E-Rechnungsregeln zu Gruppen zusammen und bewertet sie.
 
@@ -336,15 +395,17 @@ def bewerten(
     eine neue Regel keine Codeänderung, um an der richtigen Stelle zu
     erscheinen (NFA-08).
 
-    Die Quote braucht eine Bezugsgröße, und die hängt daran, was die Regel
-    zählt - nicht daran, worüber sie etwas aussagt. ``bezugsgroessen``
-    ordnet der ersten Schlüsselspalte ihre Menge zu: ``KUNNR`` den
-    Debitoren der Grundgesamtheit, ``VBELN`` den Rechnungen im Umfang.
+    Die Quote misst die **Wirkung**, nicht die Zahl der Befunde. Bei einer
+    Regel über Debitoren ist beides dasselbe: ein Befund, ein Kunde. Bei
+    einer Regel über Steuerkennzeichen oder Mengeneinheiten nicht - dort
+    ist ein Befund ein Schlüssel, und ob er zwei oder zweihunderttausend
+    Rechnungen betrifft, steht im Detail. ``wirkung`` trägt diese Zahl
+    nach; wo sie fehlt, zählen die Befunde gegen die Menge ihrer eigenen
+    Art (Buchungskreise, Steuerkennzeichen).
 
-    Wo es keine gibt, gibt es auch keine Quote, und dann zählt der Befund
-    selbst. Das ist kein Notbehelf: eine Mengeneinheit ohne ISO-Code oder
-    ein Buchungskreis ohne USt-IdNr. blockiert jede Rechnung, die darauf
-    zeigt - eine Quote von "eins von vier Kennzeichen" verharmloste das.
+    Bleibt gar keine Bezugsgröße, gibt es keine Quote, und dann zählt der
+    Befund für sich. Das ist der letzte Ausweg und nicht der Normalfall:
+    eine Ampel, die ohne Nenner rot wird, ist immer rot.
 
     Liegen Belege vor, kommt der Volumenanteil dazu: welcher Teil des
     Rechnungsnettovolumens auf die betroffenen Debitoren entfällt. Er
@@ -361,7 +422,12 @@ def bewerten(
         grund = nicht_pruefbar.get(regel.id, "")
         anzahl = befunde_je_regel.get(regel.id, 0)
         schluessel = (getattr(regel, "key_columns", None) or [""])[0]
-        bezug = bezugsgroessen.get(schluessel, 0)
+        gemessen = (wirkung or {}).get(regel.id)
+        if gemessen:
+            betroffen, art = gemessen
+        else:
+            betroffen, art = anzahl, schluessel
+        bezug = bezugsgroessen.get(art, 0)
         volumen = (volumen_je_regel or {}).get(regel.id)
         anteil = (
             round(volumen["volumen"] / gesamtvolumen, 4)
@@ -375,8 +441,10 @@ def bewerten(
                 "schweregrad": regel.severity.value,
                 "anforderung": regel.requirement,
                 "befunde": anzahl,
-                "quote": round(anzahl / bezug, 4) if bezug > 0 else None,
+                "quote": round(betroffen / bezug, 4) if bezug > 0 else None,
+                "betroffen": betroffen,
                 "bezugsgroesse": bezug or None,
+                "bezugsart": art if bezug > 0 else "",
                 "volumen": round(volumen["volumen"], 2) if volumen else None,
                 "volumenanteil": anteil,
                 "pruefbar": not grund,

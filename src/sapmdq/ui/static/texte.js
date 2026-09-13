@@ -38,6 +38,10 @@ const EN = {
   "Dubletten": "Duplicates",
   "Prüfumfang": "Scope",
   "E-Rechnung": "E-invoicing",
+  "Stammdatenqualität": "Master data quality",
+  "Readiness": "Readiness",
+  "Grundlage": "Basis",
+  "Verwaltung": "Administration",
   "Projekte": "Projects",
   "Eingang": "Inbox",
   "Lieferung": "Delivery",
@@ -798,8 +802,8 @@ const EN = {
   "Was diese Auswertung nicht sagt": "What this analysis does not tell you",
   "Dieser Lauf enthält keine E-Rechnungsprüfung. Der Objektbereich ist im Regelkatalog abgeschaltet.":
     "This run contains no e-invoicing check. The object area is switched off in the rule catalogue.",
-  "Rot ab {schwelle} der Grundgesamtheit bei einer kritischen Regel. Fachlich gesetzt, nicht aus der Norm abgeleitet.":
-    "Red from {schwelle} of the base for a critical rule. Set on professional judgement, not derived from the standard.",
+  "Rot ab {schwelle} der jeweiligen Bezugsgröße bei einer kritischen Regel. Fachlich gesetzt, nicht aus der Norm abgeleitet.":
+    "Red from {schwelle} of the respective base for a critical rule. Set on professional judgement, not derived from the standard.",
   "Ohne die Buchungskreise (T001) lässt sich die Frist nicht zuordnen.":
     "Without the company codes (T001) the deadline cannot be assigned.",
   "unbestimmt": "undetermined",
@@ -841,7 +845,6 @@ const EN = {
     "From {stichtag}, domestic B2B invoices must be issued in a structured format. {n} customers are affected.",
   "Betroffen sind {n} inländische B2B-Debitoren. Der Stichtag hängt am Vorjahresumsatz und ist noch nicht hinterlegt.":
     "{n} domestic B2B customers are affected. The deadline depends on prior-year revenue and has not been recorded yet.",
-  "auffällig: {n} von {gesamt}": "flagged: {n} of {gesamt}",
   "{n} kritische Prüfungen mit Befunden. Die Auswertung zählt Geschäftspartner, nicht Rechnungsvolumen - es liegen keine Belege vor.":
     "{n} critical checks with findings. The analysis counts business partners, not invoice volume - no documents are available.",
   "{n} kritische Prüfungen mit Befunden, gemessen an {belege} Rechnungen über {volumen} im gelieferten Zeitraum.":
@@ -868,12 +871,23 @@ const EN = {
     "Credit notes and cancellation invoices - no outgoing revenue",
   "Steuerfreie Umsätze nach § 4 UStG - keine Ausstellungspflicht":
     "Tax-exempt turnover under § 4 UStG - no issuing obligation",
-  "{n} von {gesamt}": "{n} of {gesamt}",
   "Volumen": "Volume",
+  "Betroffen": "Affected",
+  "{n} von {gesamt} Debitoren": "{n} of {gesamt} customers",
+  "{n} von {gesamt} Rechnungen": "{n} of {gesamt} invoices",
+  "{n} von {gesamt} Buchungskreisen": "{n} of {gesamt} company codes",
+  "{n} von {gesamt} Steuerkennzeichen": "{n} of {gesamt} tax codes",
+  "bis zu {quote} der Debitoren betroffen": "up to {quote} of customers affected",
+  "bis zu {quote} der Rechnungen betroffen": "up to {quote} of invoices affected",
+  "bis zu {quote} der Buchungskreise betroffen": "up to {quote} of company codes affected",
+  "bis zu {quote} der Steuerkennzeichen betroffen": "up to {quote} of tax codes affected",
+  "ohne Befund": "no findings",
+  "mangels Daten nicht prüfbar": "not checkable for lack of data",
+  "{n} von {gesamt} Prüfungen auffällig": "{n} of {gesamt} checks flagged",
   "{betrag} Rechnungsvolumen der betroffenen Debitoren":
     "{betrag} invoice volume of the customers affected",
-  "Rot ab {schwelle} der Grundgesamtheit oder {volumen} des Rechnungsvolumens bei einer kritischen Regel. Fachlich gesetzt, nicht aus der Norm abgeleitet.":
-    "Red from {schwelle} of the base or {volumen} of the invoice volume for a critical rule. Set on professional judgement, not derived from the standard.",
+  "Rot ab {schwelle} der jeweiligen Bezugsgröße oder {volumen} des Rechnungsvolumens bei einer kritischen Regel. Fachlich gesetzt, nicht aus der Norm abgeleitet.":
+    "Red from {schwelle} of the respective base or {volumen} of the invoice volume for a critical rule. Set on professional judgement, not derived from the standard.",
   "Der Volumenanteil bezieht sich auf den gelieferten Zeitraum, nicht auf ein Geschäftsjahr. Bei einem kurzen Zeitraum steht die Hochrechnung daneben - sie unterstellt, dass die übrigen Monate wie die gelieferten aussehen.":
     "The volume share refers to the period delivered, not to a financial year. For a short period the extrapolation is shown alongside - it assumes the remaining months look like the ones delivered.",
   "Gewichtet wird über den Debitor. Regeln über Buchungskreis, Steuerkennzeichen oder Beleg haben keinen Volumenanteil, weil ihr Gegenstand kein Kunde ist.":

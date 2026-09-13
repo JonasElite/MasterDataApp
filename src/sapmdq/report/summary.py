@@ -248,7 +248,7 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> str:
             )
 
     # ------------------------------------------------------- E-Rechnung
-    lines += _erechnung_abschnitt(result)
+    lines += _erechnung_abschnitt(con, result)
 
     # -------------------------------------------------------- Regelfehler
     if result.failed_rules:
@@ -345,7 +345,7 @@ def write_summary(con: duckdb.DuckDBPyConnection, result: RunResult, target: Pat
     return target
 
 
-def _erechnung_abschnitt(result: RunResult) -> list[str]:
+def _erechnung_abschnitt(con: duckdb.DuckDBPyConnection, result: RunResult) -> list[str]:
     """E-Rechnungs-Readiness im geschriebenen Bericht.
 
     Kurz gehalten: Betroffenheit, Frist, Grundgesamtheit und die Ampel je
@@ -406,11 +406,12 @@ def _erechnung_abschnitt(result: RunResult) -> list[str]:
         regeln,
         result.befunde_je_regel,
         nicht_pruefbar,
-        bezugsgroessen(result),
+        bezugsgroessen(con, result),
         schwelle,
         result.volumen_je_regel,
         belegsicht.volumen if belegsicht and belegsicht.ermittelt else 0.0,
         einvoice.volumen_schwelle,
+        result.wirkung_je_regel,
     )
 
     if belegsicht is not None and belegsicht.ermittelt:
@@ -448,7 +449,7 @@ def _erechnung_abschnitt(result: RunResult) -> list[str]:
     lines.append("### Bewertung je Gruppe")
     lines.append("")
     mit_volumen = belegsicht is not None and belegsicht.ermittelt
-    mengen = bezugsgroessen(result)
+    mengen = bezugsgroessen(con, result)
     bezug = "; ".join(
         teil for teil in (
             f"{mengen['KUNNR']} Debitoren" if "KUNNR" in mengen else "",

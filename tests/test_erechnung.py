@@ -688,3 +688,96 @@ class TestScore:
         """Gezählt wird der Bereich weiter - nur bewertet nicht."""
         _, zusammenfassung = lauf
         assert zusammenfassung["befunde"]["je_bereich"].get("einvoice", 0) > 0
+
+
+# ---------------------------------------------------------------- Wirkung
+class TestWirkung:
+    """Ein Befund ist nicht immer eine betroffene Rechnung.
+
+    Regeln über Steuerkennzeichen, Mengeneinheiten oder Währungen melden
+    einen Befund je Schlüssel. Ohne die Wirkung aus dem Detail hätten sie
+    keinen Nenner - und jede Gruppe, in der sie stehen, stünde auf Rot.
+    Genau so war es, bis diese Tests dazukamen.
+    """
+
+    def _befunde(self, con, tmp_path, zeilen):
+        pfad = tmp_path / "befunde.parquet"
+        werte = ", ".join(f"('{r}', '{d}', false)" for r, d in zeilen)
+        con.execute(
+            f"COPY (SELECT * FROM (VALUES {werte}) AS t(rule_id, detail, whitelisted)) "
+            f"TO '{pfad}' (FORMAT PARQUET)"
+        )
+        return str(pfad)
+
+    def test_betroffene_belege_werden_summiert(self, con, tmp_path):
+        from sapmdq.einvoice.abgrenzung import wirkung_je_regel
+
+        pfad = self._befunde(con, tmp_path, [
+            ("R-1", '{"MWSKZ":"AX","betroffene_belege":2}'),
+            ("R-1", '{"MWSKZ":"AY","betroffene_belege":5}'),
+        ])
+        assert wirkung_je_regel(con, pfad, ["R-1"]) == {"R-1": (7, "VBELN")}
+
+    def test_betroffene_debitoren_werden_erkannt(self, con, tmp_path):
+        from sapmdq.einvoice.abgrenzung import wirkung_je_regel
+
+        pfad = self._befunde(con, tmp_path, [
+            ("R-2", '{"LAND1":"EN","betroffene_debitoren":3}'),
+        ])
+        assert wirkung_je_regel(con, pfad, ["R-2"]) == {"R-2": (3, "KUNNR")}
+
+    def test_ohne_wirkungsangabe_kein_eintrag(self, con, tmp_path):
+        from sapmdq.einvoice.abgrenzung import wirkung_je_regel
+
+        pfad = self._befunde(con, tmp_path, [("R-3", '{"KUNNR":"100"}')])
+        assert wirkung_je_regel(con, pfad, ["R-3"]) == {}
+
+    def test_die_wirkung_bestimmt_die_quote(self):
+        """Ein Kennzeichen in zwei von 333 Rechnungen ist kein Alarm."""
+        regel = _Regel("R-1", "Steuerkennzeichen", key="MWSKZ")
+        gruppe = bewerten(
+            [regel], {"R-1": 1}, {}, {"MWSKZ": 4, "VBELN": 333}, 0.05,
+            wirkung={"R-1": (2, "VBELN")},
+        )[0]
+        assert gruppe.regeln[0]["betroffen"] == 2
+        assert gruppe.regeln[0]["bezugsart"] == "VBELN"
+        assert gruppe.regeln[0]["quote"] == round(2 / 333, 4)
+        assert gruppe.ampel == "gelb"
+
+    def test_ohne_wirkung_zaehlt_die_eigene_art(self):
+        """Ein Viertel der Steuerkennzeichen unzugeordnet ist sehr wohl rot."""
+        regel = _Regel("R-1", "Steuerkennzeichen", key="MWSKZ")
+        gruppe = bewerten([regel], {"R-1": 1}, {}, {"MWSKZ": 4}, 0.05)[0]
+        assert gruppe.regeln[0]["quote"] == 0.25
+        assert gruppe.ampel == "rot"
+
+    def test_der_eigene_buchungskreis_bleibt_rot(self):
+        """Ohne USt-IdNr. ist keine einzige Rechnung erzeugbar - 100 %."""
+        regel = _Regel("R-1", "Buchungskreis", key="BUKRS")
+        gruppe = bewerten([regel], {"R-1": 1}, {}, {"BUKRS": 1}, 0.05)[0]
+        assert gruppe.regeln[0]["quote"] == 1.0
+        assert gruppe.ampel == "rot"
+
+
+class TestAmpelImGanzenLauf:
+    def test_nicht_jede_gruppe_ist_rot(self, lauf):
+        """Eine Ampel, die immer rot zeigt, sagt nichts.
+
+        Der Fall war real: fünf von sieben Gruppen standen auf Rot, weil
+        ihre Regeln keinen Nenner hatten - jede mit genau einem Befund.
+        """
+        _, zusammenfassung = lauf
+        stufen = {g["name"]: g["ampel"] for g in zusammenfassung["erechnung"]["gruppen"]}
+        assert set(stufen.values()) != {"rot"}, stufen
+        assert stufen["Beleg"] == "gelb"
+        assert stufen["Buchungskreis"] == "rot"
+
+    def test_jede_regel_mit_befund_nennt_ihre_bezugsgroesse(self, lauf):
+        _, zusammenfassung = lauf
+        ohne = [
+            regel["id"]
+            for gruppe in zusammenfassung["erechnung"]["gruppen"]
+            for regel in gruppe["regeln"]
+            if regel["pruefbar"] and regel["befunde"] and regel["quote"] is None
+        ]
+        assert not ohne, f"Regeln ohne Bezugsgröße: {ohne}"

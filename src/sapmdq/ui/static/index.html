@@ -34,17 +34,36 @@
     </button>
 
     <nav aria-label="Bereiche">
-      <button class="nav" data-ansicht="lagebild" aria-current="page">Lagebild</button>
-      <button class="nav" data-ansicht="befunde">Befunde</button>
-      <button class="nav" data-ansicht="dubletten">Dubletten</button>
-      <button class="nav" data-ansicht="erechnung">E-Rechnung</button>
-      <button class="nav" data-ansicht="abdeckung">Abdeckung</button>
-      <button class="nav" data-ansicht="coverage">Prüfumfang</button>
-      <button class="nav" data-ansicht="eingang">Eingang</button>
-      <button class="nav" data-ansicht="lieferung">Lieferung</button>
-      <button class="nav" data-ansicht="ausnahmen">Ausnahmen</button>
-      <button class="nav" data-ansicht="laeufe">Läufe</button>
-      <button class="nav" data-ansicht="projekte">Projekte</button>
+      <!-- Die Ansichten gehören zu zwei verschiedenen Fragen, und eine
+           flache Liste aus elf Einträgen verwischt das. Die Gruppen sagen,
+           wonach man sucht: das Ergebnis, die E-Rechnung, die Grundlage
+           dieses Laufs, die Verwaltung des Projekts. -->
+      <div class="nav-gruppe" role="group" aria-labelledby="nav-stammdaten">
+        <p class="nav-titel" id="nav-stammdaten">Stammdatenqualität</p>
+        <button class="nav" data-ansicht="lagebild" aria-current="page">Lagebild</button>
+        <button class="nav" data-ansicht="befunde">Befunde</button>
+        <button class="nav" data-ansicht="dubletten">Dubletten</button>
+      </div>
+
+      <div class="nav-gruppe" role="group" aria-labelledby="nav-erechnung">
+        <p class="nav-titel" id="nav-erechnung">E-Rechnung</p>
+        <button class="nav" data-ansicht="erechnung">Readiness</button>
+      </div>
+
+      <div class="nav-gruppe" role="group" aria-labelledby="nav-grundlage">
+        <p class="nav-titel" id="nav-grundlage">Grundlage</p>
+        <button class="nav" data-ansicht="abdeckung">Abdeckung</button>
+        <button class="nav" data-ansicht="coverage">Prüfumfang</button>
+        <button class="nav" data-ansicht="lieferung">Lieferung</button>
+      </div>
+
+      <div class="nav-gruppe" role="group" aria-labelledby="nav-verwaltung">
+        <p class="nav-titel" id="nav-verwaltung">Verwaltung</p>
+        <button class="nav" data-ansicht="eingang">Eingang</button>
+        <button class="nav" data-ansicht="ausnahmen">Ausnahmen</button>
+        <button class="nav" data-ansicht="laeufe">Läufe</button>
+        <button class="nav" data-ansicht="projekte">Projekte</button>
+      </div>
     </nav>
 
     <div class="seitenleiste-fuss">

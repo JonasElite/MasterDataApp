@@ -104,7 +104,7 @@ umgesetzt.
 | NFA-05 | Identische Eingabe ergibt bitgleiches Ergebnis | umgesetzt | Nachweis AK-04, byteweiser Vergleich |
 | NFA-06 | Befund auf Regelversion, Dateihash, Zeitstempel zurückführbar | umgesetzt | Nachweis AK-05 |
 | NFA-07 | Start über einen Befehl, kein Programmierwissen | umgesetzt | `sapmdq run -c projekt.yaml`, wahlweise `sapmdq ui` |
-| NFA-08 | Neue Regel ohne Kernänderung, Testabdeckung der Engine | umgesetzt | 568 Tests |
+| NFA-08 | Neue Regel ohne Kernänderung, Testabdeckung der Engine | umgesetzt | 576 Tests |
 | NFA-09 | Regelfehler bricht den Lauf nicht ab | umgesetzt | Ausfall wird als Regelfehler ausgewiesen |
 
 ## 6 Datenschutz und Informationssicherheit

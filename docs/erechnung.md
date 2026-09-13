@@ -195,33 +195,55 @@ ist keine Bilanzzahl.
 Fehlt beides, bleibt der Stichtag **ausdrücklich unbestimmt** - ein
 geratener Stichtag wäre schlimmer als gar keiner.
 
-## Bezugsgrößen
+## Die Quote misst die Wirkung, nicht die Befunde
 
-Eine Quote braucht einen Nenner, und der hängt daran, **was die Regel
-zählt** - nicht daran, worüber sie etwas aussagt. Maßgeblich ist die erste
-Schlüsselspalte der Regel:
+Ein Befund ist nicht dasselbe wie ein betroffener Fall. Bei einer Regel über
+Debitoren schon: ein Befund, ein Kunde. Bei einer Regel über
+Steuerkennzeichen, Mengeneinheiten oder Währungen nicht - dort ist ein
+Befund *ein Schlüssel*, und ob er zwei oder zweihunderttausend Rechnungen
+betrifft, macht den ganzen Unterschied.
 
-| Schlüssel | Bezugsgröße | Beispiel |
+Diese Regeln beziffern ihre Wirkung deshalb selbst, im Feld
+`betroffene_belege` beziehungsweise `betroffene_debitoren` ihres Befundes.
+Die Bewertung liest sie aus und bildet die Quote daran:
+
+| Regel meldet | Bezugsgröße | Beispiel |
 |---|---|---|
-| `KUNNR` | Debitoren der Grundgesamtheit | `ERE-COMP-005` - 4 von 105 |
-| `VBELN` | Rechnungen im Umfang | `ERE-COMP-008` - 2 von 333 |
-| alles andere | keine | `ERE-REF-003` zählt Steuerkennzeichen, `ERE-REF-005` Mengeneinheiten |
+| `betroffene_belege` | Rechnungen im Umfang | `ERE-REF-003`: Kennzeichen AX in 2 von 333 Rechnungen |
+| `betroffene_debitoren` | Debitoren der Grundgesamtheit | `ERE-REF-001`: Länderschlüssel EN bei 2 von 105 Debitoren |
+| nichts - der Befund *ist* der Fall | die Menge seiner eigenen Art | `ERE-COMP-007`: 1 von 4 Steuerkennzeichen; `ERE-COMP-001`: 1 von 1 Buchungskreisen |
 
-Wo es keine Bezugsgröße gibt, steht ein Strich statt einer Zahl, und schon
-ein Befund setzt die Gruppe auf Rot. Das ist kein Notbehelf: ein
-Steuerkennzeichen ohne Zuordnung oder eine Mengeneinheit ohne ISO-Code
-blockiert **jede** Rechnung, die darauf zeigt. Eine Quote von "eins von vier
-Kennzeichen" verharmloste das.
+Die Bezugsgröße wechselt damit **auch innerhalb einer Gruppe** - bei den
+Steuerkennzeichen bezieht sich eine Zeile auf die Kennzeichen und die
+nächste auf die Rechnungen. Die Ansicht schreibt sie deshalb an jede Zeile
+("2 von 333 Rechnungen"), nicht in die Spaltenüberschrift.
 
-Umgekehrt gilt: zwei undatierte Rechnungen aus fünf Millionen sind kein
-Alarm. Ohne die Bezugsgröße `VBELN` wäre die Gruppe *Beleg* bei realen
-Datenmengen praktisch immer rot gewesen.
+### Warum das gebaut wurde
+
+Ohne diesen Schritt hatten sieben von sieben Gruppen die Ampel auf Rot -
+fünf davon allein deshalb, weil ihre Regeln keinen Nenner hatten und je
+genau *einen* Befund meldeten. Eine Ampel, die immer rot zeigt, sagt nichts,
+und im Kundentermin kostet sie Glaubwürdigkeit.
+
+Mit der Wirkung als Maß steht dieselbe Beispiellieferung auf drei Rot und
+vier Gelb, und hinter jedem Rot steht eine Zahl:
+
+- **Buchungskreis** - 100 %: der eigene Buchungskreis hat keine USt-IdNr.
+  und keine vollständige Anschrift. Damit ist keine einzige Rechnung
+  erzeugbar, gleich wie gut die Debitoren gepflegt sind.
+- **Debitor** - 8,6 % der Kunden ohne vollständige Anschrift, und 28,2 % des
+  Umsatzes ohne elektronische Adresse.
+- **Steuerkennzeichen** - 25 % der Kennzeichen ohne vollständige Zuordnung.
+
+Die vier gelben Gruppen liegen alle unter 1,5 %. Sie sind Arbeit, aber kein
+Grund, den Stichtag in Frage zu stellen - und genau das soll eine Ampel
+unterscheiden können.
 
 ## Ampel je Gruppe
 
 | Stufe | Kriterium |
 |---|---|
-| Rot | eine kritische Regel über der Quotenschwelle **oder** über der Volumenschwelle - oder mit Befunden, wo es keine Bezugsgröße gibt |
+| Rot | eine kritische Regel über der Quotenschwelle **oder** über der Volumenschwelle - oder mit Befunden, wo es beim besten Willen keine Bezugsgröße gibt |
 | Gelb | Befunde vorhanden, aber unter der Schwelle |
 | Grün | keine Befunde |
 | Grau | mangels Daten nicht prüfbar |

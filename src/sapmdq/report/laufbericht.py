@@ -338,7 +338,7 @@ def _delta(result: RunResult) -> dict[str, Any] | None:
     }
 
 
-def _erechnung(result: RunResult) -> dict[str, Any] | None:
+def _erechnung(con: duckdb.DuckDBPyConnection, result: RunResult) -> dict[str, Any] | None:
     """Der Abschnitt zur E-Rechnungs-Readiness (EN 16931).
 
     Fehlt der Objektbereich im Katalog - weil die Regeln abgeschaltet sind
@@ -367,11 +367,12 @@ def _erechnung(result: RunResult) -> dict[str, Any] | None:
         regeln,
         result.befunde_je_regel,
         nicht_pruefbar,
-        bezugsgroessen(result),
+        bezugsgroessen(con, result),
         einvoice.ampel_schwelle,
         result.volumen_je_regel,
         belegsicht.volumen if mit_belegen else 0.0,
         einvoice.volumen_schwelle,
+        result.wirkung_je_regel,
     )
     return {
         "abgrenzung": abgrenzung.als_dict() if abgrenzung else None,
@@ -410,7 +411,7 @@ def build_summary(con: duckdb.DuckDBPyConnection, result: RunResult) -> dict[str
         "lieferung": _lieferung(result),
         "coverage": _coverage(result),
         "abdeckung": _abdeckung(result),
-        "erechnung": _erechnung(result),
+        "erechnung": _erechnung(con, result),
         "regellauf": _regellauf(result),
         "befunde": _befunde(con, result),
         "bewertung": _bewertung(result),

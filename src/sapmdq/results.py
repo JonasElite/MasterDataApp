@@ -52,6 +52,8 @@ class RunResult:
     volumen_je_regel: dict[str, dict[str, float]] = field(default_factory=dict)
     #: Je E-Rechnungsregel die Befunde ohne die freigegebenen Ausnahmen.
     befunde_je_regel: dict[str, int] = field(default_factory=dict)
+    #: Je E-Rechnungsregel die betroffene Menge und ihre Art.
+    wirkung_je_regel: dict[str, tuple[int, str]] = field(default_factory=dict)
     audit: AuditRecord | None = None
 
     #: Erzeugte Berichtsdateien.

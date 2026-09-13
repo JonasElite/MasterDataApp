@@ -38,7 +38,7 @@ from sapmdq.report.score import compute_score
 from sapmdq.results import RunResult
 from sapmdq.einvoice import ermittle_abgrenzung, parameter_setzen
 from sapmdq.einvoice.abgrenzung import BEREICH as EINVOICE_BEREICH
-from sapmdq.einvoice.abgrenzung import wirksame_befunde
+from sapmdq.einvoice.abgrenzung import wirksame_befunde, wirkung_je_regel
 from sapmdq.einvoice.belege import (
     ermittle_belegsicht,
     jahresumsatz_je_buchungskreis,
@@ -355,8 +355,14 @@ def _erechnung_auswerten(con: duckdb.DuckDBPyConnection, result: RunResult, cata
         # Ausnahmen sind hier schon abgezogen. Die Zahl aus der
         # Regelausführung zählt sie mit; in der Ansicht stünde dann ein
         # Befund, den das Lagebild längst nicht mehr führt.
+        kennungen = [rule.id for rule in regeln]
         result.befunde_je_regel = wirksame_befunde(
-            con, str(result.findings_path), [rule.id for rule in regeln]
+            con, str(result.findings_path), kennungen
+        )
+        # Ein Befund ist nicht immer eine betroffene Rechnung. Was eine
+        # Regel wirklich trifft, steht in ihrem Detail.
+        result.wirkung_je_regel = wirkung_je_regel(
+            con, str(result.findings_path), kennungen
         )
         if result.belegsicht.ermittelt:
             result.volumen_je_regel = volumen_je_regel(

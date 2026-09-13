@@ -48,6 +48,18 @@ als Parameter in die Abfrage und nicht in ihren Text.
 
 ## Die Ansichten
 
+Die Seitenleiste gliedert sie in vier Gruppen. Elf flache Einträge
+verwischten, dass hier zwei verschiedene Fragen beantwortet werden - die
+nach der Stammdatenqualität und die nach der E-Rechnungs-Readiness - und
+dazu die Verwaltung des Projekts.
+
+| Gruppe | Ansichten | Frage |
+|---|---|---|
+| Stammdatenqualität | Lagebild, Befunde, Dubletten | Wie gut sind die Daten? |
+| E-Rechnung | Readiness | Können wir ab 2027 normkonform fakturieren? |
+| Grundlage | Abdeckung, Prüfumfang, Lieferung | Worauf stützt sich die Aussage? |
+| Verwaltung | Eingang, Ausnahmen, Läufe, Projekte | Womit arbeitet das Werkzeug? |
+
 | Ansicht | Inhalt |
 |---|---|
 | Lagebild | Punktwert groß, Prüfumfang als Ring, Befunde je Schweregrad und Bereich, häufigste Regeln, Nachforderung nach Wirkung, Bewertung je Bereich mit Vorbehalt |

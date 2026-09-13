@@ -258,7 +258,7 @@ außerhalb des Werkzeugs und sind organisatorisch zu regeln; siehe
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest              # 568 Tests
+python -m pytest              # 576 Tests
 python -m pytest tests/test_akzeptanzkriterien.py -v   # Abnahmenachweis
 ```
 
