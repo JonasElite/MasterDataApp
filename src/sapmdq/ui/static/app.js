@@ -126,6 +126,44 @@ function schweregradMerkmal(grad) {
   return merkmal(grad || "-", SCHWEREGRADE.includes(grad) ? grad : "leise");
 }
 
+/** Das Gewicht eines Befundes der Lieferungsprüfung.
+ *
+ * Die Vorstufe kennt eigene Stufen (info, warnung, fehler) - nicht die
+ * Schweregrade des Regelkatalogs. Sie stehen als Wort in der Antwort und
+ * bekommen hier ihre Beschriftung und ihre Farbe.
+ */
+const GEWICHTE = {
+  fehler: { wort: "Fehler", klasse: "critical" },
+  warnung: { wort: "Warnung", klasse: "medium" },
+  info: { wort: "Hinweis", klasse: "leise" },
+};
+
+function gewichtMerkmal(gewicht) {
+  const stufe = GEWICHTE[gewicht];
+  return merkmal(stufe ? t(stufe.wort) : (gewicht || "-"), stufe ? stufe.klasse : "leise");
+}
+
+/** Warum eine Regel nicht laufen konnte.
+ *
+ * Der fertige Satz in lauf.json ist deutsch. Für die englische Fassung wird
+ * er hier aus seinen Teilen neu gebildet; fehlen die (ältere Läufe), bleibt
+ * der gespeicherte Satz stehen.
+ */
+function entfallgrund(regel) {
+  if (!regel || regel.ausfuehrbar) return "";
+  const teile = [];
+  const tabellen = regel.fehlende_tabellen || [];
+  if (tabellen.length) {
+    teile.push(t("Tabelle(n) {tabellen} fehlen", { tabellen: tabellen.join(", ") }));
+  }
+  const felder = regel.fehlende_felder || {};
+  for (const tabelle of Object.keys(felder).sort()) {
+    teile.push(t("in {tabelle} fehlen die Felder {felder}",
+      { tabelle: tabelle, felder: (felder[tabelle] || []).join(", ") }));
+  }
+  return teile.length ? teile.join("; ") : (regel.grund || "");
+}
+
 /* --------------------------------------------------------------- Aufrufe */
 
 /** Der Wortlaut eines Fehlers aus der Schnittstelle.
@@ -596,7 +634,7 @@ function zeigeLagebild() {
     offen.map((kandidat) => ({
       name: kandidat.tabelle,
       wert: kandidat.kumuliert || kandidat.zusaetzliche_pruefungen || 0,
-      titel: kandidat.tabelle + " (" + kandidat.bedeutung + "): "
+      titel: kandidat.tabelle + " (" + t(kandidat.bedeutung) + "): "
              + t("schaltet {n} weitere Prüfungen frei", { n: zahl(kandidat.kumuliert) }),
     })),
     { leer: "Die Lieferung ist vollständig - es fehlt nichts." },
@@ -798,7 +836,7 @@ function abgrenzungTrichter(abgrenzung) {
   for (const ausschluss of abgrenzung.ausschluesse || []) {
     zeilen.push(el("div", { class: "trichter-zeile abzug" }, [
       el("span", {}, [
-        el("div", { text: t(ausschluss.grund) }),
+        el("div", { text: t(ausschluss.grund, ausschluss.werte) }),
       ]),
       el("span", { class: "trichter-wert", text: "-" + zahl(ausschluss.saetze) }),
     ]));
@@ -839,7 +877,7 @@ function belegTrichter(belegsicht) {
   ];
   for (const ausschluss of belegsicht.ausschluesse || []) {
     zeilen.push(el("div", { class: "trichter-zeile abzug" }, [
-      el("span", { text: t(ausschluss.grund) }),
+      el("span", { text: t(ausschluss.grund, ausschluss.werte) }),
       el("span", { class: "trichter-wert", text: "-" + zahl(ausschluss.belege) }),
     ]));
   }
@@ -1335,7 +1373,7 @@ function zeigeLieferung() {
 
   setzen($("#l-pruefungen"), [tabelle([
     { titel: "Prüfung", fest: true, zelle: (z) => z.id },
-    { titel: "Gewicht", zelle: (z) => schweregradMerkmal(z.gewicht) },
+    { titel: "Gewicht", zelle: (z) => gewichtMerkmal(z.gewicht) },
     { titel: "Gegenstand", zelle: (z) => z.gegenstand },
     { titel: "Anforderung", zelle: (z) => t(z.anforderung) },
     { titel: "Meldung", zelle: (z) => pruefmeldung(z) },
@@ -1426,7 +1464,7 @@ function prozessKarte(prozess) {
       el("div", { class: "tabellen-marken" }, (prozess.tabellen || []).map((tabelle) =>
         el("span", {
           class: "tabellen-marke " + (tabelle.geliefert ? "geliefert" : "fehlt"),
-          title: tabelle.bedeutung + " \u2013 "
+          title: t(tabelle.bedeutung) + " \u2013 "
                  + t(tabelle.geliefert ? "geliefert" : "in dieser Lieferung nicht enthalten"),
           text: tabelle.name,
         }))),
@@ -1450,12 +1488,12 @@ function zeichneAbdeckungstabellen() {
   const zeilen = (abdeckung.tabellen || []).filter((tabelle) => {
     if (nurFehlend && tabelle.geliefert) return false;
     if (!suche) return true;
-    return (tabelle.name + " " + tabelle.bedeutung).toLowerCase().includes(suche);
+    return (tabelle.name + " " + t(tabelle.bedeutung)).toLowerCase().includes(suche);
   });
 
   setzen($("#ab-tabellen"), [tabelle([
     { titel: "Tabelle", fest: true, zelle: (z) => z.name },
-    { titel: "Bedeutung", zelle: (z) => z.bedeutung },
+    { titel: "Bedeutung", zelle: (z) => t(z.bedeutung) },
     { titel: "Einstufung", zelle: (z) => merkmal(
         t({ must: "unverzichtbar", should: "wichtig", could: "hilfreich" }[z.einstufung]
           || z.einstufung),
@@ -1464,7 +1502,7 @@ function zeichneAbdeckungstabellen() {
         ? merkmal("ja", "gut")
         : merkmal("nein", "high") },
     { titel: "Regeln", zahl: true, zelle: (z) => zahl(z.regeln) },
-    { titel: "Prozesse", zelle: (z) => (z.prozesse || []).map((id) => namen[id] || id).join(", ") },
+    { titel: "Prozesse", zelle: (z) => (z.prozesse || []).map((id) => t(namen[id] || id)).join(", ") },
   ], zeilen)]);
 }
 
@@ -1485,7 +1523,7 @@ function zeigeCoverage() {
     { titel: "Tabelle", fest: true, zelle: (z) => z.tabelle },
     { titel: "Einstufung", zelle: (z) =>
         merkmal(z.einstufung, z.einstufung === "unverzichtbar" ? "critical" : "leise") },
-    { titel: "Bedeutung", zelle: (z) => z.bedeutung },
+    { titel: "Bedeutung", zelle: (z) => t(z.bedeutung) },
     { titel: "Status", zelle: (z) => z.geliefert
         ? merkmal("geliefert", "gut")
         : merkmal("fehlt", "high") },
@@ -1519,7 +1557,7 @@ function zeichneRegeln() {
     { titel: "Ausführbar", zelle: (z) => z.ausfuehrbar
         ? merkmal("ja", "gut")
         : merkmal("nein", "high") },
-    { titel: "Grund", zelle: (z) => z.ausfuehrbar ? "" : z.grund },
+    { titel: "Grund", zelle: (z) => entfallgrund(z) },
   ], regeln, (regel) => zeigeRegel(regel))]);
 }
 
@@ -1534,7 +1572,7 @@ function zeigeRegel(regel) {
       el("dt", { text: "Anforderung" }), el("dd", { text: regel.anforderung }),
       el("dt", { text: "Regelversion" }), el("dd", { class: "fest", text: regel.version }),
       el("dt", { text: "Ausführbar" }),
-      el("dd", { text: regel.ausfuehrbar ? t("ja") : t("nein") + " - " + regel.grund }),
+      el("dd", { text: regel.ausfuehrbar ? t("ja") : t("nein") + " - " + entfallgrund(regel) }),
     ]),
     el("div", { class: "abschnitt" }, [
       el("h3", { text: "Was geprüft wird" }),
@@ -2428,7 +2466,7 @@ function baueFolien() {
         + "freischaltet." }),
       saeulen(
         offen.slice(0, 8).map((kandidat) => ({
-          name: kandidat.tabelle + " \u2013 " + kandidat.bedeutung,
+          name: kandidat.tabelle + " \u2013 " + t(kandidat.bedeutung),
           wert: kandidat.kumuliert || kandidat.zusaetzliche_pruefungen || 0,
         })),
         { leer: "" },

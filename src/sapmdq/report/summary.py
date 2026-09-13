@@ -434,7 +434,7 @@ def _erechnung_abschnitt(con: duckdb.DuckDBPyConnection, result: RunResult) -> l
         lines += _table(
             ["Menge", "Belege"],
             [["Belege im Zeitraum", str(belegsicht.belege_gesamt)]]
-            + [[a.grund, f"-{a.belege}"] for a in belegsicht.ausschluesse]
+            + [[a.text, f"-{a.belege}"] for a in belegsicht.ausschluesse]
             + [
                 ["Rechnungen im Umfang", str(belegsicht.belege_im_umfang)],
                 ["Nettovolumen", f"{belegsicht.volumen:,.0f}".replace(",", ".")],

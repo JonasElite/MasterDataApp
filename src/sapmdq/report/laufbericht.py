@@ -133,6 +133,14 @@ def _coverage(result: RunResult) -> dict[str, Any]:
                 "version": faehigkeit.rule.version,
                 "ausfuehrbar": faehigkeit.executable,
                 "grund": faehigkeit.reason,
+                # Dieselbe Begründung in ihren Teilen. Die Oberfläche baut den
+                # Satz daraus in der gewählten Sprache neu; der fertige Satz
+                # oben bleibt für den Bericht und für ältere Auswertungen.
+                "fehlende_tabellen": list(faehigkeit.missing_tables),
+                "fehlende_felder": {
+                    tabelle: list(felder)
+                    for tabelle, felder in sorted(faehigkeit.missing_fields.items())
+                },
                 # Übersetzungen des Regeltextes, je Sprachkürzel. Die
                 # Oberfläche greift darauf zu; fehlt eine, bleibt es beim
                 # deutschen Wortlaut.

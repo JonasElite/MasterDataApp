@@ -176,7 +176,7 @@ prüft `tests/test_ui_sprachen.py`, dass jeder verwendete Text eine englische
 Fassung hat, dass kein Schlüssel doppelt vergeben ist und dass die
 Platzhalter beider Fassungen übereinstimmen.
 
-Drei Dinge sind dabei nicht offensichtlich:
+Vier Dinge sind dabei nicht offensichtlich:
 
 * **Die Prosa wird neu gebildet, nicht übersetzt.** Vorbehalt zum
   Prüfumfang, Einordnung eines Punktwerts, Dublettenbegründung und
@@ -195,6 +195,16 @@ Drei Dinge sind dabei nicht offensichtlich:
   Vorlage mit Platzhaltern; die Oberfläche bildet daraus die englische
   Fassung. Ein Test liest die Vorlagen aus dem Quelltext und hält sie gegen
   das Wörterbuch - eine neue Meldung fällt damit sofort auf.
+* **Was aus den Daten kommt, wird an der Quelle übersetzbar gehalten.** Die
+  Kurztexte der SAP-Tabellen stehen auf Deutsch in `sap/tables.yaml`, die
+  Begründung einer entfallenen Regel wird in `rules/capability.py` zu einem
+  deutschen Satz zusammengesetzt, und die Ausschlussgründe der Belegsicht
+  tragen einen Betrag im Text. Alle drei sind so gelöst, dass ein Schlüssel
+  trifft: die Kurztexte stehen im Wörterbuch, die Begründung reist in ihren
+  Teilen mit (`fehlende_tabellen`, `fehlende_felder`) und wird in der
+  Oberfläche neu gebildet, und der Ausschlussgrund bleibt eine Vorlage mit
+  Platzhalter, deren Werte daneben stehen. Tests halten jede der drei
+  Listen gegen das Wörterbuch.
 
 Eine weitere Sprache braucht: einen Eintrag in `SPRACHEN`, ein zweites
 Wörterbuch in `texte.js` und eine Datei `rules/i18n/<kuerzel>.yaml`.

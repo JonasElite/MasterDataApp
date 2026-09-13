@@ -293,6 +293,7 @@ const EN = {
   "{n} Regelfehler": "{n} rule failures",
   "{a} von {b}": "{a} of {b}",
   "{a} von {b} Regeln": "{a} of {b} rules",
+  "{n} Regeln": "{n} rules",
   "Seite {a} von {b}": "Page {a} of {b}",
   " - eingeschränkt auf Regel {regel}": " - limited to rule {regel}",
   "von 100 Punkten, aus {n} geprüften Sätzen.":
@@ -683,6 +684,12 @@ const EN = {
   "{name} aus dem Eingangsverzeichnis löschen?": "Delete {name} from the input directory?",
   "{name} entfernt.": "{name} removed.",
   "Fehler": "Error",
+  "Warnung": "Warning",
+  "Hinweis": "Note",
+  "Tabelle(n) {tabellen} fehlen": "table(s) {tabellen} are missing",
+  "in {tabelle} fehlen die Felder {felder}": "fields {felder} are missing in {tabelle}",
+  "Kleinbetragsrechnungen bis {betrag} Euro brutto":
+    "small-amount invoices up to {betrag} euro gross",
   "{n} Datei(en) übernommen. Mit 'Prüfung starten' wird die Lieferung geprüft.":
     "{n} file(s) accepted. Use 'Start check' to run the analysis.",
   "Diese Dateiendung wird nicht gelesen. Möglich sind {endungen}.":
@@ -897,6 +904,63 @@ const EN = {
   "Beleg": "Document",
   "Belegposition": "Document line",
   "Steuerkennzeichen": "Tax code",
+
+  // ---------------------------------------------------- Bedeutung der Tabellen
+  // Die Kurztexte des Data Dictionary aus ``sap/tables.yaml``. SAP liefert sie
+  // sprachabhaengig aus; hier stehen sie in der Fassung, die die englische
+  // Oberflaeche zeigt. ``tests/test_ui_sprachen.py`` haelt beide Listen deckungsgleich.
+  "Kreditorenstamm - allgemeiner Teil": "Vendor master - general data",
+  "Kreditorenstamm - Buchungskreisdaten": "Vendor master - company code data",
+  "Kreditorenstamm - Einkaufsorganisationsdaten": "Vendor master - purchasing organisation data",
+  "Kreditorenstamm - Bankverbindungen": "Vendor master - bank details",
+  "Debitorenstamm - allgemeiner Teil": "Customer master - general data",
+  "Debitorenstamm - Buchungskreisdaten": "Customer master - company code data",
+  "Debitorenstamm - Vertriebsbereichsdaten": "Customer master - sales area data",
+  "Debitorenstamm - Bankverbindungen": "Customer master - bank details",
+  "Materialstamm - allgemeine Daten": "Material master - general data",
+  "Materialstamm - Werksdaten": "Material master - plant data",
+  "Materialstamm - Bewertungsdaten": "Material master - valuation data",
+  "Materialkurztexte": "Material descriptions",
+  "Business Partner - allgemeine Daten (S/4HANA)": "Business partner - general data (S/4HANA)",
+  "Business Partner - Adressen": "Business partner - addresses",
+  "Business Partner - Bankverbindungen": "Business partner - bank details",
+  "Business Partner - Rollen": "Business partner - roles",
+  "Zentrale Adressverwaltung": "Central address management",
+  "E-Mail-Adressen zur zentralen Adressverwaltung": "E-mail addresses for central address management",
+  "Bankenstamm": "Bank master data",
+  "IBAN-Verwaltung": "IBAN management",
+  "Änderungsbelege - Kopf": "Change documents - header",
+  "Änderungsbelege - Positionen": "Change documents - items",
+  "Personalstamm - Bankverbindung (nur falls geliefert, FA-407)":
+    "HR master - bank details (only if delivered, FA-407)",
+  "Buchungskreise": "Company codes",
+  "Länder": "Countries",
+  "Zahlwege": "Payment methods",
+  "Zahlungsbedingungen": "Payment terms",
+  "Steuerkennzeichen - Bezeichnungen": "Tax codes - descriptions",
+  "Mengeneinheiten - Bezeichnungen": "Units of measure - descriptions",
+  "Buchungsschlüssel": "Posting keys",
+  "Quellensteuerarten": "Withholding tax types",
+  "Quellensteuerkennzeichen": "Withholding tax codes",
+  "Kontengruppen Kreditor": "Vendor account groups",
+  "Kontengruppen Debitor": "Customer account groups",
+  "Werke": "Plants",
+  "Bewertungskreise": "Valuation areas",
+  "Materialarten": "Material types",
+  "Warengruppen": "Material groups",
+  "Bewertungsklassen": "Valuation classes",
+  "Mengeneinheiten": "Units of measure",
+  "Währungen": "Currencies",
+  "Einkaufsorganisationen": "Purchasing organisations",
+  "Verkaufsorganisationen": "Sales organisations",
+  "Sachkontenstamm - Kontenplan": "G/L account master - chart of accounts",
+  "Sachkontenstamm - Buchungskreis": "G/L account master - company code",
+  "Faktura - Kopf": "Billing document - header",
+  "Faktura - Position": "Billing document - item",
+  "Buchhaltungsbeleg - Kopf": "Accounting document - header",
+  "Buchhaltungsbeleg - Segment": "Accounting document - segment",
+  "Steuerkennzeichen - Zuordnung zu den Kategorie-Codes der Norm (EN 16931 BT-118)":
+    "Tax codes - mapping to the category codes of the standard (EN 16931 BT-118)",
 
 };
 

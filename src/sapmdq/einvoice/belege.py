@@ -45,14 +45,25 @@ class Belegausschluss:
     """Eine Belegmenge, die nicht unter die Pflicht fällt."""
 
     id: str
+    #: Der Grund als Vorlage. Zahlen stehen als Platzhalter darin, damit die
+    #: Oberfläche den Satz übersetzen kann - ein eingesetzter Betrag machte
+    #: aus jedem Schwellwert eine eigene, unübersetzbare Zeichenkette.
     grund: str
     belege: int = 0
     volumen: float = 0.0
+    #: Werte zu den Platzhaltern in ``grund``.
+    werte: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def text(self) -> str:
+        """Der Grund auf Deutsch, mit eingesetzten Werten - für den Bericht."""
+        return self.grund.format(**self.werte) if self.werte else self.grund
 
     def als_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "grund": self.grund,
+            "werte": dict(self.werte),
             "belege": self.belege,
             "volumen": round(self.volumen, 2),
         }
@@ -287,16 +298,18 @@ def ermittle_belegsicht(
         if kategorie in ("E", "O")
     ]
     stufen = [
-        ("storniert", "Stornierte Belege - kein Umsatz", "storniert"),
+        ("storniert", "Stornierte Belege - kein Umsatz", "storniert", {}),
         (
             "gutschrift",
             "Gutschriften und Stornorechnungen - kein Ausgangsumsatz",
             f"belegart IN {_liste(GUTSCHRIFTSARTEN)}",
+            {},
         ),
         (
             "kleinbetrag",
-            f"Kleinbetragsrechnungen bis {einvoice.kleinbetrag:.0f} Euro brutto",
+            "Kleinbetragsrechnungen bis {betrag} Euro brutto",
             f"abs(netto) <= {einvoice.kleinbetrag!r}",
+            {"betrag": f"{einvoice.kleinbetrag:.0f}"},
         ),
     ]
     if steuerfrei and "VBRP" in vorhanden and "MWSKZ" in _spalten(con, "VBRP"):
@@ -305,16 +318,19 @@ def ermittle_belegsicht(
             "Steuerfreie Umsätze nach § 4 UStG - keine Ausstellungspflicht",
             "beleg IN (SELECT DISTINCT VBELN FROM VBRP WHERE MWSKZ IN "
             + _liste(steuerfrei) + ")",
+            {},
         ))
 
     ausschluesse: list[Belegausschluss] = []
     verbleibend = "TRUE"
-    for kennung, grund, ausdruck in stufen:
+    for kennung, grund, ausdruck, werte in stufen:
         zeile = con.execute(
             f"SELECT count(*), COALESCE(sum(netto), 0) FROM _erechnung_rohbelege "
             f"WHERE {verbleibend} AND ({ausdruck})"
         ).fetchone()
-        ausschluesse.append(Belegausschluss(kennung, grund, int(zeile[0]), float(zeile[1])))
+        ausschluesse.append(
+            Belegausschluss(kennung, grund, int(zeile[0]), float(zeile[1]), werte)
+        )
         verbleibend = f"{verbleibend} AND NOT ({ausdruck})"
 
     # Der Mandant gehoert in den Schluessel. Ohne ihn verschmelzen Debitor

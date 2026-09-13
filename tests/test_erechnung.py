@@ -435,6 +435,20 @@ class TestBelegsicht:
         streng = ermittle_belegsicht(con, EInvoiceConfig(kleinbetrag=500.0), ["VBRK"])
         assert streng.belege_im_umfang == 0
 
+    def test_der_grund_bleibt_eine_uebersetzbare_vorlage(self, con):
+        """Der Betrag steht als Platzhalter darin, nicht eingesetzt.
+
+        Sonst waere jeder Schwellwert eine eigene Zeichenkette, und das
+        Woerterbuch der Oberflaeche koennte sie nicht mehr treffen.
+        """
+        _fakturen(con, [("1", "100", "2025-07-01", 300, "F2", "", "EUR")])
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(kleinbetrag=500.0), ["VBRK"])
+        klein = next(a for a in sicht.ausschluesse if a.id == "kleinbetrag")
+        assert klein.grund == "Kleinbetragsrechnungen bis {betrag} Euro brutto"
+        assert klein.werte == {"betrag": "500"}
+        assert klein.text == "Kleinbetragsrechnungen bis 500 Euro brutto"
+        assert klein.als_dict()["werte"] == {"betrag": "500"}
+
     def test_steuerfreie_umsaetze_werden_ausgeschlossen(self, con):
         _fakturen(con, [
             ("1", "100", "2025-07-01", 5000, "F2", "", "EUR"),

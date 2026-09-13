@@ -110,9 +110,11 @@ def test_jeder_uebersetzte_text_aus_app_js_ist_hinterlegt(woerterbuch):
     fehlend = sorted(
         wortlaut for wortlaut in _t_aufrufe()
         if wortlaut not in woerterbuch
-        # Werte, die t() nur durchreicht: Statuswörter und Bereichsschlüssel
-        # kommen aus den Daten und stehen als eigene Einträge im Wörterbuch.
-        and not wortlaut.startswith("{")
+        # Ein Text, der nur aus einem Platzhalter besteht, ist kein Satz,
+        # sondern ein durchgereichter Wert - etwa t("{bereich}"). Alles
+        # andere ist Wortlaut und braucht eine Fassung, auch wenn es mit
+        # einer Zahl anfängt: "{n} Regeln" ist übersetzbar.
+        and not re.fullmatch(r"\{\w+\}", wortlaut)
     )
     assert not fehlend, "ohne englische Fassung in app.js:\n  " + "\n  ".join(fehlend)
 
@@ -148,6 +150,82 @@ def test_platzhalter_stimmen_ueberein(woerterbuch):
 def test_die_sprachdatei_wird_ausgeliefert():
     assert TEXTE.is_file()
     assert '<script src="/texte.js">' in HTML.read_text(encoding="utf-8")
+
+
+# ------------------------------------------------- Texte, die t() nur durchreicht
+
+
+def test_die_gewichte_der_lieferungspruefung_sind_uebersetzt(woerterbuch):
+    """Die Stufen info/warnung/fehler bekommen in app.js ihre Beschriftung.
+
+    Sie steht dort in einer Zuordnung und nicht als Wortlaut in ``t()``, wird
+    also vom allgemeinen Test nicht erfasst.
+    """
+    text = APP.read_text(encoding="utf-8")
+    ausschnitt = text[text.index("const GEWICHTE = {"):]
+    ausschnitt = ausschnitt[: ausschnitt.index("};")]
+    woerter = re.findall(r'wort:\s*"([^"]+)"', ausschnitt)
+    assert len(woerter) == 3, "die Zuordnung wurde nicht gelesen"
+    fehlend = sorted(wort for wort in woerter if wort not in woerterbuch)
+    assert not fehlend, "Gewicht ohne englische Fassung:\n  " + "\n  ".join(fehlend)
+
+
+def test_die_ausschlussgruende_der_belegsicht_sind_uebersetzt(woerterbuch):
+    """Die Gründe kommen als Vorlage aus dem Kern und laufen durch ``t()``.
+
+    Weil sie dort eine Variable sind, prüft dieser Test sie an der Quelle.
+    """
+    quelle = Path(__file__).resolve().parents[1] / "src" / "sapmdq" / "einvoice" / "belege.py"
+    text = quelle.read_text(encoding="utf-8")
+    beginn = text.index("    stufen = [")
+    ausschnitt = text[beginn:text.index("    ausschluesse: list", beginn)]
+    # Der zweite Wert jeder Stufe ist der Grund. Die SQL-Ausdruecke daneben
+    # fangen klein an, die Gründe gross - daran lassen sie sich trennen.
+    gruende = re.findall(r'"([A-ZÄÖÜ][^"]{10,})"', ausschnitt)
+    assert len(gruende) >= 3, f"die Stufen wurden nicht gelesen: {gruende}"
+    fehlend = sorted(grund for grund in gruende if grund not in woerterbuch)
+    assert not fehlend, "Ausschlussgrund ohne englische Fassung:\n  " + "\n  ".join(fehlend)
+
+
+# ------------------------------------------------------- Bedeutung der Tabellen
+
+
+def _tabellenbedeutungen() -> set[str]:
+    """Die Kurztexte des Data Dictionary aus ``sap/tables.yaml``."""
+    import yaml
+
+    quelle = Path(__file__).resolve().parents[1] / "src" / "sapmdq" / "sap" / "tables.yaml"
+    inhalt = yaml.safe_load(quelle.read_text(encoding="utf-8"))
+    return {
+        " ".join((meta.get("description") or "").split())
+        for meta in inhalt["tables"].values()
+        if (meta.get("description") or "").strip()
+    }
+
+
+def test_jede_tabellenbedeutung_hat_eine_englische_fassung(woerterbuch):
+    """Sonst stünde in der englischen Abdeckung ein deutscher DDIC-Text.
+
+    Die Liste wird aus der Metadatendatei gelesen, nicht von Hand gepflegt -
+    eine neue Tabelle fällt damit sofort auf.
+    """
+    fehlend = sorted(
+        bedeutung for bedeutung in _tabellenbedeutungen() if bedeutung not in woerterbuch
+    )
+    assert not fehlend, "Tabelle ohne englische Bedeutung:\n  " + "\n  ".join(fehlend)
+
+
+def test_die_bedeutung_wird_in_der_oberflaeche_uebersetzt():
+    """Ein Eintrag im Wörterbuch nützt nichts, wenn ``t()`` fehlt.
+
+    ``el()`` übersetzt einen Text von sich aus - aber nur, solange er allein
+    steht. Sobald die Bedeutung mit dem Tabellennamen zu einem Satz verkettet
+    wird, trifft kein Schlüssel mehr, und ``t()`` muss um den Teil stehen.
+    Der Test verlangt es überall, damit die Regel keine Ausnahmen kennt.
+    """
+    text = APP.read_text(encoding="utf-8")
+    ungeschuetzt = re.findall(r"(?<!t\()\b(?:z|tabelle|kandidat)\.bedeutung\b", text)
+    assert not ungeschuetzt, "bedeutung wird ohne t() angezeigt"
 
 
 # ----------------------------------------------- Meldungen der Lieferungsprüfung
