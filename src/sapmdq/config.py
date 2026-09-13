@@ -402,6 +402,12 @@ class EInvoiceConfig:
     #: Gruppe auf Rot setzt. Fachlich gesetzt, nicht aus der Norm
     #: abgeleitet - und deshalb im Bericht offengelegt.
     ampel_schwelle: float = 0.05
+    #: Ab welchem Volumenanteil eine kritische Regel die Gruppe auf Rot
+    #: setzt. Liegen keine Belege vor, greift sie nicht.
+    volumen_schwelle: float = 0.10
+    #: Bruttobetrag, bis zu dem eine Rechnung als Kleinbetragsrechnung
+    #: gilt und nicht unter die Pflicht fällt.
+    kleinbetrag: float = 250.0
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> "EInvoiceConfig":
@@ -425,6 +431,8 @@ class EInvoiceConfig:
             revenue_threshold=float(raw.get("revenue_threshold", 800_000.0)),
             prior_year_revenue=umsaetze,
             ampel_schwelle=float(raw.get("ampel_schwelle", 0.05)),
+            volumen_schwelle=float(raw.get("volumen_schwelle", 0.10)),
+            kleinbetrag=float(raw.get("kleinbetrag", 250.0)),
         )
 
 

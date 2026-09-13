@@ -403,22 +403,70 @@ def _erechnung_abschnitt(result: RunResult) -> list[str]:
         faehigkeit.rule.id: faehigkeit.reason
         for faehigkeit in (result.coverage.blocked if result.coverage else [])
     }
-    schwelle = result.config.einvoice.ampel_schwelle
+    belegsicht = result.belegsicht
+    einvoice = result.config.einvoice
+    schwelle = einvoice.ampel_schwelle
     gruppen = bewerten(
-        regeln, befunde_je_regel, nicht_pruefbar, abgrenzung.grundgesamtheit, schwelle
+        regeln,
+        befunde_je_regel,
+        nicht_pruefbar,
+        abgrenzung.grundgesamtheit,
+        schwelle,
+        result.volumen_je_regel,
+        belegsicht.volumen if belegsicht and belegsicht.ermittelt else 0.0,
+        einvoice.volumen_schwelle,
     )
+
+    if belegsicht is not None and belegsicht.ermittelt:
+        lines.append("### Abgrenzung auf Belegebene")
+        lines.append("")
+        faktor = belegsicht.hochrechnungsfaktor
+        lines.append(
+            f"Betrachtungszeitraum {belegsicht.von} bis {belegsicht.bis} "
+            f"({belegsicht.monate:.1f} Monate), gelesen aus "
+            f"{', '.join(belegsicht.quellen)}."
+            + (
+                f" Die Jahreswerte sind mit dem Faktor {faktor} hochgerechnet; "
+                "die Hochrechnung unterstellt, dass die übrigen Monate wie die "
+                "gelieferten aussehen."
+                if faktor > 1
+                else ""
+            )
+        )
+        lines.append("")
+        lines += _table(
+            ["Menge", "Belege"],
+            [["Belege im Zeitraum", str(belegsicht.belege_gesamt)]]
+            + [[a.grund, f"-{a.belege}"] for a in belegsicht.ausschluesse]
+            + [
+                ["Rechnungen im Umfang", str(belegsicht.belege_im_umfang)],
+                ["Nettovolumen", f"{belegsicht.volumen:,.0f}".replace(",", ".")],
+            ],
+        )
+    elif belegsicht is not None:
+        lines.append("### Abgrenzung auf Belegebene")
+        lines.append("")
+        lines.append(belegsicht.nicht_ermittelbar)
+        lines.append("")
 
     lines.append("### Bewertung je Gruppe")
     lines.append("")
+    mit_volumen = belegsicht is not None and belegsicht.ermittelt
     lines.append(
-        f"Rot ab {schwelle:.0%} der Grundgesamtheit bei einer kritischen Regel. "
-        "Der Maßstab ist fachlich gesetzt und nicht aus der Norm abgeleitet."
+        f"Rot ab {schwelle:.0%} der Grundgesamtheit"
+        + (f" oder {einvoice.volumen_schwelle:.0%} des Rechnungsvolumens" if mit_volumen else "")
+        + " bei einer kritischen Regel. Der Maßstab ist fachlich gesetzt und "
+        "nicht aus der Norm abgeleitet."
     )
     lines.append("")
     zeilen = []
     for gruppe in gruppen:
         for regel in gruppe.regeln:
             quote = "-" if regel["quote"] is None else f"{regel['quote']:.1%}"
+            anteil = (
+                "-" if regel.get("volumenanteil") is None
+                else f"{regel['volumenanteil']:.1%}"
+            )
             zeilen.append([
                 gruppe.name,
                 gruppe.ampel,
@@ -427,15 +475,25 @@ def _erechnung_abschnitt(result: RunResult) -> list[str]:
                 regel["anforderung"],
                 "nicht prüfbar" if not regel["pruefbar"] else str(regel["befunde"]),
                 quote,
+                anteil,
             ])
     lines += _table(
-        ["Gruppe", "Ampel", "Regel", "Prüfung", "Norm", "Befunde", "Quote"], zeilen
+        ["Gruppe", "Ampel", "Regel", "Prüfung", "Norm", "Befunde", "Partner", "Volumen"],
+        zeilen,
     )
-    lines.append(
-        "Belege sind nicht im Umfang. Die Zahlen sagen, wieviele Geschäftspartner "
-        "betroffen sind - nicht, wieviel Umsatz. Steuerkennzeichen sowie Positions- "
-        "und Summenprüfungen fehlen aus demselben Grund. Das Ergebnis ist eine "
-        "Indikation und keine Steuerberatung."
-    )
+    if mit_volumen:
+        lines.append(
+            "Der Volumenanteil bezieht sich auf den gelieferten Zeitraum und "
+            "wird über den Debitor gebildet; Regeln über Buchungskreis, "
+            "Steuerkennzeichen oder Beleg haben keinen. Fertige XRechnung- oder "
+            "ZUGFeRD-Dateien werden nicht validiert. Das Ergebnis ist eine "
+            "Indikation und keine Steuerberatung."
+        )
+    else:
+        lines.append(
+            "Es liegen keine Belege vor. Die Zahlen sagen, wieviele "
+            "Geschäftspartner betroffen sind - nicht, wieviel Umsatz. Das "
+            "Ergebnis ist eine Indikation und keine Steuerberatung."
+        )
     lines.append("")
     return lines

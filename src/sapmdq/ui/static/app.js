@@ -69,6 +69,18 @@ const dezimal = (wert, stellen) =>
         maximumFractionDigits: stellen === undefined ? 1 : stellen,
       });
 
+/** Geldbetrag, kaufmaennisch gerundet und ohne Nachkommastellen.
+ *
+ * Ein Rechnungsvolumen auf den Cent genau anzuzeigen taeuscht eine
+ * Genauigkeit vor, die die Hochrechnung nicht hat.
+ */
+const betrag = (wert) =>
+  wert === null || wert === undefined || Number.isNaN(Number(wert))
+    ? "-"
+    : Number(wert).toLocaleString(gebietsschema(), {
+        maximumFractionDigits: 0,
+      }) + " EUR";
+
 const prozent = (anteil, stellen) =>
   anteil === null || anteil === undefined
     ? "-"
@@ -662,19 +674,32 @@ function zeigeErechnung() {
 
   fristKarten(daten);
   abgrenzungTrichter(daten.abgrenzung);
+  belegTrichter(daten.belegsicht);
 
-  $("#er-massstab").textContent = t(
-    "Rot ab {schwelle} der Grundgesamtheit bei einer kritischen Regel. "
-    + "Fachlich gesetzt, nicht aus der Norm abgeleitet.",
-    { schwelle: prozent(daten.schwelle, 0) });
+  const mitVolumen = daten.belegsicht && !daten.belegsicht.nicht_ermittelbar;
+  $("#er-massstab").textContent = mitVolumen
+    ? t("Rot ab {schwelle} der Grundgesamtheit oder {volumen} des "
+        + "Rechnungsvolumens bei einer kritischen Regel. Fachlich gesetzt, "
+        + "nicht aus der Norm abgeleitet.",
+        { schwelle: prozent(daten.schwelle, 0),
+          volumen: prozent(daten.volumen_schwelle, 0) })
+    : t("Rot ab {schwelle} der Grundgesamtheit bei einer kritischen Regel. "
+        + "Fachlich gesetzt, nicht aus der Norm abgeleitet.",
+        { schwelle: prozent(daten.schwelle, 0) });
   setzen($("#er-gruppen"), (daten.gruppen || []).map(gruppenBlock));
 
-  setzen($("#er-grenzen"), [
-    el("li", { text: "Belege sind nicht im Umfang. Die Zahlen sagen, wieviele Geschäftspartner betroffen sind - nicht, wieviel Umsatz. Wenige sehr aktive Kunden können das Bild in beide Richtungen verschieben." }),
-    el("li", { text: "Steuerkennzeichen, Positions- und Summenprüfungen fehlen. Sie setzen Belegdaten voraus." }),
-    el("li", { text: "Fertige XRechnung- oder ZUGFeRD-Dateien werden nicht validiert. Dafür gibt es den KoSIT-Validator." }),
-    el("li", { text: "Die Abgrenzung bildet gesetzliche Tatbestände ab und ersetzt keine Einzelfallwürdigung. Das Ergebnis ist eine Indikation." }),
-  ]);
+  const grenzen = mitVolumen
+    ? [
+        "Der Volumenanteil bezieht sich auf den gelieferten Zeitraum, nicht auf ein Geschäftsjahr. Bei einem kurzen Zeitraum steht die Hochrechnung daneben - sie unterstellt, dass die übrigen Monate wie die gelieferten aussehen.",
+        "Gewichtet wird über den Debitor. Regeln über Buchungskreis, Steuerkennzeichen oder Beleg haben keinen Volumenanteil, weil ihr Gegenstand kein Kunde ist.",
+      ]
+    : [
+        "Es liegen keine Belege vor. Die Zahlen sagen, wieviele Geschäftspartner betroffen sind - nicht, wieviel Umsatz. Wenige sehr aktive Kunden können das Bild in beide Richtungen verschieben.",
+      ];
+  setzen($("#er-grenzen"), grenzen.concat([
+    "Fertige XRechnung- oder ZUGFeRD-Dateien werden nicht validiert. Dafür gibt es den KoSIT-Validator.",
+    "Die Abgrenzung bildet gesetzliche Tatbestände ab und ersetzt keine Einzelfallwürdigung. Das Ergebnis ist eine Indikation.",
+  ]).map((satz) => el("li", { text: satz })));
 }
 
 function fristKarten(daten) {
@@ -690,8 +715,13 @@ function fristKarten(daten) {
     kachel(
       frist.buchungskreis + (frist.name ? " - " + frist.name : ""),
       frist.bestimmt ? frist.stichtag : t("unbestimmt"),
+      // Woher der Umsatz kommt, gehört dazu: eine Hochrechnung aus einem
+      // halben Jahr ist keine Bilanzzahl.
       frist.bestimmt
-        ? t("Vorjahresumsatz {umsatz}", { umsatz: zahl(Math.round(frist.umsatz)) + " EUR" })
+        ? t(frist.herkunft === "belege"
+              ? "Jahresumsatz {umsatz}, aus den Belegen hochgerechnet"
+              : "Vorjahresumsatz {umsatz}, in der Konfiguration hinterlegt",
+            { umsatz: betrag(frist.umsatz) })
         : t("Vorjahresumsatz nicht hinterlegt - ohne ihn bleibt der Stichtag offen"),
       frist.bestimmt ? "warnung" : ""
     )))]);
@@ -730,6 +760,50 @@ function abgrenzungTrichter(abgrenzung) {
   setzen($("#er-abgrenzung"), [el("div", { class: "trichter" }, zeilen)]);
 }
 
+function belegTrichter(belegsicht) {
+  if (!belegsicht || belegsicht.nicht_ermittelbar) {
+    $("#er-zeitraum").textContent = "";
+    setzen($("#er-belege"), [el("div", { class: "meldung hinweis" }, [
+      (belegsicht || {}).nicht_ermittelbar
+        || t("Es liegen keine Belege vor."),
+    ])]);
+    return;
+  }
+
+  const faktor = belegsicht.hochrechnungsfaktor;
+  $("#er-zeitraum").textContent = t(
+    "{von} bis {bis} - {monate} Monate aus {quellen}", {
+      von: belegsicht.von, bis: belegsicht.bis,
+      monate: dezimal(belegsicht.monate, 1),
+      quellen: (belegsicht.quellen || []).join(", "),
+    }) + (faktor > 1
+      ? " \u2013 " + t("auf ein Jahr hochgerechnet mit Faktor {faktor}",
+          { faktor: dezimal(faktor, 2) })
+      : "");
+
+  const zeilen = [
+    el("div", { class: "trichter-zeile" }, [
+      el("span", { text: "Belege im Zeitraum" }),
+      el("span", { class: "trichter-wert", text: zahl(belegsicht.belege_gesamt) }),
+    ]),
+  ];
+  for (const ausschluss of belegsicht.ausschluesse || []) {
+    zeilen.push(el("div", { class: "trichter-zeile abzug" }, [
+      el("span", { text: t(ausschluss.grund) }),
+      el("span", { class: "trichter-wert", text: "-" + zahl(ausschluss.belege) }),
+    ]));
+  }
+  zeilen.push(el("div", { class: "trichter-zeile summe" }, [
+    el("span", { text: "Rechnungen im Umfang" }),
+    el("span", { class: "trichter-wert", text: zahl(belegsicht.belege_im_umfang) }),
+  ]));
+  zeilen.push(el("div", { class: "trichter-zeile summe" }, [
+    el("span", { text: "Nettovolumen" }),
+    el("span", { class: "trichter-wert", text: betrag(belegsicht.volumen) }),
+  ]));
+  setzen($("#er-belege"), [el("div", { class: "trichter" }, zeilen)]);
+}
+
 function gruppenBlock(gruppe) {
   return el("div", { class: "er-gruppe" }, [
     el("div", { class: "er-gruppe-kopf" }, [
@@ -744,8 +818,17 @@ function gruppenBlock(gruppe) {
       { titel: "Grad", zelle: (z) => schweregradMerkmal(z.schweregrad) },
       { titel: "Norm", zelle: (z) => z.anforderung },
       { titel: "Befunde", zahl: true, zelle: (z) => z.pruefbar ? zahl(z.befunde) : "-" },
-      { titel: "Quote", zahl: true, zelle: (z) =>
+      { titel: "Partner", zahl: true, zelle: (z) =>
           z.quote === null || z.quote === undefined ? "-" : prozent(z.quote, 1) },
+      { titel: "Volumen", zahl: true, zelle: (z) =>
+          z.volumenanteil === null || z.volumenanteil === undefined
+            ? "-"
+            : el("span", {
+                class: z.volumenanteil > (z.quote || 0) ? "merkmal high" : null,
+                text: prozent(z.volumenanteil, 1),
+                title: t("{betrag} Rechnungsvolumen der betroffenen Debitoren",
+                        { betrag: betrag(z.volumen) }),
+              }) },
       { titel: "Status", zelle: (z) => z.pruefbar
           ? (z.befunde ? merkmal("Handlungsbedarf", "high") : merkmal("in Ordnung", "gut"))
           : el("span", { class: "merkmal leise", text: "nicht prüfbar", title: z.grund }) },
@@ -2221,6 +2304,17 @@ function baueFolien() {
         }
       }
       const frist = (abgrenzung.fristen || []).find((f) => f.bestimmt);
+      const belege = erechnung.belegsicht;
+      const mitVolumen = belege && !belege.nicht_ermittelbar;
+      // Die schwerste Regel nach Volumen - das ist die Aussage, die im
+      // Termin haengen bleibt.
+      let schwerste = null;
+      for (const gruppe of erechnung.gruppen) {
+        for (const regel of gruppe.regeln) {
+          if (regel.volumenanteil === null || regel.volumenanteil === undefined) continue;
+          if (!schwerste || regel.volumenanteil > schwerste.volumenanteil) schwerste = regel;
+        }
+      }
       return el("div", {}, [
         el("h2", { text: "E-Rechnungs-Readiness" }),
         el("p", { class: "aussage", text: frist
@@ -2230,6 +2324,15 @@ function baueFolien() {
           : t("Betroffen sind {n} inländische B2B-Debitoren. Der Stichtag "
               + "hängt am Vorjahresumsatz und ist noch nicht hinterlegt.",
               { n: zahl(grundgesamtheit) }) }),
+        mitVolumen && schwerste
+          ? el("p", { class: "unterzeile abstand-unten", text:
+              t("Schwerster Befund nach Umsatz: {regel} betrifft {quote} der "
+                + "Debitoren, aber {volumen} des Rechnungsvolumens.", {
+                  regel: regelName(schwerste.id, schwerste.name),
+                  quote: prozent(schwerste.quote, 1),
+                  volumen: prozent(schwerste.volumenanteil, 1),
+                }) })
+          : null,
         el("div", { class: "kacheln" }, erechnung.gruppen.map((gruppe) =>
           kachel(
             gruppe.name,
@@ -2241,10 +2344,16 @@ function baueFolien() {
             }),
             gruppe.ampel === "rot" ? "critical" : gruppe.ampel === "gruen" ? "gut" : "warnung",
           ))),
-        el("p", { class: "unterzeile", text:
-          t("{n} kritische Prüfungen mit Befunden. Die Auswertung zählt "
-            + "Geschäftspartner, nicht Rechnungsvolumen - Belege sind nicht "
-            + "im Umfang.", { n: kritisch }) }),
+        el("p", { class: "unterzeile", text: mitVolumen
+          ? t("{n} kritische Prüfungen mit Befunden, gemessen an {belege} "
+              + "Rechnungen über {volumen} im gelieferten Zeitraum.", {
+                n: kritisch,
+                belege: zahl(belege.belege_im_umfang),
+                volumen: betrag(belege.volumen),
+              })
+          : t("{n} kritische Prüfungen mit Befunden. Die Auswertung zählt "
+              + "Geschäftspartner, nicht Rechnungsvolumen - es liegen keine "
+              + "Belege vor.", { n: kritisch }) }),
       ]);
     }));
   }

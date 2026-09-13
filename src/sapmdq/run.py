@@ -37,6 +37,11 @@ from sapmdq.logging_setup import get_logger, setup_logging
 from sapmdq.report.score import compute_score
 from sapmdq.results import RunResult
 from sapmdq.einvoice import ermittle_abgrenzung, parameter_setzen
+from sapmdq.einvoice.belege import (
+    ermittle_belegsicht,
+    jahresumsatz_je_buchungskreis,
+    volumen_je_regel,
+)
 from sapmdq.rules.capability import build_coverage
 from sapmdq.rules.catalog import load_catalog
 from sapmdq.rules.engine import combine_findings, run_rules
@@ -259,13 +264,11 @@ def execute_run(
         # ---------------------------------------------------------- Score
         result.score = _compute_score(con, result)
 
-        # ----------------------------------------------------- Abgrenzung
+        # ----------------------------------------------------- E-Rechnung
         # Nur, wenn E-Rechnungsregeln überhaupt im Katalog stehen. Wer sie
         # abgeschaltet hat, soll den Abschnitt auch nicht im Bericht finden.
         if any(rule.object_area == "einvoice" for rule in catalog.rules):
-            result.abgrenzung = ermittle_abgrenzung(
-                con, config.einvoice, ingestion.tables.keys()
-            )
+            _erechnung_auswerten(con, result, catalog)
 
         # ---------------------------------------------------------- Delta
         if baseline_findings is not None:
@@ -322,6 +325,35 @@ def _resolve_baseline(config: ProjectConfig, baseline: Path | None) -> Path | No
         return None
     logger.info("Vergleichsgrundlage: letzter Lauf %s", previous[0].name)
     return previous[0] / "befunde.parquet"
+
+
+def _erechnung_auswerten(con: duckdb.DuckDBPyConnection, result: RunResult, catalog) -> None:
+    """Belegsicht, Abgrenzung und Volumengewichtung in dieser Reihenfolge.
+
+    Die Reihenfolge ist keine Geschmacksfrage: die Belegsicht baut das
+    Aggregat je Debitor, aus dem sich der Jahresumsatz je Buchungskreis
+    ergibt, und der wiederum bestimmt die Frist. Die Volumengewichtung
+    braucht zuletzt beides - das Aggregat und die fertigen Befunde.
+    """
+    tabellen = list(result.ingestion.tables) if result.ingestion else []
+    einvoice = result.config.einvoice
+
+    result.belegsicht = ermittle_belegsicht(con, einvoice, tabellen)
+    umsaetze = (
+        jahresumsatz_je_buchungskreis(
+            con, tabellen, result.belegsicht.hochrechnungsfaktor
+        )
+        if result.belegsicht.ermittelt
+        else {}
+    )
+    result.abgrenzung = ermittle_abgrenzung(con, einvoice, tabellen, umsaetze)
+
+    if result.belegsicht.ermittelt and result.findings_path:
+        result.volumen_je_regel = volumen_je_regel(
+            con,
+            str(result.findings_path),
+            [rule for rule in catalog.rules if rule.object_area == "einvoice"],
+        )
 
 
 def _compute_score(con: duckdb.DuckDBPyConnection, result: RunResult):

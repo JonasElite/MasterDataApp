@@ -15,6 +15,7 @@ from sapmdq.config import ProjectConfig
 from sapmdq.findings.delta import DeltaReport
 from sapmdq.findings.enrich import EnrichmentResult
 from sapmdq.einvoice.abgrenzung import Abgrenzung
+from sapmdq.einvoice.belege import Belegsicht
 from sapmdq.ingest.manifest import DeliveryManifest
 from sapmdq.ingest.pipeline import IngestionResult
 from sapmdq.report.score import ScoreReport
@@ -45,6 +46,10 @@ class RunResult:
     delta: DeltaReport | None = None
     #: Abgrenzung der E-Rechnungspflicht; None, wenn keine Regel dazu lief.
     abgrenzung: "Abgrenzung | None" = None
+    #: Rechnungsvolumen des Betrachtungszeitraums; None ohne Belege.
+    belegsicht: "Belegsicht | None" = None
+    #: Je E-Rechnungsregel das Volumen der betroffenen Debitoren.
+    volumen_je_regel: dict[str, dict[str, float]] = field(default_factory=dict)
     audit: AuditRecord | None = None
 
     #: Erzeugte Berichtsdateien.

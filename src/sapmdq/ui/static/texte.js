@@ -803,7 +803,10 @@ const EN = {
   "Ohne die Buchungskreise (T001) lässt sich die Frist nicht zuordnen.":
     "Without the company codes (T001) the deadline cannot be assigned.",
   "unbestimmt": "undetermined",
-  "Vorjahresumsatz {umsatz}": "Prior-year revenue {umsatz}",
+  "Jahresumsatz {umsatz}, aus den Belegen hochgerechnet":
+    "Annual revenue {umsatz}, extrapolated from the documents",
+  "Vorjahresumsatz {umsatz}, in der Konfiguration hinterlegt":
+    "Prior-year revenue {umsatz}, recorded in the configuration",
   "Vorjahresumsatz nicht hinterlegt - ohne ihn bleibt der Stichtag offen":
     "Prior-year revenue not recorded - without it the deadline stays open",
   "Debitoren in der Lieferung": "Customers in the delivery",
@@ -829,10 +832,6 @@ const EN = {
   "gelb": "amber",
   "grün": "green",
   "grau": "grey",
-  "Belege sind nicht im Umfang. Die Zahlen sagen, wieviele Geschäftspartner betroffen sind - nicht, wieviel Umsatz. Wenige sehr aktive Kunden können das Bild in beide Richtungen verschieben.":
-    "Documents are out of scope. The figures say how many business partners are affected - not how much revenue. A few very active customers can shift the picture either way.",
-  "Steuerkennzeichen, Positions- und Summenprüfungen fehlen. Sie setzen Belegdaten voraus.":
-    "Tax codes, line-item and total checks are missing. They require document data.",
   "Fertige XRechnung- oder ZUGFeRD-Dateien werden nicht validiert. Dafür gibt es den KoSIT-Validator.":
     "Finished XRechnung or ZUGFeRD files are not validated. The KoSIT validator does that.",
   "Die Abgrenzung bildet gesetzliche Tatbestände ab und ersetzt keine Einzelfallwürdigung. Das Ergebnis ist eine Indikation.":
@@ -843,8 +842,47 @@ const EN = {
   "Betroffen sind {n} inländische B2B-Debitoren. Der Stichtag hängt am Vorjahresumsatz und ist noch nicht hinterlegt.":
     "{n} domestic B2B customers are affected. The deadline depends on prior-year revenue and has not been recorded yet.",
   "auffällig: {n} von {gesamt}": "flagged: {n} of {gesamt}",
-  "{n} kritische Prüfungen mit Befunden. Die Auswertung zählt Geschäftspartner, nicht Rechnungsvolumen - Belege sind nicht im Umfang.":
-    "{n} critical checks with findings. The analysis counts business partners, not invoice volume - documents are out of scope.",
+  "{n} kritische Prüfungen mit Befunden. Die Auswertung zählt Geschäftspartner, nicht Rechnungsvolumen - es liegen keine Belege vor.":
+    "{n} critical checks with findings. The analysis counts business partners, not invoice volume - no documents are available.",
+  "{n} kritische Prüfungen mit Befunden, gemessen an {belege} Rechnungen über {volumen} im gelieferten Zeitraum.":
+    "{n} critical checks with findings, measured against {belege} invoices totalling {volumen} in the period delivered.",
+  "Schwerster Befund nach Umsatz: {regel} betrifft {quote} der Debitoren, aber {volumen} des Rechnungsvolumens.":
+    "Heaviest finding by revenue: {regel} affects {quote} of customers but {volumen} of the invoice volume.",
+
+
+  // ----------------------------------------------------------- Belegsicht
+  "Abgrenzung - Stammdatensicht": "Scope - master data view",
+  "Abgrenzung - Belegsicht": "Scope - document view",
+  "{von} bis {bis} - {monate} Monate aus {quellen}":
+    "{von} to {bis} - {monate} months from {quellen}",
+  "auf ein Jahr hochgerechnet mit Faktor {faktor}":
+    "extrapolated to a full year with factor {faktor}",
+  "Belege im Zeitraum": "Documents in the period",
+  "Rechnungen im Umfang": "Invoices in scope",
+  "Nettovolumen": "Net volume",
+  "Es liegen keine Belege vor.": "No documents are available.",
+  "Es liegen keine Belege vor. Ohne Fakturen (VBRK/VBRP) oder Buchhaltungsbelege (BKPF/BSEG) lassen sich die Mängel nicht nach Rechnungsvolumen gewichten; die Auswertung bleibt bei der Zahl der betroffenen Geschäftspartner.":
+    "No documents are available. Without billing documents (VBRK/VBRP) or accounting documents (BKPF/BSEG) the findings cannot be weighted by invoice volume; the analysis stays with the number of business partners affected.",
+  "Stornierte Belege - kein Umsatz": "Reversed documents - no revenue",
+  "Gutschriften und Stornorechnungen - kein Ausgangsumsatz":
+    "Credit notes and cancellation invoices - no outgoing revenue",
+  "Steuerfreie Umsätze nach § 4 UStG - keine Ausstellungspflicht":
+    "Tax-exempt turnover under § 4 UStG - no issuing obligation",
+  "Partner": "Partners",
+  "Volumen": "Volume",
+  "{betrag} Rechnungsvolumen der betroffenen Debitoren":
+    "{betrag} invoice volume of the customers affected",
+  "Rot ab {schwelle} der Grundgesamtheit oder {volumen} des Rechnungsvolumens bei einer kritischen Regel. Fachlich gesetzt, nicht aus der Norm abgeleitet.":
+    "Red from {schwelle} of the base or {volumen} of the invoice volume for a critical rule. Set on professional judgement, not derived from the standard.",
+  "Der Volumenanteil bezieht sich auf den gelieferten Zeitraum, nicht auf ein Geschäftsjahr. Bei einem kurzen Zeitraum steht die Hochrechnung daneben - sie unterstellt, dass die übrigen Monate wie die gelieferten aussehen.":
+    "The volume share refers to the period delivered, not to a financial year. For a short period the extrapolation is shown alongside - it assumes the remaining months look like the ones delivered.",
+  "Gewichtet wird über den Debitor. Regeln über Buchungskreis, Steuerkennzeichen oder Beleg haben keinen Volumenanteil, weil ihr Gegenstand kein Kunde ist.":
+    "Weighting runs through the customer. Rules about company code, tax code or document have no volume share, because their subject is not a customer.",
+  "Es liegen keine Belege vor. Die Zahlen sagen, wieviele Geschäftspartner betroffen sind - nicht, wieviel Umsatz. Wenige sehr aktive Kunden können das Bild in beide Richtungen verschieben.":
+    "No documents are available. The figures say how many business partners are affected - not how much revenue. A few very active customers can shift the picture either way.",
+  "Beleg": "Document",
+  "Belegposition": "Document line",
+  "Steuerkennzeichen": "Tax code",
 
 };
 

@@ -88,6 +88,19 @@ ERWARTETE_BEFUNDE = {
     "ERE-REF-001": 1,    # Länderschlüssel ohne ISO-Code
     "ERE-REF-002": 1,    # Zahlungsbedingung ohne ableitbares Datum
     "ERE-CONS-001": 1,   # zweistufige Skontostaffel
+    # Belegsicht. Die Zahlen sind je Beleg oder je Kennzeichen aggregiert -
+    # eine Arbeitsliste mit jeder einzelnen Position hilft niemandem.
+    "ERE-COMP-007": 1,   # Steuerkennzeichen ohne Befreiungsgrund (AZ)
+    "ERE-COMP-008": 2,   # Faktura ohne Rechnungsdatum
+    "ERE-COMP-009": 3,   # Faktura mit Position ohne Bezeichnung
+    "ERE-CONS-002": 3,   # Steuerbetrag trotz Nullsatz-Kennzeichen
+    "ERE-CONS-003": 3,   # Positionssummen ergeben nicht den Kopfbetrag
+    "ERE-CONS-004": 2,   # Gutschrift ohne Bezug zum Ursprungsbeleg
+    "ERE-CONS-005": 3,   # Faktura mit Position ohne Menge und Wert
+    "ERE-REF-003": 1,    # Kennzeichen AX ohne Kategorie-Code
+    "ERE-REF-004": 1,    # Kennzeichen XX fehlt im Customizing
+    "ERE-REF-005": 1,    # Mengeneinheit PAL ohne ISO-Code
+    "ERE-REF-006": 1,    # Belegwährung DEM ohne ISO-Code
 }
 
 

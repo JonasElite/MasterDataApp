@@ -53,7 +53,7 @@ als Parameter in die Abfrage und nicht in ihren Text.
 | Lagebild | Punktwert groß, Prüfumfang als Ring, Befunde je Schweregrad und Bereich, häufigste Regeln, Nachforderung nach Wirkung, Bewertung je Bereich mit Vorbehalt |
 | Befunde | filterbare Liste mit Detailansicht, Regelbeschreibung und Handlungsempfehlung |
 | Dubletten | Cluster mit Gegenüberstellung der Stammsätze (FA-501 bis FA-505) |
-| E-Rechnung | Betroffenheit und Frist nach EN 16931, Abgrenzung der Grundgesamtheit, Ampel je Regelgruppe - siehe [erechnung.md](erechnung.md) |
+| E-Rechnung | Betroffenheit und Frist nach EN 16931, Abgrenzung in Stammdaten- und Belegsicht, Ampel je Regelgruppe mit Partnerquote und Volumenanteil - siehe [erechnung.md](erechnung.md) |
 | Abdeckung | welche Geschäftsprozesse und SAP-Tabellen das Werkzeug überhaupt abdeckt und was je Prozess geprüft wird |
 | Eingang | die Dateien, aus denen der nächste Lauf liest - mit Hochladen aus dem Browser und Entfernen |
 | Projekte | alle bekannten Projekte; eines öffnen, ein neues anlegen, eines aus der Liste nehmen |

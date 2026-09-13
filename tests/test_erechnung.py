@@ -28,6 +28,12 @@ from sapmdq.einvoice import (
     parameter_setzen,
 )
 from sapmdq.einvoice.abgrenzung import FRIST_UEBER_SCHWELLE, FRIST_UNTER_SCHWELLE
+from sapmdq.einvoice.belege import (
+    AGGREGAT,
+    ermittle_belegsicht,
+    jahresumsatz_je_buchungskreis,
+    volumen_je_regel,
+)
 from sapmdq.rules.catalog import load_catalog
 from tests.conftest import RULES_DIR
 
@@ -309,11 +315,12 @@ class TestGanzerLauf:
         assert "2027-01-01" in text
 
     def test_der_vorbehalt_steht_im_bericht(self, lauf):
-        """Ohne Belege zählt die Auswertung Partner und nicht Umsatz."""
+        """Woran der Volumenanteil hängt, gehört neben die Zahl."""
         ergebnis, _ = lauf
         text = (ergebnis.run_dir / "management_summary.md").read_text(encoding="utf-8")
-        assert "Belege sind nicht im Umfang" in text
+        assert "bezieht sich auf den gelieferten Zeitraum" in text
         assert "keine Steuerberatung" in text
+        assert "nicht validiert" in text
 
     def test_die_regeln_laufen_fehlerfrei(self, lauf):
         ergebnis, _ = lauf
@@ -325,12 +332,18 @@ class TestGanzerLauf:
 
         from sapmdq.run import execute_run
 
+        # Die Liste kommt aus dem Katalog und nicht aus dem Test: eine neue
+        # Regel soll ihn nicht stillschweigend wirkungslos machen.
+        alle = [
+            regel.id
+            for regel in load_catalog([RULES_DIR]).rules
+            if regel.object_area == "einvoice"
+        ]
+        assert len(alle) >= 20, "der Katalog hat die E-Rechnungsregeln verloren"
         pfad = _projekt(
             tmp_path,
             beispiellieferung,
-            zusatz="  disabled: [ERE-COMP-001, ERE-COMP-002, ERE-COMP-003, ERE-COMP-004,\n"
-                   "             ERE-COMP-005, ERE-COMP-006, ERE-FMT-001, ERE-REF-001,\n"
-                   "             ERE-REF-002, ERE-CONS-001]\n",
+            zusatz="  disabled: [" + ", ".join(alle) + "]\n",
         )
         ergebnis = execute_run(load_config(pfad), quiet=True)
         zusammenfassung = json.loads((ergebnis.run_dir / "lauf.json").read_text(encoding="utf-8"))
@@ -338,3 +351,210 @@ class TestGanzerLauf:
         assert "E-Rechnungs-Readiness (EN 16931)" not in (
             ergebnis.run_dir / "management_summary.md"
         ).read_text(encoding="utf-8")
+
+
+# --------------------------------------------------------------- Belegsicht
+def _fakturen(con, zeilen):
+    """Legt VBRK an: (Beleg, Debitor, Datum, Netto, Art, Storno, Waehrung)."""
+    werte = ", ".join(
+        f"('100', '{b}', '{k}', DATE '{d}', {n}, '{a}', '{s}', '{w}')"
+        for b, k, d, n, a, s, w in zeilen
+    )
+    con.execute(
+        "CREATE OR REPLACE TABLE VBRK AS SELECT * FROM (VALUES "
+        + werte
+        + ") AS t(MANDT, VBELN, KUNRG, FKDAT, NETWR, FKART, FKSTO, WAERK)"
+    )
+
+
+class TestBelegsicht:
+    def test_ohne_belege_bleibt_es_bei_der_partnerzahl(self, con):
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["KNA1"])
+        assert not sicht.ermittelt
+        assert "keine Belege" in sicht.nicht_ermittelbar
+
+    def test_volumen_und_zeitraum(self, con):
+        _fakturen(con, [
+            ("1", "100", "2025-07-01", 1000, "F2", "", "EUR"),
+            ("2", "100", "2025-12-31", 2000, "F2", "", "EUR"),
+            ("3", "200", "2025-10-01", 3000, "F2", "", "EUR"),
+        ])
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+        assert sicht.quellen == ["VBRK"]
+        assert sicht.belege_gesamt == 3
+        assert sicht.volumen == 6000
+        assert (sicht.von, sicht.bis) == ("2025-07-01", "2025-12-31")
+
+    def test_ausschluesse_greifen_nacheinander(self, con):
+        _fakturen(con, [
+            ("1", "100", "2025-07-01", 5000, "F2", "", "EUR"),
+            ("2", "100", "2025-07-02", 4000, "F2", "X", "EUR"),   # storniert
+            ("3", "100", "2025-07-03", -900, "G2", "", "EUR"),    # Gutschrift
+            ("4", "100", "2025-07-04", 100, "F2", "", "EUR"),     # Kleinbetrag
+        ])
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+        mengen = {a.id: a.belege for a in sicht.ausschluesse}
+        assert mengen == {"storniert": 1, "gutschrift": 1, "kleinbetrag": 1}
+        assert sicht.belege_im_umfang == 1
+        assert sicht.volumen == 5000
+
+    def test_die_mengen_gehen_auf(self, con):
+        _fakturen(con, [
+            ("1", "100", "2025-07-01", 5000, "F2", "", "EUR"),
+            ("2", "100", "2025-07-02", 4000, "F2", "X", "EUR"),
+            ("3", "100", "2025-07-03", 80, "F2", "", "EUR"),
+        ])
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+        summe = sum(a.belege for a in sicht.ausschluesse)
+        assert summe + sicht.belege_im_umfang == sicht.belege_gesamt
+
+    def test_die_kleinbetragsgrenze_ist_einstellbar(self, con):
+        _fakturen(con, [("1", "100", "2025-07-01", 300, "F2", "", "EUR")])
+        streng = ermittle_belegsicht(con, EInvoiceConfig(kleinbetrag=500.0), ["VBRK"])
+        assert streng.belege_im_umfang == 0
+
+    def test_steuerfreie_umsaetze_werden_ausgeschlossen(self, con):
+        _fakturen(con, [
+            ("1", "100", "2025-07-01", 5000, "F2", "", "EUR"),
+            ("2", "100", "2025-07-02", 7000, "F2", "", "EUR"),
+        ])
+        con.execute(
+            "CREATE TABLE VBRP AS SELECT * FROM (VALUES "
+            "('100', '1', 'A1'), ('100', '2', 'AZ')) AS t(MANDT, VBELN, MWSKZ)"
+        )
+        con.execute(
+            "CREATE TABLE STEUERZUORDNUNG AS SELECT * FROM (VALUES "
+            "('A1', 'S'), ('AZ', 'E')) AS t(MWSKZ, KATEGORIE)"
+        )
+        sicht = ermittle_belegsicht(
+            con, EInvoiceConfig(), ["VBRK", "VBRP", "STEUERZUORDNUNG"]
+        )
+        mengen = {a.id: a.belege for a in sicht.ausschluesse}
+        assert mengen["steuerfrei"] == 1
+        assert sicht.volumen == 5000
+
+    def test_reverse_charge_bleibt_pflichtig(self, con):
+        """Kategorie AE ist steuerfrei, aber nicht von der Pflicht befreit."""
+        _fakturen(con, [("1", "100", "2025-07-01", 5000, "F2", "", "EUR")])
+        con.execute(
+            "CREATE TABLE VBRP AS SELECT * FROM (VALUES ('100','1','AE')) "
+            "AS t(MANDT, VBELN, MWSKZ)"
+        )
+        con.execute(
+            "CREATE TABLE STEUERZUORDNUNG AS SELECT * FROM (VALUES ('AE','AE')) "
+            "AS t(MWSKZ, KATEGORIE)"
+        )
+        sicht = ermittle_belegsicht(
+            con, EInvoiceConfig(), ["VBRK", "VBRP", "STEUERZUORDNUNG"]
+        )
+        assert sicht.belege_im_umfang == 1
+
+
+class TestHochrechnung:
+    def _sicht(self, con, von, bis):
+        _fakturen(con, [
+            ("1", "100", von, 1000, "F2", "", "EUR"),
+            ("2", "100", bis, 1000, "F2", "", "EUR"),
+        ])
+        return ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+
+    def test_ein_volles_jahr_wird_nicht_hochgerechnet(self, con):
+        assert self._sicht(con, "2025-01-01", "2025-12-31").hochrechnungsfaktor == 1.0
+
+    def test_ein_halbes_jahr_wird_verdoppelt(self, con):
+        faktor = self._sicht(con, "2025-07-01", "2025-12-31").hochrechnungsfaktor
+        assert 1.9 < faktor < 2.1
+
+    def test_aus_zwei_tagen_wird_nichts_hochgerechnet(self, con):
+        """Sonst entstünde aus einer Stichprobe eine Jahreszahl."""
+        assert self._sicht(con, "2025-07-01", "2025-07-03").hochrechnungsfaktor == 1.0
+
+    def test_der_jahresumsatz_traegt_den_faktor(self, con):
+        con.execute(
+            "CREATE TABLE VBRK AS SELECT * FROM (VALUES "
+            "('100', '1', '1000', 5000.0, ''), ('100', '2', '1000', 5000.0, '')) "
+            "AS t(MANDT, VBELN, BUKRS, NETWR, FKSTO)"
+        )
+        assert jahresumsatz_je_buchungskreis(con, ["VBRK"], 2.0) == {"1000": 20000.0}
+
+
+class TestVolumengewichtung:
+    class _Regel:
+        def __init__(self, rule_id, key_columns):
+            self.id = rule_id
+            self.key_columns = key_columns
+
+    def _befunde(self, con, tmp_path, zeilen):
+        pfad = tmp_path / "befunde.parquet"
+        werte = ", ".join(f"('{r}', '{k}', {w})" for r, k, w in zeilen)
+        con.execute(
+            f"COPY (SELECT * FROM (VALUES {werte}) AS t(rule_id, object_key, whitelisted)) "
+            f"TO '{pfad}' (FORMAT PARQUET)"
+        )
+        return str(pfad)
+
+    def _aggregat(self, con, zeilen):
+        werte = ", ".join(f"('{d}', {b}, {v})" for d, b, v in zeilen)
+        con.execute(
+            f"CREATE OR REPLACE TABLE {AGGREGAT} AS SELECT * FROM (VALUES {werte}) "
+            "AS t(debitor, belege, volumen)"
+        )
+
+    def test_volumen_der_betroffenen_debitoren(self, con, tmp_path):
+        self._aggregat(con, [("100", 5, 50000.0), ("200", 2, 2000.0)])
+        pfad = self._befunde(con, tmp_path, [
+            ("R-1", "0000000100", False), ("R-1", "0000000200", False),
+        ])
+        ergebnis = volumen_je_regel(con, pfad, [self._Regel("R-1", ["KUNNR"])])
+        assert ergebnis["R-1"]["volumen"] == 52000.0
+        assert ergebnis["R-1"]["debitoren"] == 2
+
+    def test_fuehrende_nullen_stehen_der_verknuepfung_nicht_im_weg(self, con, tmp_path):
+        """Der Befund traegt den aufgefuellten Schluessel, der Beleg nicht."""
+        self._aggregat(con, [("100", 1, 7000.0)])
+        pfad = self._befunde(con, tmp_path, [("R-1", "0000000100", False)])
+        ergebnis = volumen_je_regel(con, pfad, [self._Regel("R-1", ["KUNNR"])])
+        assert ergebnis["R-1"]["volumen"] == 7000.0
+
+    def test_zusammengesetzter_schluessel_wird_am_debitor_verknuepft(self, con, tmp_path):
+        self._aggregat(con, [("100", 1, 3000.0)])
+        pfad = self._befunde(con, tmp_path, [("R-1", "0000000100/1000", False)])
+        ergebnis = volumen_je_regel(con, pfad, [self._Regel("R-1", ["KUNNR", "BUKRS"])])
+        assert ergebnis["R-1"]["volumen"] == 3000.0
+
+    def test_regeln_ohne_debitorenschluessel_bekommen_kein_volumen(self, con, tmp_path):
+        """Ein Volumenanteil an einer Zahlungsbedingung waere erfunden."""
+        self._aggregat(con, [("100", 1, 3000.0)])
+        pfad = self._befunde(con, tmp_path, [("R-2", "ZB01", False)])
+        assert volumen_je_regel(con, pfad, [self._Regel("R-2", ["ZTERM"])]) == {}
+
+    def test_ausnahmen_zaehlen_nicht_mit(self, con, tmp_path):
+        self._aggregat(con, [("100", 1, 3000.0), ("200", 1, 9000.0)])
+        pfad = self._befunde(con, tmp_path, [
+            ("R-1", "0000000100", False), ("R-1", "0000000200", True),
+        ])
+        assert volumen_je_regel(con, pfad, [self._Regel("R-1", ["KUNNR"])])["R-1"]["volumen"] == 3000.0
+
+
+class TestAmpelMitVolumen:
+    def _gruppe(self, volumenanteil):
+        regeln = [_Regel("A-1", "Debitor")]
+        return bewerten(
+            regeln,
+            {"A-1": 1},
+            {},
+            1000,
+            0.05,
+            {"A-1": {"volumen": volumenanteil * 1000.0, "debitoren": 1, "belege": 1}},
+            1000.0,
+            0.10,
+        )[0]
+
+    def test_wenige_partner_mit_viel_umsatz_werden_rot(self):
+        """Der Fall, für den es die Belegsicht gibt: 0,1 % der Partner, 40 % Umsatz."""
+        gruppe = self._gruppe(0.40)
+        assert gruppe.regeln[0]["volumenanteil"] == 0.4
+        assert gruppe.ampel == "rot"
+
+    def test_unter_beiden_schwellen_bleibt_es_gelb(self):
+        assert self._gruppe(0.02).ampel == "gelb"

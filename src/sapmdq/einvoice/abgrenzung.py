@@ -60,6 +60,9 @@ class Frist:
     umsatz: float | None = None
     stichtag: str = ""
     bestimmt: bool = False
+    #: "konfiguration" oder "belege" - der Leser soll wissen, worauf die
+    #: Frist beruht. Eine Hochrechnung ist keine Bilanzzahl.
+    herkunft: str = ""
 
     def als_dict(self) -> dict[str, Any]:
         return {
@@ -68,6 +71,7 @@ class Frist:
             "umsatz": self.umsatz,
             "stichtag": self.stichtag,
             "bestimmt": self.bestimmt,
+            "herkunft": self.herkunft,
         }
 
 
@@ -143,6 +147,7 @@ def ermittle_abgrenzung(
     con: duckdb.DuckDBPyConnection,
     einvoice: EInvoiceConfig,
     tabellen: Iterable[str],
+    umsaetze: dict[str, float] | None = None,
 ) -> Abgrenzung:
     """Bestimmt Grundgesamtheit und Ausschlussmengen aus dem Debitorenstamm.
 
@@ -209,18 +214,25 @@ def ermittle_abgrenzung(
         debitoren_gesamt=gesamt,
         grundgesamtheit=grundgesamtheit,
         ausschluesse=ausschluesse,
-        fristen=_fristen(con, einvoice, vorhanden),
+        fristen=_fristen(con, einvoice, vorhanden, umsaetze or {}),
     )
 
 
 def _fristen(
-    con: duckdb.DuckDBPyConnection, einvoice: EInvoiceConfig, vorhanden: set[str]
+    con: duckdb.DuckDBPyConnection,
+    einvoice: EInvoiceConfig,
+    vorhanden: set[str],
+    umsaetze: dict[str, float],
 ) -> list[Frist]:
     """Ordnet jedem Buchungskreis seinen Stichtag zu.
 
-    Der Vorjahresumsatz kommt aus der Konfiguration - ohne Belegdaten gibt es
-    ihn nicht aus dem System. Fehlt er, bleibt die Frist ausdrücklich
-    unbestimmt; ein geratener Stichtag wäre schlimmer als gar keiner.
+    Der Umsatz kommt aus den Belegen, wenn welche geliefert wurden, sonst
+    aus der Konfiguration. Die Konfiguration gewinnt: wer eine Zahl
+    ausdrücklich hinterlegt, meint sie auch so - die aus den Belegen ist bei
+    einem kurzen Zeitraum eine Hochrechnung.
+
+    Fehlt beides, bleibt die Frist ausdrücklich unbestimmt; ein geratener
+    Stichtag wäre schlimmer als gar keiner.
     """
     if "T001" not in vorhanden:
         return []
@@ -233,7 +245,8 @@ def _fristen(
 
     fristen: list[Frist] = []
     for bukrs, name in zeilen:
-        umsatz = einvoice.prior_year_revenue.get(str(bukrs).upper())
+        schluessel = str(bukrs).upper()
+        umsatz = einvoice.prior_year_revenue.get(schluessel, umsaetze.get(schluessel))
         if umsatz is None:
             fristen.append(Frist(str(bukrs), str(name or "")))
             continue
@@ -245,6 +258,8 @@ def _fristen(
                 umsatz=umsatz,
                 stichtag=FRIST_UEBER_SCHWELLE if ueber else FRIST_UNTER_SCHWELLE,
                 bestimmt=True,
+                herkunft="konfiguration" if schluessel in einvoice.prior_year_revenue
+                         else "belege",
             )
         )
     return fristen
@@ -273,6 +288,9 @@ def bewerten(
     nicht_pruefbar: dict[str, str],
     grundgesamtheit: int,
     schwelle: float,
+    volumen_je_regel: dict[str, dict[str, float]] | None = None,
+    gesamtvolumen: float = 0.0,
+    volumen_schwelle: float = 0.10,
 ) -> list[Gruppe]:
     """Fasst die E-Rechnungsregeln zu Gruppen zusammen und bewertet sie.
 
@@ -285,6 +303,12 @@ def bewerten(
     Regeln über Debitoren aussagekräftig. Bei einer Regel über den
     Buchungskreis ist jeder Befund gravierend, unabhängig von einer Quote:
     ohne USt-IdNr. des Stellers ist keine einzige Rechnung erzeugbar.
+
+    Liegen Belege vor, kommt der Volumenanteil dazu: welcher Teil des
+    Rechnungsnettovolumens auf die betroffenen Debitoren entfällt. Er
+    trennt die relevanten von den bloß zahlreichen Befunden - fünf
+    Karteileichen und fünf Großkunden ergeben dieselbe Quote und ein ganz
+    anderes Risiko.
     """
     gruppen: dict[str, Gruppe] = {}
     for regel in sorted(regeln, key=lambda r: r.id):
@@ -295,6 +319,12 @@ def bewerten(
         grund = nicht_pruefbar.get(regel.id, "")
         anzahl = befunde_je_regel.get(regel.id, 0)
         je_debitor = name == "Debitor" and grundgesamtheit > 0
+        volumen = (volumen_je_regel or {}).get(regel.id)
+        anteil = (
+            round(volumen["volumen"] / gesamtvolumen, 4)
+            if volumen and gesamtvolumen > 0 and je_debitor
+            else None
+        )
         gruppe.regeln.append(
             {
                 "id": regel.id,
@@ -303,22 +333,28 @@ def bewerten(
                 "anforderung": regel.requirement,
                 "befunde": anzahl,
                 "quote": round(anzahl / grundgesamtheit, 4) if je_debitor else None,
+                "volumen": round(volumen["volumen"], 2) if volumen else None,
+                "volumenanteil": anteil,
                 "pruefbar": not grund,
                 "grund": grund,
             }
         )
 
     for gruppe in gruppen.values():
-        gruppe.ampel = _ampel(gruppe, schwelle)
+        gruppe.ampel = _ampel(gruppe, schwelle, volumen_schwelle)
     return [gruppen[name] for name in sorted(gruppen)]
 
 
-def _ampel(gruppe: Gruppe, schwelle: float) -> str:
+def _ampel(gruppe: Gruppe, schwelle: float, volumen_schwelle: float) -> str:
     """Rot, gelb, grün oder grau - in dieser Reihenfolge geprüft.
 
     Grau ist die wichtigste Stufe: eine Gruppe, die mangels Daten nicht
     geprüft werden konnte, ist keine grüne Gruppe. Wer das verwechselt,
     verkauft eine Lücke als Ergebnis.
+
+    Rot wird eine Gruppe über die Partnerquote *oder* über den
+    Volumenanteil. Beide Wege sind gewollt: eine Handvoll Großkunden kann
+    unterhalb jeder Quote den halben Umsatz gefährden.
     """
     pruefbar = [regel for regel in gruppe.regeln if regel["pruefbar"]]
     if not pruefbar:
@@ -330,6 +366,9 @@ def _ampel(gruppe: Gruppe, schwelle: float) -> str:
         # Ohne Bezugsgröße - Buchungskreis, Zahlungsbedingung - zählt der
         # Befund selbst; eine Quote gäbe es dort nur zum Schein.
         if regel["quote"] is None or regel["quote"] > schwelle:
+            return "rot"
+        anteil = regel.get("volumenanteil")
+        if anteil is not None and anteil > volumen_schwelle:
             return "rot"
 
     if any(regel["befunde"] for regel in pruefbar):

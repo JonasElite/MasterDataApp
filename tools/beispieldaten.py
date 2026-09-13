@@ -59,6 +59,14 @@ STAMMWOERTER = [
 FORMEN = ["GmbH", "AG", "KG", "GmbH & Co. KG", "OHG", "e.K."]
 STRASSEN = ["Hauptstrasse", "Bahnhofstrasse", "Industrieweg", "Am Markt", "Lindenallee"]
 
+#: Positionstexte der Fakturen. Sie muessen nichts bedeuten - geprueft wird,
+#: ob ueberhaupt einer da ist.
+TEXTE = [
+    "Vierkantrohr 40x40", "Dichtungssatz Typ B", "Montage vor Ort",
+    "Kugellager 6203", "Frachtpauschale", "Wartung Jahrespauschale",
+    "Kabeltrommel 50 m", "Schraubensortiment", "Beratungsleistung",
+]
+
 #: Stellenzahl der Bankleitzahl je Land, passend zum Aufbau der IBAN.
 BANK_KEY_LENGTHS = {"DE": 8, "AT": 5, "CH": 5, "NL": 4, "FR": 5, "IT": 5}
 
@@ -211,6 +219,187 @@ def write_csv(path: Path, rows: list[dict], columns: list[str]) -> None:
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
+
+
+
+def fakturen(rng, mandant: str, kna1: list[dict], heute, defekte: list[str],
+             schwergewichte: list[str] | None = None):
+    """Erzeugt Fakturen zu den Debitoren - mit gezielt eingebauten Mängeln.
+
+    Der Betrachtungszeitraum ist bewusst ein halbes Jahr: damit greift die
+    Hochrechnung auf ein Jahr, und man sieht im Bericht, dass sie greift.
+
+    Wichtiger als die Zahl der Belege ist ihre Verteilung. Ein Zehntel der
+    Kunden bekommt das Zwölffache an Umsatz, und die in ``schwergewichte``
+    genannten noch einmal deutlich mehr. Sie tragen zugleich einen
+    Stammdatenmangel - erst dadurch weicht der Volumenanteil von der
+    Partnerquote ab, und genau diese Abweichung ist der Grund, warum es die
+    Belegsicht überhaupt gibt.
+    """
+    beginn = heute - timedelta(days=182)
+    vbrk: list[dict] = []
+    vbrp: list[dict] = []
+    nummer = 90000000
+
+    # Nur aktive Debitoren mit Anschrift bekommen Fakturen; ein zur Löschung
+    # vorgemerkter Satz hat keine laufenden Umsaetze.
+    kunden = [
+        satz for satz in kna1
+        if satz.get("LOEVM") != "X" and satz.get("XCPDK") != "X"
+    ]
+    grosskunden = {satz["KUNNR"] for satz in kunden[::10]}
+    schwer = set(schwergewichte or [])
+
+    def beleg(kunde: dict, positionen: list[dict], **kopf) -> dict:
+        nonlocal nummer
+        nummer += 1
+        vbeln = f"{nummer}"
+        netto = round(sum(p["NETWR"] for p in positionen), 2)
+        steuer = round(sum(p["MWSBP"] for p in positionen), 2)
+        satz = {
+            "MANDT": mandant, "VBELN": vbeln, "FKART": "F2", "FKTYP": "L",
+            "FKDAT": (beginn + timedelta(days=rng.randint(0, 182))).strftime("%Y%m%d"),
+            "BUKRS": "1000", "VKORG": "1000",
+            "KUNRG": kunde["KUNNR"], "KUNAG": kunde["KUNNR"],
+            "WAERK": "EUR", "NETWR": netto, "MWSBK": steuer,
+            "ZTERM": "ZB01", "SFAKN": "", "FKSTO": "",
+            "LAND1": kunde.get("LAND1", "DE"), "STCEG": kunde.get("STCEG", ""),
+        }
+        satz.update(kopf)
+        vbrk.append(satz)
+        for lauf, position in enumerate(positionen, start=1):
+            vbrp.append({
+                "MANDT": mandant, "VBELN": vbeln, "POSNR": f"{lauf * 10:06d}",
+                "MATNR": position.get("MATNR", f"{rng.randint(100000, 199999)}"),
+                "ARKTX": position["ARKTX"],
+                "FKIMG": position["FKIMG"], "VRKME": position.get("VRKME", "ST"),
+                "NETWR": position["NETWR"], "MWSBP": position["MWSBP"],
+                "MWSKZ": position.get("MWSKZ", "A1"),
+                "WAERK": "EUR", "MATKL": "001", "WERKS": "1000",
+            })
+        return satz
+
+    def position(wert: float, **felder) -> dict:
+        kennzeichen = felder.get("MWSKZ", "A1")
+        steuer = round(wert * 0.19, 2) if kennzeichen in ("A1", "XX") else 0.0
+        satz = {
+            "ARKTX": rng.choice(TEXTE), "FKIMG": rng.randint(1, 40),
+            "NETWR": round(wert, 2), "MWSBP": steuer,
+        }
+        satz.update(felder)
+        return satz
+
+    # ------------------------------------------------- der normale Bestand
+    for kunde in kunden:
+        if kunde["KUNNR"] in schwer:
+            anzahl, hebel = 7, 22
+        elif kunde["KUNNR"] in grosskunden:
+            anzahl, hebel = rng.randint(2, 5), 12
+        else:
+            anzahl, hebel = rng.randint(0, 3), 1
+        for _ in range(anzahl):
+            steuerkennzeichen = "A1" if kunde.get("LAND1") == "DE" else "A0"
+            beleg(kunde, [
+                position(rng.uniform(300, 4000) * hebel, MWSKZ=steuerkennzeichen)
+                for _ in range(rng.randint(1, 3))
+            ])
+
+    if not vbrk:  # pragma: no cover - nur bei leerem Debitorenstamm
+        return vbrk, vbrp
+
+    def maengelkunden(anzahl: int) -> list[dict]:
+        return rng.sample(kunden, min(anzahl, len(kunden)))
+
+    # ------------------------------------------------- eingebaute Mängel
+    ohne_datum = [beleg(k, [position(1200)], FKDAT=None) for k in maengelkunden(2)]
+    defekte.append(
+        "ERE-COMP-008: 2 Fakturen ohne Rechnungsdatum | betroffen: "
+        + ", ".join(b["VBELN"] for b in ohne_datum)
+    )
+
+    fremdwaehrung = [beleg(k, [position(2500)], WAERK="DEM") for k in maengelkunden(3)]
+    for satz in vbrp:
+        if satz["VBELN"] in {b["VBELN"] for b in fremdwaehrung}:
+            satz["WAERK"] = "DEM"
+    defekte.append(
+        "ERE-REF-006: 1 Belegwährung ohne ISO-Code (DEM) in 3 Fakturen | "
+        "betroffen: " + ", ".join(b["VBELN"] for b in fremdwaehrung)
+    )
+
+    # Summenkonsistenz: der Kopf wird nach dem Schreiben verbogen.
+    schief = [beleg(k, [position(900), position(1100)]) for k in maengelkunden(3)]
+    for satz in schief:
+        satz["NETWR"] = round(satz["NETWR"] + 25.5, 2)
+    defekte.append(
+        "ERE-CONS-003: 3 Fakturen, deren Positionssummen nicht den Kopfbetrag "
+        "ergeben | betroffen: " + ", ".join(b["VBELN"] for b in schief)
+    )
+
+    gutschriften = [beleg(k, [position(-450)], FKART="G2") for k in maengelkunden(2)]
+    defekte.append(
+        "ERE-CONS-004: 2 Gutschriften ohne Bezug zum Ursprungsbeleg | "
+        "betroffen: " + ", ".join(b["VBELN"] for b in gutschriften)
+    )
+
+    ohne_text = [beleg(k, [position(700, ARKTX=""), position(800)])
+                 for k in maengelkunden(3)]
+    defekte.append(
+        "ERE-COMP-009: 3 Fakturen mit einer Position ohne Bezeichnung | "
+        "betroffen: " + ", ".join(b["VBELN"] for b in ohne_text)
+    )
+
+    palette = [beleg(k, [position(1500, VRKME="PAL")]) for k in maengelkunden(4)]
+    defekte.append(
+        "ERE-REF-005: 1 Mengeneinheit ohne ISO-Code (PAL) in 4 Fakturen | "
+        "betroffen: " + ", ".join(b["VBELN"] for b in palette)
+    )
+
+    nullposition = [beleg(k, [position(600), position(0, FKIMG=0, ARKTX="Naturalrabatt")])
+                    for k in maengelkunden(3)]
+    defekte.append(
+        "ERE-CONS-005: 3 Fakturen mit einer Position ohne Menge und Wert | "
+        "betroffen: " + ", ".join(b["VBELN"] for b in nullposition)
+    )
+
+    unzugeordnet = [beleg(k, [position(1800, MWSKZ="AX")]) for k in maengelkunden(2)]
+    defekte.append(
+        "ERE-REF-003: Kennzeichen AX in 2 Fakturen | betroffen: "
+        + ", ".join(b["VBELN"] for b in unzugeordnet)
+    )
+
+    altkennzeichen = [beleg(k, [position(1400, MWSKZ="XX")]) for k in maengelkunden(2)]
+    defekte.append(
+        "ERE-REF-004: Kennzeichen XX in 2 Fakturen | betroffen: "
+        + ", ".join(b["VBELN"] for b in altkennzeichen)
+    )
+
+    # Zwei Mengen, die nicht unter die Pflicht fallen. Sie sind kein Mangel,
+    # sondern der Beleg dafuer, dass die Abgrenzung greift.
+    klein = [beleg(k, [position(rng.uniform(40, 180))]) for k in maengelkunden(5)]
+    defekte.append(
+        "Abgrenzung: 5 Kleinbetragsrechnungen unter 250 Euro - kein Befund, "
+        "sondern eine Ausschlussmenge | betroffen: "
+        + ", ".join(b["VBELN"] for b in klein)
+    )
+    steuerfrei = [beleg(k, [position(3200, MWSKZ="AZ")]) for k in maengelkunden(4)]
+    defekte.append(
+        "Abgrenzung: 4 steuerfreie Umsätze (Kennzeichen AZ, Kategorie E) - "
+        "kein Befund, sondern eine Ausschlussmenge | betroffen: "
+        + ", ".join(b["VBELN"] for b in steuerfrei)
+    )
+
+    # Steuerbetrag trotz Nullsatz: die Position traegt A0, aber Steuer.
+    widerspruch = [beleg(k, [position(2200, MWSKZ="A0")]) for k in maengelkunden(3)]
+    fuer_widerspruch = {b["VBELN"] for b in widerspruch}
+    for satz in vbrp:
+        if satz["VBELN"] in fuer_widerspruch:
+            satz["MWSBP"] = round(satz["NETWR"] * 0.19, 2)
+    defekte.append(
+        "ERE-CONS-002: 3 Fakturen mit Steuerbetrag trotz Nullsatz-Kennzeichen | "
+        "betroffen: " + ", ".join(b["VBELN"] for b in widerspruch)
+    )
+
+    return vbrk, vbrp
 
 
 def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
@@ -917,9 +1106,10 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     # enthält für jede Regel einen Fall - und dazu die Mengen, die
     # ausgeschlossen gehören.
 
+    ohne_email = [neuer_debitor(LAND1="DE", _ohne_email=True) for _ in range(4)]
     kundengruppe(
         "ERE-COMP-005: 4 Debitoren ohne E-Mail-Adresse in der Adressverwaltung",
-        [neuer_debitor(LAND1="DE", _ohne_email=True) for _ in range(4)],
+        ohne_email,
     )
     kundengruppe(
         "ERE-COMP-004: 3 Debitoren ohne Straße - für die E-Rechnung eine "
@@ -1037,12 +1227,57 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     t025 = [{"MANDT": mandant, "BKLAS": b, "KKREF": k} for b, k in
             (("3000", "0001"), ("3100", "0001"), ("7900", "0002"), ("7920", "0002"))]
     t023 = [{"MANDT": mandant, "MATKL": m} for m in ("001", "002", "003", "004")]
-    t006 = [{"MANDT": mandant, "MSEHI": m} for m in ("ST", "KG", "M")]
+    # Mengeneinheiten mit ISO-Code nach UN/ECE Rec 20 - und eine hauseigene
+    # Einheit ohne, wie sie in gewachsenen Systemen aus der Fertigung kommt.
+    t006 = [{"MANDT": mandant, "MSEHI": m, "ISOCODE": iso} for m, iso in
+            (("ST", "H87"), ("KG", "KGM"), ("M", "MTR"), ("PAL", ""))]
     t001w = [{"MANDT": mandant, "WERKS": "1000", "NAME1": "Werk Musterstadt", "LAND1": "DE"}]
     skb1 = [{"MANDT": mandant, "BUKRS": "1000", "SAKNR": "0000160000", "MITKZ": "K"},
             {"MANDT": mandant, "BUKRS": "1000", "SAKNR": "0000140000", "MITKZ": "D"}]
-    tcurc = [{"MANDT": mandant, "WAERS": w} for w in ("EUR", "CHF", "USD")]
+    tcurc = [{"MANDT": mandant, "WAERS": w, "ISOCD": iso} for w, iso in
+             (("EUR", "EUR"), ("CHF", "CHF"), ("USD", "USD"))]
     t024e = [{"MANDT": mandant, "EKORG": "1000", "EKOTX": "Einkauf zentral", "BUKRS": "1000"}]
+
+    # ----------------------------------------------- Steuerkennzeichen
+    #
+    # T007A ist Customizing, STEUERZUORDNUNG ist eine Projektleistung: die
+    # Zuordnung zu den Kategorie-Codes der Norm laesst sich nicht ableiten.
+    # Die Beispiellieferung enthaelt beides, damit die Gruppe Steuerlogik
+    # vorfuehrbar ist - und je einen Fall, der auffaellt.
+    t007a = [{"MANDT": mandant, "KALSM": "TAXD", "MWSKZ": k, "MWART": "A"}
+             for k in ("A1", "A0", "AZ", "AX")]
+    steuerzuordnung = [
+        {"MWSKZ": "A1", "KATEGORIE": "S", "SATZ": 19.0,
+         "BEFREIUNGSGRUND": "", "BEZEICHNUNG": "Regelsatz Inland"},
+        {"MWSKZ": "A0", "KATEGORIE": "K", "SATZ": 0.0,
+         "BEFREIUNGSGRUND": "Innergemeinschaftliche Lieferung nach § 4 Nr. 1b UStG",
+         "BEZEICHNUNG": "Steuerfrei innergemeinschaftlich"},
+        # Befreit, aber ohne hinterlegten Grund - der Befund zu ERE-COMP-007.
+        {"MWSKZ": "AZ", "KATEGORIE": "E", "SATZ": 0.0,
+         "BEFREIUNGSGRUND": "", "BEZEICHNUNG": "Steuerfrei ohne Vorsteuerabzug"},
+        # In der Zuordnung, aber im Customizing nicht mehr gepflegt.
+        {"MWSKZ": "XX", "KATEGORIE": "S", "SATZ": 19.0,
+         "BEFREIUNGSGRUND": "", "BEZEICHNUNG": "Altkennzeichen"},
+    ]
+    defekte.append(
+        "ERE-COMP-007: 1 Steuerkennzeichen ohne Befreiungsgrund | betroffen: AZ"
+    )
+    defekte.append(
+        "ERE-REF-003: 1 Steuerkennzeichen ohne Zuordnung zu einem "
+        "Kategorie-Code | betroffen: AX"
+    )
+    defekte.append(
+        "ERE-REF-004: 1 Steuerkennzeichen aus den Belegen fehlt im "
+        "Customizing | betroffen: XX"
+    )
+
+    # Zwei der Debitoren ohne E-Mail-Adresse sind Grosskunden. Das ist der
+    # Fall, fuer den es die Belegsicht gibt: nach Koepfen sind es vier von
+    # hundert, nach Umsatz ein Viertel.
+    vbrk, vbrp = fakturen(
+        rng, mandant, kna1, heute, defekte,
+        schwergewichte=[satz["KUNNR"] for satz in ohne_email[:2]],
+    )
 
     # ------------------------------------------------------ schreiben
     write_csv(target / "LFA1.csv", lfa1, list(lfa1[0]))
@@ -1055,6 +1290,9 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     write_csv(target / "KNVV.csv", knvv, list(knvv[0]))
     write_csv(target / "ADR6.csv", adr6, list(adr6[0]))
     write_csv(target / "ADRC.csv", adrc, list(adrc[0]))
+    write_csv(target / "VBRK.csv", vbrk, list(vbrk[0]))
+    write_csv(target / "VBRP.csv", vbrp, list(vbrp[0]))
+    write_csv(target / "STEUERZUORDNUNG.csv", steuerzuordnung, list(steuerzuordnung[0]))
     write_csv(target / "MARA.csv", mara, list(mara[0]))
     write_csv(target / "MAKT.csv", makt, list(makt[0]))
     write_csv(target / "MARC.csv", marc, list(marc[0]))
@@ -1063,7 +1301,7 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         ("T001", t001), ("T052", t052), ("T042Z", t042z), ("T005", t005),
         ("T077K", t077k), ("T134", t134), ("T025", t025), ("T023", t023),
         ("T006", t006), ("T001W", t001w), ("SKB1", skb1), ("TCURC", tcurc),
-        ("T024E", t024e), ("T077D", t077d), ("TVKO", tvko),
+        ("T024E", t024e), ("T077D", t077d), ("TVKO", tvko), ("T007A", t007a),
     ):
         write_csv(target / f"{name}.csv", rows, list(rows[0]))
 
@@ -1071,6 +1309,8 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         "LFA1": len(lfa1), "LFB1": len(lfb1), "LFM1": len(lfm1), "LFBK": len(lfbk),
         "KNA1": len(kna1), "KNB1": len(knb1), "KNBK": len(knbk), "KNVV": len(knvv),
         "ADR6": len(adr6), "ADRC": len(adrc),
+        "VBRK": len(vbrk), "VBRP": len(vbrp), "T007A": len(t007a),
+        "STEUERZUORDNUNG": len(steuerzuordnung),
         "MARA": len(mara), "MAKT": len(makt), "MARC": len(marc), "MBEW": len(mbew),
         "T001": len(t001), "T052": len(t052), "T042Z": len(t042z), "T005": len(t005),
         "T077K": len(t077k), "T134": len(t134), "T025": len(t025), "T023": len(t023),

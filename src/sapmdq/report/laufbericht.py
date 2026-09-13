@@ -363,19 +363,26 @@ def _erechnung(result: RunResult) -> dict[str, Any] | None:
     }
     abgrenzung = result.abgrenzung
     grundgesamtheit = abgrenzung.grundgesamtheit if abgrenzung else 0
+    belegsicht = result.belegsicht
+    einvoice = result.config.einvoice
 
     gruppen = bewerten(
         regeln,
         befunde_je_regel,
         nicht_pruefbar,
         grundgesamtheit,
-        result.config.einvoice.ampel_schwelle,
+        einvoice.ampel_schwelle,
+        result.volumen_je_regel,
+        belegsicht.volumen if belegsicht and belegsicht.ermittelt else 0.0,
+        einvoice.volumen_schwelle,
     )
     return {
         "abgrenzung": abgrenzung.als_dict() if abgrenzung else None,
+        "belegsicht": belegsicht.als_dict() if belegsicht else None,
         "gruppen": [gruppe.als_dict() for gruppe in gruppen],
-        "schwelle": result.config.einvoice.ampel_schwelle,
-        "inland": list(result.config.einvoice.inland),
+        "schwelle": einvoice.ampel_schwelle,
+        "volumen_schwelle": einvoice.volumen_schwelle,
+        "inland": list(einvoice.inland),
     }
 
 

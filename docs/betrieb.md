@@ -58,6 +58,15 @@ Dateimanager nicht auch könnten. Der Dateiname eines Uploads wird geprüft und
 im Zweifel abgewiesen, nicht bereinigt; Einzelheiten in
 [oberflaeche.md](oberflaeche.md).
 
+Werden für die E-Rechnungsprüfung Belege geliefert (`VBRK`/`VBRP`,
+`BKPF`/`BSEG`), ist das eine andere Datenkategorie als ein Stammsatz: eine
+Fakturaposition sagt, was ein benannter Kunde wann zu welchem Preis gekauft
+hat. Für die Aufbewahrung gilt derselbe Rahmen wie für die übrigen
+Eingangsdaten (DS-01, DS-03); die Menge ist größer, und die Löschung nach
+Projektende ist entsprechend wichtiger. Die Auswertung selbst hält nur
+Aggregate - Zahl der Rechnungen und Nettovolumen je Debitor -, keine
+Positionstexte.
+
 Welche Projekte dieser Arbeitsplatz kennt, steht in `~/.sapmdq/projekte.yaml`
 (verlegbar über `SAPMDQ_HOME`). Ein Pfad kann einen Kundennamen enthalten;
 die Datei gehört damit zu den personenbeziehbaren Angaben und ist beim

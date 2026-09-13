@@ -812,6 +812,30 @@ tables:
       XVORS: {type: flag, aliases: [Vorsteuer]}
       TXTNR: {aliases: [Textnummer]}
 
+  T007S:
+    description: Steuerkennzeichen - Bezeichnungen
+    object_area: customizing
+    tier: could
+    key: [MANDT, SPRAS, KALSM, MWSKZ]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      SPRAS: {type: lang, aliases: [Sprache]}
+      KALSM: {aliases: [Kalkulationsschema, Schema]}
+      MWSKZ: {aliases: [Steuerkennzeichen]}
+      TEXT1: {aliases: [Bezeichnung, "Text zum Steuerkennzeichen"]}
+
+  T006A:
+    description: Mengeneinheiten - Bezeichnungen
+    object_area: customizing
+    tier: could
+    key: [MANDT, SPRAS, MSEHI]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      SPRAS: {type: lang, aliases: [Sprache]}
+      MSEHI: {aliases: [Mengeneinheit, "Basismengeneinheit"]}
+      MSEH3: {aliases: ["Mengeneinheit dreistellig"]}
+      MSEHT: {aliases: ["Bezeichnung der Mengeneinheit"]}
+
   TBSL:
     description: Buchungsschlüssel
     object_area: customizing
@@ -1001,3 +1025,117 @@ tables:
       XSPEB: {type: flag, aliases: [Buchungssperre]}
       WAERS: {aliases: ["Waehrung", "Hauswaehrung"]}
       ZUAWA: {aliases: [Sortierschluessel]}
+
+
+  # ------------------------------------------------------------- Belege
+  #
+  # Bewegungsdaten. Sie sind kein Stammdatengegenstand und werden nur fuer
+  # die E-Rechnungspruefung gelesen: fuer die Gewichtung der Befunde nach
+  # Rechnungsvolumen und fuer die Pruefungen an Position und Beleg.
+  #
+  # Datenschutz: eine Fakturaposition sagt, was ein benannter Kunde wann zu
+  # welchem Preis gekauft hat. Das ist eine andere Kategorie als ein
+  # Stammsatz - siehe docs/betrieb.md.
+
+  VBRK:
+    description: Faktura - Kopf
+    object_area: beleg
+    tier: could
+    key: [MANDT, VBELN]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      VBELN: {alpha: 10, aliases: [Faktura, Fakturanummer, Rechnungsnummer, Beleg]}
+      FKART: {aliases: [Fakturaart, Rechnungsart]}
+      FKTYP: {aliases: [Fakturatyp]}
+      FKDAT: {type: dats, aliases: [Fakturadatum, Rechnungsdatum, Belegdatum]}
+      BUKRS: {aliases: [Buchungskreis]}
+      VKORG: {aliases: [Verkaufsorganisation]}
+      KUNRG: {alpha: 10, pii: true, aliases: [Regulierer, "Auftraggeber", Debitor, KUNNR]}
+      KUNAG: {alpha: 10, pii: true, aliases: [Auftraggeber]}
+      WAERK: {aliases: ["Belegwaehrung", "Waehrung"]}
+      NETWR: {type: curr, aliases: [Nettowert, Nettobetrag]}
+      MWSBK: {type: curr, aliases: [Steuerbetrag, Mehrwertsteuerbetrag]}
+      ZTERM: {aliases: [Zahlungsbedingung]}
+      SFAKN: {alpha: 10, aliases: ["Storno zu Faktura", "Bezug zur Rechnung", "Referenzbeleg"]}
+      RFBSK: {aliases: ["Status Buchhaltung"]}
+      FKSTO: {type: flag, aliases: [Storniert, Stornokennzeichen]}
+      LAND1: {aliases: ["Land des Empfaengers"]}
+      STCEG: {aliases: ["USt-IdNr. des Empfaengers"]}
+
+  VBRP:
+    description: Faktura - Position
+    object_area: beleg
+    tier: could
+    key: [MANDT, VBELN, POSNR]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      VBELN: {alpha: 10, aliases: [Faktura, Fakturanummer, Rechnungsnummer]}
+      POSNR: {type: numc, alpha: 6, aliases: [Position, Positionsnummer]}
+      MATNR: {alpha: 18, aliases: [Material, Materialnummer]}
+      ARKTX: {aliases: [Bezeichnung, Positionstext, "Kurztext zur Position"]}
+      FKIMG: {type: quan, aliases: [Menge, Fakturamenge]}
+      VRKME: {aliases: ["Verkaufsmengeneinheit", Mengeneinheit]}
+      NETWR: {type: curr, aliases: [Nettowert, Nettobetrag]}
+      MWSBP: {type: curr, aliases: [Steuerbetrag]}
+      MWSKZ: {aliases: [Steuerkennzeichen]}
+      WAERK: {aliases: ["Belegwaehrung"]}
+      MATKL: {aliases: [Warengruppe]}
+      WERKS: {aliases: [Werk]}
+
+  BKPF:
+    description: Buchhaltungsbeleg - Kopf
+    object_area: beleg
+    tier: could
+    key: [MANDT, BUKRS, BELNR, GJAHR]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      BUKRS: {aliases: [Buchungskreis]}
+      BELNR: {alpha: 10, aliases: [Belegnummer, Beleg]}
+      GJAHR: {type: numc, alpha: 4, aliases: ["Geschaeftsjahr"]}
+      BLART: {aliases: [Belegart]}
+      BLDAT: {type: dats, aliases: [Belegdatum, Rechnungsdatum]}
+      BUDAT: {type: dats, aliases: [Buchungsdatum]}
+      WAERS: {aliases: ["Waehrung", "Belegwaehrung"]}
+      XBLNR: {aliases: [Referenz, Referenzbelegnummer]}
+      STBLG: {alpha: 10, aliases: [Stornobeleg]}
+
+  BSEG:
+    description: Buchhaltungsbeleg - Segment
+    object_area: beleg
+    tier: could
+    key: [MANDT, BUKRS, BELNR, GJAHR, BUZEI]
+    fields:
+      MANDT: {type: numc, alpha: 3, aliases: *mandt_aliases}
+      BUKRS: {aliases: [Buchungskreis]}
+      BELNR: {alpha: 10, aliases: [Belegnummer]}
+      GJAHR: {type: numc, alpha: 4, aliases: ["Geschaeftsjahr"]}
+      BUZEI: {type: numc, alpha: 3, aliases: [Belegzeile, Zeile]}
+      KOART: {aliases: [Kontoart]}
+      KUNNR: {alpha: 10, pii: true, aliases: [Debitor, Kunde, Kundennummer]}
+      SHKZG: {aliases: ["Soll-Haben-Kennzeichen"]}
+      WRBTR: {type: curr, aliases: [Betrag, "Betrag in Belegwaehrung"]}
+      MWSKZ: {aliases: [Steuerkennzeichen]}
+      ZTERM: {aliases: [Zahlungsbedingung]}
+      HKONT: {alpha: 10, aliases: [Sachkonto]}
+
+  # -------------------------------------------------- Zuordnung des Projekts
+  #
+  # Keine SAP-Tabelle, sondern eine Projektleistung: die Zuordnung der
+  # kundeneigenen Steuerkennzeichen zu den Kategorie-Codes der Norm. Sie ist
+  # nicht automatisierbar und je Kunde einmal fachlich zu erheben.
+  #
+  # Sie liegt als Datei im Eingangsverzeichnis, damit sie durch dieselbe
+  # Muehle laeuft wie alles andere: Lieferungspruefung, Capability-Matrix,
+  # Nachforderungsliste. Fehlt sie, entfaellt die Gruppe Steuerlogik mit
+  # Begruendung - statt stillschweigend zu verschwinden.
+  STEUERZUORDNUNG:
+    description: Steuerkennzeichen - Zuordnung zu den Kategorie-Codes der Norm (EN 16931 BT-118)
+    object_area: projekt
+    tier: could
+    key: [MWSKZ]
+    fields:
+      MWSKZ: {aliases: [Steuerkennzeichen, Steuerkennzeichnen, Tax code]}
+      KATEGORIE: {aliases: [Kategorie, "Kategorie-Code", Category, BT-118]}
+      SATZ: {type: dec, aliases: [Steuersatz, Satz, Rate]}
+      BEFREIUNGSGRUND: {aliases: [Befreiungsgrund, "Grund der Befreiung", "BT-120"]}
+      BEZEICHNUNG: {aliases: [Bezeichnung, Text]}

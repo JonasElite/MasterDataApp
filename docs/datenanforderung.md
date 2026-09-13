@@ -91,6 +91,9 @@ Erweitern die Prüfung um Bereiche, die sonst entfallen.
 | SKB1 | Sachkontenstamm - Buchungskreis | 3 | customizing |
 | ADRC | Zentrale Adressverwaltung | 3 | cross |
 | ADR6 | E-Mail-Adressen zur Adressverwaltung - Zustellweg der E-Rechnung | 1 | cross |
+| VBRP | Faktura - Position (nur für die E-Rechnungsprüfung) | 7 | beleg |
+| VBRK | Faktura - Kopf (nur für die E-Rechnungsprüfung) | 4 | beleg |
+| STEUERZUORDNUNG | Zuordnung der Steuerkennzeichen zu den Kategorie-Codes - eine Projektleistung, keine SAP-Tabelle | 3 | projekt |
 | BNKA | Bankenstamm | 2 | cross |
 | CDPOS | Änderungsbelege - Positionen | 2 | cross |
 | KNBK | Debitorenstamm - Bankverbindungen | 2 | customer |

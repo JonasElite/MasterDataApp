@@ -1,0 +1,388 @@
+# Regelwerk E-Rechnung - Belegsicht (EN 16931, Gruppen C und E).
+#
+# Diese Regeln lesen Bewegungsdaten. Das ist im übrigen Katalog nicht so und
+# hat zwei Folgen, die man kennen muss:
+#
+# 1. Die Tabellen sind groß. Alle Regeln aggregieren deshalb und geben nicht
+#    jede Position einzeln zurück - eine Arbeitsliste mit zwei Millionen
+#    Zeilen hilft niemandem. Gezählt wird je Beleg oder je Kennzeichen,
+#    mit der Zahl der betroffenen Sätze daneben.
+#
+# 2. Eine Fakturaposition sagt, was ein benannter Kunde wann zu welchem
+#    Preis gekauft hat. Die Ausgabe hält sich deshalb an Schlüssel und
+#    Zahlen; Positionstexte erscheinen nur dort, wo genau ihr Fehlen der
+#    Befund ist.
+#
+# Die Zuordnung der Steuerkennzeichen (STEUERZUORDNUNG) ist keine
+# SAP-Tabelle, sondern eine Projektleistung. Fehlt sie, entfällt die Gruppe
+# Steuerlogik über die Capability-Matrix - mit Begründung und in der
+# Nachforderungsliste.
+
+rules:
+
+  # =================================================== Gruppe C - Steuerlogik
+  - id: ERE-REF-003
+    name: Steuerkennzeichen ohne Zuordnung zu einem Kategorie-Code
+    description: >
+      Die Norm kennt sieben Kategorie-Codes (S, Z, E, AE, K, G, O). Jedes im
+      Beleg verwendete Steuerkennzeichen muss eindeutig einem davon
+      zugeordnet sein, sonst lässt sich die Steuerangabe der Rechnung nicht
+      bilden. Die Zuordnung ist kundenspezifisch und einmal fachlich zu
+      erheben; sie ist nicht ableitbar.
+    category: referential
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Steuerkennzeichen
+    key_columns: [MWSKZ]
+    client_column: MANDT
+    requirement: "EN 16931 BT-118 (C-01)"
+    requires:
+      tables: [VBRP, STEUERZUORDNUNG]
+      fields:
+        VBRP: [MANDT, VBELN, MWSKZ]
+        STEUERZUORDNUNG: [MWSKZ, KATEGORIE]
+    params: {}
+    remediation: >
+      Kennzeichen mit dem Steuerreferat einem Kategorie-Code zuordnen und in
+      der Datei STEUERZUORDNUNG ergänzen.
+    sql: |
+      SELECT
+          p.MANDT, p.MWSKZ,
+          count(DISTINCT p.VBELN) AS betroffene_belege,
+          count(*) AS betroffene_positionen
+      FROM VBRP p
+      LEFT JOIN (
+          SELECT DISTINCT MWSKZ
+          FROM STEUERZUORDNUNG
+          WHERE KATEGORIE IS NOT NULL AND trim(KATEGORIE) <> ''
+      ) z ON trim(p.MWSKZ) = trim(z.MWSKZ)
+      WHERE p.MWSKZ IS NOT NULL AND trim(p.MWSKZ) <> ''
+        AND z.MWSKZ IS NULL
+      GROUP BY p.MANDT, p.MWSKZ
+
+  - id: ERE-COMP-007
+    name: Steuerbefreiung ohne strukturierten Befreiungsgrund
+    description: >
+      Bei einem Steuersatz von null verlangt die Norm einen strukturierten
+      Befreiungsgrund. Ein Hinweis im Formulartext genügt nicht - er steht
+      im menschenlesbaren Teil, und rechtlich verbindlich ist der
+      strukturierte.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Steuerkennzeichen
+    key_columns: [MWSKZ]
+    requirement: "EN 16931 BT-120, BT-121 (C-02)"
+    requires:
+      tables: [STEUERZUORDNUNG]
+      fields:
+        STEUERZUORDNUNG: [MWSKZ, KATEGORIE, SATZ, BEFREIUNGSGRUND]
+    params:
+      # Kategorien, die ohne Steuer auskommen und deshalb einen Grund
+      # brauchen: Z = Nullsatz, E = befreit, AE = Reverse Charge,
+      # K = innergemeinschaftliche Lieferung, G = Ausfuhr, O = nicht steuerbar.
+      begruendungspflichtig: [Z, E, AE, K, G, O]
+    remediation: >
+      Befreiungsgrund je Kennzeichen hinterlegen, abgestimmt mit dem
+      Steuerreferat.
+    sql: |
+      SELECT MWSKZ, KATEGORIE, SATZ
+      FROM STEUERZUORDNUNG
+      WHERE upper(trim(COALESCE(KATEGORIE, ''))) IN ${begruendungspflichtig}
+        AND (BEFREIUNGSGRUND IS NULL OR is_placeholder_text(BEFREIUNGSGRUND))
+
+  - id: ERE-CONS-002
+    name: Steuerbetrag der Position passt nicht zum Kategorie-Code
+    description: >
+      Eine Position mit Nullsatz-Kennzeichen und ausgewiesener Steuer - oder
+      umgekehrt eine Position mit Regelsatz-Kennzeichen ohne Steuerbetrag -
+      ergibt eine Rechnung, deren Steuerangaben sich widersprechen. Das
+      Empfangssystem weist sie ab.
+    category: consistency
+    severity: high
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Beleg
+    key_columns: [VBELN]
+    client_column: MANDT
+    requirement: "EN 16931 BT-118, BT-119 (C-03)"
+    requires:
+      tables: [VBRP, STEUERZUORDNUNG]
+      fields:
+        VBRP: [MANDT, VBELN, POSNR, MWSKZ, MWSBP, NETWR]
+        STEUERZUORDNUNG: [MWSKZ, KATEGORIE, SATZ]
+    params: {}
+    remediation: >
+      Steuerfindung im Beleg prüfen; Zuordnung des Kennzeichens gegen den
+      tatsächlich gebuchten Satz halten.
+    sql: |
+      SELECT
+          p.MANDT, p.VBELN,
+          count(*) AS betroffene_positionen,
+          min(p.MWSKZ) AS steuerkennzeichen
+      FROM VBRP p
+      JOIN STEUERZUORDNUNG z ON trim(p.MWSKZ) = trim(z.MWSKZ)
+      WHERE (
+              COALESCE(CAST(z.SATZ AS DOUBLE), 0) = 0
+              AND abs(COALESCE(CAST(p.MWSBP AS DOUBLE), 0)) > 0.01
+            )
+         OR (
+              COALESCE(CAST(z.SATZ AS DOUBLE), 0) > 0
+              AND abs(COALESCE(CAST(p.MWSBP AS DOUBLE), 0)) <= 0.01
+              -- Eine Position ohne Wert hat auch keine Steuer. Das ist kein
+              -- Widerspruch, sondern eine Textposition; sie faellt unter
+              -- ERE-CONS-005.
+              AND abs(COALESCE(CAST(p.NETWR AS DOUBLE), 0)) > 0.01
+            )
+      GROUP BY p.MANDT, p.VBELN
+
+  - id: ERE-REF-004
+    name: Verwendetes Steuerkennzeichen fehlt im Customizing
+    description: >
+      Ein Kennzeichen, das im Beleg steht, aber in T007A nicht mehr gepflegt
+      ist, stammt aus einer alten Konfiguration. Für die Rechnungsstellung
+      ist es nicht auflösbar.
+    category: referential
+    severity: medium
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Steuerkennzeichen
+    key_columns: [MWSKZ]
+    client_column: MANDT
+    requirement: "EN 16931 BT-118 (C-06)"
+    requires:
+      tables: [VBRP, T007A]
+      fields:
+        VBRP: [MANDT, VBELN, MWSKZ]
+        T007A: [MWSKZ]
+    params: {}
+    remediation: Kennzeichen im Customizing nachpflegen oder Belege bereinigen.
+    sql: |
+      SELECT
+          p.MANDT, p.MWSKZ,
+          count(DISTINCT p.VBELN) AS betroffene_belege
+      FROM VBRP p
+      LEFT JOIN (SELECT DISTINCT MWSKZ FROM T007A) c ON trim(p.MWSKZ) = trim(c.MWSKZ)
+      WHERE p.MWSKZ IS NOT NULL AND trim(p.MWSKZ) <> ''
+        AND c.MWSKZ IS NULL
+      GROUP BY p.MANDT, p.MWSKZ
+
+  # ============================================ Gruppe E - Beleg und Position
+  - id: ERE-COMP-008
+    name: Rechnung ohne Rechnungsdatum
+    description: >
+      Rechnungsnummer und Rechnungsdatum sind Pflichtangaben. Ohne Datum
+      lässt sich weder die Fälligkeit noch die Zuordnung zum Voranmeldungs-
+      zeitraum bilden.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Beleg
+    key_columns: [VBELN]
+    client_column: MANDT
+    requirement: "EN 16931 BT-1, BT-2 (E-07)"
+    requires:
+      tables: [VBRK]
+      fields:
+        VBRK: [MANDT, VBELN, FKDAT, FKART]
+    params: {}
+    remediation: Belege ohne Datum im Quellsystem klären; meist Altlasten aus Migrationen.
+    sql: |
+      SELECT MANDT, VBELN, FKART
+      FROM VBRK
+      WHERE FKDAT IS NULL
+
+  - id: ERE-REF-006
+    name: Belegwährung ohne ISO-4217-Code
+    description: >
+      Die Norm verlangt den Währungscode nach ISO 4217. Eine
+      SAP-Hauswährung ohne hinterlegten ISO-Code lässt sich nicht abbilden.
+    category: referential
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Beleg
+    key_columns: [WAERK]
+    client_column: MANDT
+    requirement: "EN 16931 BT-5 (E-06)"
+    requires:
+      tables: [VBRK, TCURC]
+      fields:
+        VBRK: [MANDT, VBELN, WAERK]
+        TCURC: [WAERS, ISOCD]
+    params: {}
+    remediation: ISO-Code der Währung im Customizing nachtragen (Transaktion OY03).
+    sql: |
+      SELECT
+          k.MANDT, k.WAERK,
+          count(*) AS betroffene_belege
+      FROM VBRK k
+      LEFT JOIN (SELECT DISTINCT WAERS, ISOCD FROM TCURC) c ON k.WAERK = c.WAERS
+      WHERE k.WAERK IS NOT NULL AND trim(k.WAERK) <> ''
+        AND (c.WAERS IS NULL OR c.ISOCD IS NULL OR length(trim(c.ISOCD)) <> 3)
+      GROUP BY k.MANDT, k.WAERK
+
+  - id: ERE-CONS-003
+    name: Positionssummen ergeben nicht den Kopfbetrag
+    description: >
+      Die Norm prüft die Summenkonsistenz: die Positionsnettobeträge müssen
+      den Kopfnettobetrag ergeben. Weicht es ab, wird die Rechnung vom
+      Empfangssystem abgewiesen - im Papierprozess fiel es niemandem auf.
+    category: consistency
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Beleg
+    key_columns: [VBELN]
+    client_column: MANDT
+    requirement: "EN 16931 BR-CO-10 (E-04)"
+    requires:
+      tables: [VBRK, VBRP]
+      fields:
+        VBRK: [MANDT, VBELN, NETWR]
+        VBRP: [MANDT, VBELN, NETWR]
+    params:
+      # Rundungstoleranz in der Belegwährung. Ein Cent Abweichung ist
+      # Rundung und kein Befund.
+      toleranz: 0.02
+    remediation: Belege mit abweichender Summe im Quellsystem nachrechnen.
+    sql: |
+      SELECT
+          k.MANDT, k.VBELN,
+          CAST(k.NETWR AS DOUBLE) AS kopf_netto,
+          p.summe AS positionen_netto,
+          round(CAST(k.NETWR AS DOUBLE) - p.summe, 2) AS abweichung
+      FROM VBRK k
+      JOIN (
+          SELECT MANDT, VBELN, sum(CAST(NETWR AS DOUBLE)) AS summe
+          FROM VBRP GROUP BY MANDT, VBELN
+      ) p ON k.MANDT = p.MANDT AND k.VBELN = p.VBELN
+      WHERE abs(CAST(k.NETWR AS DOUBLE) - p.summe) > ${toleranz}
+
+  - id: ERE-CONS-004
+    name: Gutschrift ohne Bezug zum Ursprungsbeleg
+    description: >
+      Eine Rechnungskorrektur muss als solche erkennbar sein und den
+      Ursprungsbeleg nennen. Ohne den Bezug ist die Korrektur im
+      Empfangssystem nicht zuordenbar und bleibt liegen.
+    category: consistency
+    severity: high
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Beleg
+    key_columns: [VBELN]
+    client_column: MANDT
+    requirement: "EN 16931 BT-25, BT-26 (E-08)"
+    requires:
+      tables: [VBRK]
+      fields:
+        VBRK: [MANDT, VBELN, FKART, SFAKN]
+    params:
+      gutschriftsarten: [G2, S1, S2, RE]
+    remediation: >
+      Bezug zum Ursprungsbeleg im Fakturabeleg nachtragen; künftig über die
+      Kopierbedingungen erzwingen.
+    sql: |
+      SELECT MANDT, VBELN, FKART
+      FROM VBRK
+      WHERE FKART IN ${gutschriftsarten}
+        AND (SFAKN IS NULL OR trim(SFAKN) = '')
+
+  - id: ERE-COMP-009
+    name: Position ohne Bezeichnung
+    description: >
+      Jede Position braucht eine Bezeichnung. Fehlt sie, entsteht eine
+      Rechnungszeile ohne Gegenstand - für den Empfänger nicht prüfbar und
+      nach der Norm unvollständig.
+    category: completeness
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Belegposition
+    key_columns: [VBELN]
+    client_column: MANDT
+    requirement: "EN 16931 BT-153 (E-02)"
+    requires:
+      tables: [VBRP]
+      fields:
+        VBRP: [MANDT, VBELN, POSNR, ARKTX, MATNR]
+    params: {}
+    remediation: >
+      Positionstext aus dem Materialstamm nachziehen; bei textlosen
+      Positionen die Fakturierung prüfen.
+    sql: |
+      SELECT
+          MANDT, VBELN,
+          count(*) AS betroffene_positionen
+      FROM VBRP
+      WHERE ARKTX IS NULL OR is_placeholder_text(ARKTX)
+      GROUP BY MANDT, VBELN
+
+  - id: ERE-REF-005
+    name: Mengeneinheit ohne ISO-Code
+    description: >
+      Die Norm verlangt die Mengeneinheit nach UN/ECE Rec 20. Eine
+      SAP-Mengeneinheit ohne hinterlegten ISO-Code lässt sich nicht
+      abbilden; betroffen sind meist hauseigene Einheiten aus der
+      Fertigung.
+    category: referential
+    severity: critical
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Belegposition
+    key_columns: [VRKME]
+    client_column: MANDT
+    requirement: "EN 16931 BT-130 (E-01)"
+    requires:
+      tables: [VBRP, T006]
+      fields:
+        VBRP: [MANDT, VBELN, VRKME]
+        T006: [MSEHI, ISOCODE]
+    params: {}
+    remediation: ISO-Code der Mengeneinheit im Customizing nachtragen (Transaktion CUNI).
+    sql: |
+      SELECT
+          p.MANDT, p.VRKME,
+          count(DISTINCT p.VBELN) AS betroffene_belege,
+          count(*) AS betroffene_positionen
+      FROM VBRP p
+      LEFT JOIN (SELECT DISTINCT MSEHI, ISOCODE FROM T006) e
+             ON trim(p.VRKME) = trim(e.MSEHI)
+      WHERE p.VRKME IS NOT NULL AND trim(p.VRKME) <> ''
+        AND (e.MSEHI IS NULL OR e.ISOCODE IS NULL OR trim(e.ISOCODE) = '')
+      GROUP BY p.MANDT, p.VRKME
+
+  - id: ERE-CONS-005
+    name: Position mit Menge oder Betrag null
+    description: >
+      Positionen ohne Menge oder ohne Wert sind nicht grundsätzlich falsch -
+      Naturalrabatte und Textpositionen gibt es. Sie brauchen aber eine
+      fachliche Begründung, weil die Norm für jede Position Menge, Einheit
+      und Einzelpreis vorsieht.
+    category: consistency
+    severity: medium
+    version: "1.0.0"
+    object_area: einvoice
+    object_type: Belegposition
+    key_columns: [VBELN]
+    client_column: MANDT
+    requirement: "EN 16931 BT-129, BT-146 (E-09)"
+    requires:
+      tables: [VBRP]
+      fields:
+        VBRP: [MANDT, VBELN, POSNR, FKIMG, NETWR]
+    params: {}
+    remediation: >
+      Positionsarten klären; entscheiden, wie Naturalrabatte und
+      Textpositionen in der Rechnung abgebildet werden.
+    sql: |
+      SELECT
+          MANDT, VBELN,
+          count(*) AS betroffene_positionen
+      FROM VBRP
+      WHERE COALESCE(CAST(FKIMG AS DOUBLE), 0) = 0
+         OR COALESCE(CAST(NETWR AS DOUBLE), 0) = 0
+      GROUP BY MANDT, VBELN

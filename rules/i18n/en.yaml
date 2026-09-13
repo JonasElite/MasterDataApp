@@ -872,3 +872,96 @@ rules:
     remediation: >
       Decide which discount level is carried into the invoice and document the
       decision in the migration concept.
+
+  # ------------------------------------- E-invoicing readiness, document view
+  ERE-REF-003:
+    name: Tax code without a category code
+    description: >
+      The standard knows seven category codes (S, Z, E, AE, K, G, O). Every
+      tax code used in a document must map unambiguously to one of them,
+      otherwise the tax information on the invoice cannot be formed. The
+      mapping is client-specific and has to be established once by
+      professionals; it cannot be derived.
+    remediation: >
+      Assign the codes to a category code together with the tax department
+      and add them to the STEUERZUORDNUNG file.
+  ERE-COMP-007:
+    name: Tax exemption without a structured exemption reason
+    description: >
+      At a tax rate of zero the standard requires a structured exemption
+      reason. A note in the form text is not enough - it sits in the
+      human-readable part, and the structured part is the legally binding
+      one.
+    remediation: >
+      Record an exemption reason per code, agreed with the tax department.
+  ERE-CONS-002:
+    name: Line-item tax amount does not match the category code
+    description: >
+      A line with a zero-rate code but tax shown - or conversely a line with
+      a standard-rate code and no tax amount - produces an invoice whose tax
+      information contradicts itself. The receiving system rejects it.
+    remediation: >
+      Check tax determination in the document; hold the code's mapping
+      against the rate actually posted.
+  ERE-REF-004:
+    name: Tax code used in documents is missing from customizing
+    description: >
+      A code that appears in a document but is no longer maintained in T007A
+      comes from an old configuration. It cannot be resolved for invoicing.
+    remediation: Maintain the code in customizing or clean up the documents.
+  ERE-COMP-008:
+    name: Invoice without an invoice date
+    description: >
+      Invoice number and invoice date are mandatory entries. Without a date
+      neither the due date nor the assignment to a VAT return period can be
+      formed.
+    remediation: >
+      Clarify documents without a date in the source system; usually legacy
+      from migrations.
+  ERE-REF-006:
+    name: Document currency without an ISO 4217 code
+    description: >
+      The standard requires the currency code as ISO 4217. An SAP currency
+      without a stored ISO code cannot be mapped.
+    remediation: Add the currency's ISO code in customizing (transaction OY03).
+  ERE-CONS-003:
+    name: Line totals do not add up to the header amount
+    description: >
+      The standard checks total consistency: the line net amounts must add up
+      to the header net amount. A deviation gets the invoice rejected by the
+      receiving system - on paper nobody ever noticed.
+    remediation: Recalculate documents with a deviating total in the source system.
+  ERE-CONS-004:
+    name: Credit note without a reference to the original document
+    description: >
+      An invoice correction must be identifiable as such and name the
+      original document. Without that reference the correction cannot be
+      matched in the receiving system and is left unprocessed.
+    remediation: >
+      Add the reference to the original document in the billing document;
+      going forward, enforce it through the copy control.
+  ERE-COMP-009:
+    name: Line without a description
+    description: >
+      Every line needs a description. Without it the invoice line has no
+      subject - not verifiable for the recipient and incomplete under the
+      standard.
+    remediation: >
+      Pull the line text from the material master; where lines have no text
+      at all, review the billing process.
+  ERE-REF-005:
+    name: Unit of measure without an ISO code
+    description: >
+      The standard requires the unit of measure per UN/ECE Rec 20. An SAP
+      unit without a stored ISO code cannot be mapped; usually these are
+      in-house units from production.
+    remediation: Add the unit's ISO code in customizing (transaction CUNI).
+  ERE-CONS-005:
+    name: Line with zero quantity or zero amount
+    description: >
+      Lines without quantity or without value are not wrong as such - free
+      goods and text lines exist. They do need a business reason, because the
+      standard provides for quantity, unit and unit price on every line.
+    remediation: >
+      Clarify the line categories; decide how free goods and text lines are
+      represented on the invoice.
