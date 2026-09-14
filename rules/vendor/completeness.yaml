@@ -8,13 +8,16 @@ rules:
   - id: VEN-COMP-001
     name: Kreditor ohne Umsatzsteuer-Identifikationsnummer
     description: >
-      Kreditoren mit Sitz in einem EU-Land benötigen für den innergemeinschaftlichen
-      Waren- und Dienstleistungsverkehr eine USt-IdNr. Fehlt sie, ist der Steuerausweis
-      nicht belegbar und der Vorsteuerabzug gefährdet. Natürliche Personen, CpD-Konten
-      und zur Löschung vorgemerkte Sätze sind ausgenommen.
+      Kreditoren im übrigen Gemeinschaftsgebiet benötigen für den
+      innergemeinschaftlichen Waren- und Dienstleistungsverkehr eine
+      USt-IdNr. Fehlt sie, ist der Steuerausweis nicht belegbar und der
+      Vorsteuerabzug gefährdet. Inländische Lieferanten sind ausgenommen -
+      auf ihrer Rechnung genügt die Steuernummer; dass beides fehlt, fängt
+      VEN-COMP-004 ab. Natürliche Personen, CpD-Konten und zur Löschung
+      vorgemerkte Sätze bleiben ebenfalls außen vor.
     category: completeness
     severity: high
-    version: "1.0.0"
+    version: "1.1.0"
     object_area: vendor
     object_type: Kreditor
     key_columns: [LIFNR]
@@ -26,6 +29,8 @@ rules:
     params:
       eu_countries: [AT, BE, BG, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HR, HU, IE,
                      IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK]
+      # Ohne das Inland, aus demselben Grund wie bei CUS-COMP-001.
+      inland: [DE]
       excluded_account_groups: [CPD, CPDL]
     remediation: >
       USt-IdNr. beim Kreditor erfragen und im Feld STCEG pflegen, anschließend
@@ -34,6 +39,7 @@ rules:
       SELECT MANDT, LIFNR, NAME1, LAND1, KTOKK, STCEG
       FROM LFA1
       WHERE LAND1 IN ${eu_countries}
+        AND LAND1 NOT IN ${inland}
         AND COALESCE(KTOKK, '') NOT IN ${excluded_account_groups}
         AND COALESCE(XCPDK, '') <> 'X'
         AND COALESCE(STKZN, '') <> 'X'

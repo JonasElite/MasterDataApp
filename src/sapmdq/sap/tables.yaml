@@ -1150,3 +1150,9 @@ tables:
       SATZ: {type: dec, aliases: [Steuersatz, Satz, Rate]}
       BEFREIUNGSGRUND: {aliases: [Befreiungsgrund, "Grund der Befreiung", "BT-120"]}
       BEZEICHNUNG: {aliases: [Bezeichnung, Text]}
+      # Ob die Umsaetze dieses Kennzeichens auszustellen sind (ja/nein).
+      # Aus dem Kategorie-Code folgt das nicht: E heisst nur "steuerfrei"
+      # und traegt auch die Ausfuhr nach § 4 Nr. 1, die weiter
+      # ausstellungspflichtig ist. Fehlt die Spalte, naehert das Werkzeug
+      # ueber die Kategorie und sagt im Bericht, dass es das getan hat.
+      AUSSTELLUNGSPFLICHT: {aliases: [Ausstellungspflicht, Pflichtig, "E-Rechnungspflicht"]}

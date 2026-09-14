@@ -12,10 +12,12 @@ rules:
     description: >
       Für steuerfreie innergemeinschaftliche Lieferungen ist die USt-IdNr. des
       Empfängers zwingend. Fehlt sie, ist die Steuerfreiheit nicht nachweisbar
-      und die Umsatzsteuer wird im Zweifel nacherhoben.
+      und die Umsatzsteuer wird im Zweifel nacherhoben. Geprüft werden
+      deshalb nur Kunden im übrigen Gemeinschaftsgebiet - für einen
+      inländischen Kunden verlangt das Gesetz keine USt-IdNr.
     category: completeness
     severity: critical
-    version: "1.0.0"
+    version: "1.1.0"
     object_area: customer
     object_type: Debitor
     key_columns: [KUNNR]
@@ -27,12 +29,21 @@ rules:
     params:
       eu_countries: [AT, BE, BG, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HR, HU, IE,
                      IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK]
+      # Das Inland gehoert nicht dazu. Eine USt-IdNr. ist die materielle
+      # Voraussetzung der Steuerfreiheit innergemeinschaftlicher Lieferungen
+      # (§ 6a UStG) - fuer einen inlaendischen Kunden verlangt sie niemand.
+      # Solange DE mitzaehlte, entstand in einem ueberwiegend deutschen
+      # Kundenstamm eine Flut kritischer Befunde ohne Rechtsgrund. Und weil
+      # kritische Befunde die Punktzahl tragen, verschob das zugleich das
+      # Lagebild.
+      inland: [DE]
       excluded_account_groups: [CPD, CPDA]
     remediation: USt-IdNr. beim Kunden erfragen, pflegen und über VIES bestätigen lassen.
     sql: |
       SELECT MANDT, KUNNR, NAME1, LAND1, KTOKD, STCEG
       FROM KNA1
       WHERE LAND1 IN ${eu_countries}
+        AND LAND1 NOT IN ${inland}
         AND COALESCE(KTOKD, '') NOT IN ${excluded_account_groups}
         AND COALESCE(XCPDK, '') <> 'X'
         AND COALESCE(STKZN, '') <> 'X'

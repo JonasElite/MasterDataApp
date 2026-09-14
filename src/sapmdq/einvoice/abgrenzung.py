@@ -121,8 +121,10 @@ def parameter_setzen(rules: Sequence[Rule], einvoice: EInvoiceConfig) -> list[Ru
     für diese drei Namen ist der Abschnitt ``einvoice`` die einzige Quelle,
     ``rules.params`` greift dort nicht.
 
-    Eine Regel, die einen der Parameter nicht kennt - die Regeln zum
-    Rechnungssteller etwa -, bekommt ihn auch nicht untergeschoben.
+    Eine Regel, die einen der Parameter nicht kennt, bekommt ihn auch nicht
+    untergeschoben. Welche das sind, entscheidet der Regeltext: ERE-COMP-001
+    grenzt nach ``inland`` ab, kennt aber keine Kontengruppen, weil ein
+    Buchungskreis keine hat.
     """
     werte = {
         "inland": list(einvoice.inland),

@@ -150,9 +150,19 @@ rules:
       Ein Kennzeichen, das im Beleg steht, aber in T007A nicht mehr gepflegt
       ist, stammt aus einer alten Konfiguration. Für die Rechnungsstellung
       ist es nicht auflösbar.
+
+      Eine Einschränkung, die zu kennen ist: der Schlüssel von T007A ist
+      (Mandant, Steuerschema, Kennzeichen) - ein Kennzeichen ist also nur
+      innerhalb eines Schemas eindeutig. Abgeglichen wird hier über alle
+      gelieferten Schemata hinweg. Führt der Mandant mehrere, gilt ein
+      Kennzeichen als vorhanden, sobald es in irgendeinem davon steht, auch
+      wenn es im maßgeblichen fehlt. Welches Schema maßgeblich ist, hinge am
+      Land des Buchungskreises und damit an einer Kette über VBRK, T001 und
+      T005; solange die nicht steht, meldet die Regel im Zweifel zu wenig
+      statt zu viel.
     category: referential
     severity: medium
-    version: "1.0.0"
+    version: "1.1.0"
     object_area: einvoice
     object_type: Steuerkennzeichen
     key_columns: [MWSKZ]

@@ -452,12 +452,30 @@ def _erechnung_abschnitt(con: duckdb.DuckDBPyConnection, result: RunResult) -> l
         lines += _table(
             ["Menge", "Belege"],
             [["Belege im Zeitraum", str(belegsicht.belege_gesamt)]]
-            + [[a.text, f"-{a.belege}"] for a in belegsicht.ausschluesse]
+            + [
+                [
+                    a.text + (" (bleibt ausstellungspflichtig)"
+                              if a.wirkung != "pflicht_und_umsatz" else ""),
+                    f"-{a.belege}",
+                ]
+                for a in belegsicht.ausschluesse
+            ]
             + [
                 ["Rechnungen im Umfang", str(belegsicht.belege_im_umfang)],
                 ["Nettovolumen", f"{belegsicht.volumen:,.0f}".replace(",", ".")],
             ],
         )
+        if belegsicht.belege_pflichtig != belegsicht.belege_im_umfang:
+            lines.append("")
+            lines.append(
+                f"Ausstellungspflichtig sind {belegsicht.belege_pflichtig} Belege - "
+                "die Gutschriften mitgezählt. Sie mindern den Umsatz, sind aber "
+                "selbst als E-Rechnung auszustellen; der Umfang oben ist der "
+                "Nenner der Volumengewichtung und nicht der Pflichtumfang."
+            )
+        if belegsicht.steuerfrei_genaehert:
+            lines.append("")
+            lines.append(belegsicht.steuerfrei_genaehert)
     elif belegsicht is not None:
         lines.append("### Abgrenzung auf Belegebene")
         lines.append("")

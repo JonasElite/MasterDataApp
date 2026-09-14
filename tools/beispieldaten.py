@@ -566,10 +566,20 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
         return satz
 
     # ------------------------------------------------ eingebaute Mängel
-    # VEN-COMP-001: EU-Kreditor ohne USt-IdNr.
+    # VEN-COMP-001: Kreditor im uebrigen Gemeinschaftsgebiet ohne USt-IdNr.
+    #
+    # Das Land ist hier nicht beliebig. Fuer einen inlaendischen Lieferanten
+    # genuegt auf der Rechnung die Steuernummer; die USt-IdNr. ist die
+    # Voraussetzung des innergemeinschaftlichen Verkehrs. Die Regel grenzt
+    # deshalb auf das Ausland ab, und ein deutscher Satz waere hier kein
+    # eingebauter Mangel mehr, sondern ein stiller Fehlschlag.
     gruppe(
         "VEN-COMP-001 und VEN-COMP-004: 6 EU-Kreditoren ohne USt-IdNr. und ohne Steuernummer",
-        [neuer_kreditor(LAND1="DE", STCEG="", STCD1="") for _ in range(6)],
+        # Nur Laender, fuer die ORTE eine Anschrift traegt - sonst bekaeme
+        # der Satz eine deutsche Postleitzahl zu einem fremden Land, und die
+        # Formatregel meldete einen Mangel, den niemand einbauen wollte.
+        [neuer_kreditor(LAND1=land, STCEG="", STCD1="")
+         for land in ("NL", "FR", "IT", "AT", "NL", "FR")],
     )
 
     # VEN-FMT-001: USt-IdNr. mit falscher Prüfziffer.
@@ -1001,9 +1011,23 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     )
 
     # --------------------------------------------- übrige Debitorenmängel
+    # Wieder das Ausland, aus demselben Grund wie beim Kreditor: die
+    # USt-IdNr. des Empfaengers traegt die Steuerfreiheit der
+    # innergemeinschaftlichen Lieferung. Ein deutscher Kunde ohne sie ist
+    # kein Mangel.
     kundengruppe(
-        "CUS-COMP-001: 5 Debitoren ohne USt-IdNr.",
-        [neuer_debitor(LAND1="DE", STCEG="") for _ in range(5)],
+        "CUS-COMP-001: 5 Debitoren im übrigen Gemeinschaftsgebiet ohne USt-IdNr.",
+        [neuer_debitor(LAND1=land, STCEG="")
+         for land in ("NL", "FR", "IT", "AT", "NL")],
+    )
+
+    # Und dieselbe Luecke im Inland. Sie ist kein Mangel nach CUS-COMP-001 -
+    # ein deutscher Kunde braucht keine USt-IdNr. - wohl aber ein Befund der
+    # E-Rechnungspruefung: dort zaehlt jeder inlaendische B2B-Debitor, und
+    # ohne Kennung des Empfaengers bleibt die Rechnung unvollstaendig.
+    kundengruppe(
+        "ERE-COMP-003: 5 inländische Debitoren ohne USt-IdNr. und ohne Steuernummer",
+        [neuer_debitor(LAND1="DE", STCEG="", STCD1="") for _ in range(5)],
     )
     kundengruppe(
         "CUS-COMP-002: 3 Debitoren ohne Ort oder Postleitzahl (im Inland, "
@@ -1143,7 +1167,7 @@ def build(target: Path, vendor_count: int = 400) -> dict[str, int]:
     kundengruppe(
         "CUS-COMP-001 ohne ERE-COMP-003: 2 Debitoren ohne USt-IdNr., aber mit "
         "Steuernummer",
-        [neuer_debitor(LAND1="DE", STCEG="", STCD1=f"151/815/{nummer:05d}")
+        [neuer_debitor(LAND1="NL", STCEG="", STCD1=f"151/815/{nummer:05d}")
          for nummer in (30001, 30002)],
     )
     # Privatkunden: sie fallen nicht unter die B2B-Pflicht und werden über die

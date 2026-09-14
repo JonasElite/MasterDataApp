@@ -242,12 +242,27 @@ class TestRegelkatalog:
         assert betroffen
         for regel in betroffen:
             assert regel.params["inland"] == ["DE", "AT"]
-            assert regel.params["b2c_kontengruppen"] == ["PRIV"]
+            # Die Kontengruppen nur dort, wo die Regel sie ueberhaupt kennt -
+            # die Regeln zum Rechnungssteller grenzen nach Land ab und nicht
+            # nach Kundengruppe.
+            if "b2c_kontengruppen" in regel.params:
+                assert regel.params["b2c_kontengruppen"] == ["PRIV"]
+
+    def test_auch_der_rechnungssteller_wird_abgegrenzt(self, katalog):
+        """ERE-COMP-001 meldete einmal jeden Buchungskreis.
+
+        Die inlaendische Ausstellungspflicht trifft inlaendische
+        Buchungskreise; in einem Konzernmandanten standen sonst auch die
+        auslaendischen Gesellschaften auf der Massnahmenliste.
+        """
+        neu = {r.id: r for r in parameter_setzen(
+            katalog.rules, EInvoiceConfig(inland=["DE", "AT"]))}
+        assert neu["ERE-COMP-001"].params["inland"] == ["DE", "AT"]
 
     def test_regeln_ohne_abgrenzung_bleiben_unberuehrt(self, katalog):
-        """Die Regeln zum Rechnungssteller kennen die Parameter nicht."""
+        """Wer keinen Parameter nennt, bekommt auch keinen untergeschoben."""
         neu = {r.id: r for r in parameter_setzen(katalog.rules, EInvoiceConfig())}
-        assert "inland" not in neu["ERE-COMP-001"].params
+        assert neu["ERE-COMP-002"].params == {}
 
     def test_der_uebrige_katalog_bleibt_unangetastet(self, katalog):
         vorher = {r.id: r.params for r in katalog.rules if r.object_area != "einvoice"}
@@ -929,6 +944,16 @@ def _regel(kennung: str):
     return {regel.id: regel for regel in katalog.rules}[kennung]
 
 
+def _leer(anzahl: int) -> str:
+    """Leere Textspalten fuer VALUES-Listen.
+
+    Bestuende eine Spalte nur aus NULL, machte DuckDB daraus INTEGER, und
+    die Textfunktionen des Katalogs fielen ueber den Typ statt ueber den
+    Inhalt. Aus der Ingestion kommen die Felder als VARCHAR.
+    """
+    return ",".join(["CAST(NULL AS VARCHAR)"] * anzahl)
+
+
 def _ausfuehren(con, kennung: str):
     """Führt das SQL einer Katalogregel aus, wie der Lauf es täte."""
     from sapmdq.rules.model import render_params
@@ -1077,3 +1102,152 @@ class TestFaelligkeitIstKeinAusschlusskriterium:
         beschreibung = " ".join(_regel("ERE-REF-002").description.split())
         assert "nicht vorgesehen" not in beschreibung
         assert "Text" in beschreibung
+
+
+class TestPflichtumfangUndUmsatz:
+    """Die Ausschlussliste beantwortet zwei Fragen, nicht eine.
+
+    Welche Belege auszustellen sind, und welches Volumen dahinter steht.
+    Eine Gutschrift faellt aus dem zweiten und nicht aus dem ersten: eine
+    Rechnungskorrektur ist selbst eine E-Rechnung.
+    """
+
+    def test_die_gutschrift_bleibt_ausstellungspflichtig(self, con):
+        _fakturen(con, [
+            ("1", "0000000100", "2025-03-01", 5000.0, "F2", "", "EUR"),
+            ("2", "0000000100", "2025-03-02", -450.0, "G2", "", "EUR"),
+        ])
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+        # Aus dem Umsatz heraus ...
+        assert sicht.belege_im_umfang == 1
+        # ... aber weiter auszustellen.
+        assert sicht.belege_pflichtig == 2
+
+    def test_der_kleinbetrag_faellt_aus_beidem(self, con):
+        """§ 33 UStDV nimmt ihn aus der Pflicht, nicht nur aus dem Umsatz."""
+        _fakturen(con, [
+            ("1", "0000000100", "2025-03-01", 5000.0, "F2", "", "EUR"),
+            ("2", "0000000100", "2025-03-02", 100.0, "F2", "", "EUR"),
+        ])
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+        assert sicht.belege_im_umfang == 1
+        assert sicht.belege_pflichtig == 1
+
+    def test_jede_stufe_sagt_worauf_sie_wirkt(self, con):
+        _fakturen(con, [("1", "0000000100", "2025-03-01", 5000.0, "F2", "", "EUR")])
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+        wirkung = {a.id: a.wirkung for a in sicht.ausschluesse}
+        assert wirkung["gutschrift"] == "nur_umsatz"
+        assert wirkung["storniert"] == "pflicht_und_umsatz"
+        assert wirkung["kleinbetrag"] == "pflicht_und_umsatz"
+        assert sicht.als_dict()["ausschluesse"][0]["wirkung"]
+
+
+class TestSteuerfreiheitUndPflicht:
+    """Aus dem Kategorie-Code folgt die Befreiung von der Pflicht nicht."""
+
+    def _belege(self, con):
+        _fakturen(con, [
+            ("1", "0000000100", "2025-03-01", 5000.0, "F2", "", "EUR"),
+            ("2", "0000000200", "2025-03-02", 7000.0, "F2", "", "EUR"),
+        ])
+        con.execute(
+            "CREATE OR REPLACE TABLE VBRP AS SELECT * FROM (VALUES "
+            "('100','1','A1'), ('100','2','A9')) AS t(MANDT, VBELN, MWSKZ)"
+        )
+
+    def test_ohne_die_spalte_wird_genaehert_und_es_steht_dabei(self, con):
+        self._belege(con)
+        con.execute(
+            "CREATE OR REPLACE TABLE STEUERZUORDNUNG AS SELECT * FROM (VALUES "
+            "('A1','S'), ('A9','E')) AS t(MWSKZ, KATEGORIE)"
+        )
+        sicht = ermittle_belegsicht(
+            con, EInvoiceConfig(), ["VBRK", "VBRP", "STEUERZUORDNUNG"]
+        )
+        assert sicht.belege_im_umfang == 1
+        assert "Näherung" in sicht.steuerfrei_genaehert
+        assert "§ 4 Nr. 1" in sicht.steuerfrei_genaehert
+
+    def test_die_spalte_entscheidet_und_der_hinweis_entfaellt(self, con):
+        """Eine Ausfuhr ist steuerfrei und bleibt trotzdem auszustellen.
+
+        Kategorie E allein wuerde sie ausschliessen; die Zuordnungsdatei
+        sagt es besser.
+        """
+        self._belege(con)
+        con.execute(
+            "CREATE OR REPLACE TABLE STEUERZUORDNUNG AS SELECT * FROM (VALUES "
+            "('A1','S','ja'), ('A9','E','ja')) "
+            "AS t(MWSKZ, KATEGORIE, AUSSTELLUNGSPFLICHT)"
+        )
+        sicht = ermittle_belegsicht(
+            con, EInvoiceConfig(), ["VBRK", "VBRP", "STEUERZUORDNUNG"]
+        )
+        assert sicht.belege_im_umfang == 2, "die Ausfuhr bleibt im Umfang"
+        assert sicht.steuerfrei_genaehert == ""
+
+    def test_nein_in_der_spalte_schliesst_aus(self, con):
+        self._belege(con)
+        con.execute(
+            "CREATE OR REPLACE TABLE STEUERZUORDNUNG AS SELECT * FROM (VALUES "
+            "('A1','S','ja'), ('A9','E','nein')) "
+            "AS t(MWSKZ, KATEGORIE, AUSSTELLUNGSPFLICHT)"
+        )
+        sicht = ermittle_belegsicht(
+            con, EInvoiceConfig(), ["VBRK", "VBRP", "STEUERZUORDNUNG"]
+        )
+        assert sicht.belege_im_umfang == 1
+
+
+class TestInlandsabgrenzung:
+    """Zwei Regeln meldeten inlaendische Partner ohne Rechtsgrund."""
+
+    def test_der_inlaendische_kunde_braucht_keine_ust_idnr(self, con):
+        """Sie ist die Voraussetzung der Steuerfreiheit ig. Lieferungen.
+
+        Solange DE in eu_countries mitzaehlte, erzeugte die Regel in einem
+        deutschen Kundenstamm eine Flut kritischer Befunde - und verschob
+        das Lagebild, weil kritische Befunde die Punktzahl tragen.
+        """
+        con.execute(
+            "CREATE OR REPLACE TABLE KNA1 AS SELECT * FROM (VALUES "
+            "('100','0000000100','Inland GmbH','DE','0001'," + _leer(4) + "),"
+            "('100','0000000200','Ausland BV','NL','0001'," + _leer(4) + ")) "
+            "AS t(MANDT,KUNNR,NAME1,LAND1,KTOKD,STCEG,XCPDK,STKZN,LOEVM)"
+        )
+        gemeldet = {zeile[1] for zeile in _ausfuehren(con, "CUS-COMP-001")}
+        assert gemeldet == {"0000000200"}
+
+    def test_der_inlaendische_lieferant_ebenso(self, con):
+        con.execute(
+            "CREATE OR REPLACE TABLE LFA1 AS SELECT * FROM (VALUES "
+            "('100','0000004711','Inland GmbH','DE','0001'," + _leer(4) + "),"
+            "('100','0000004712','Ausland BV','NL','0001'," + _leer(4) + ")) "
+            "AS t(MANDT,LIFNR,NAME1,LAND1,KTOKK,STCEG,XCPDK,STKZN,LOEVM)"
+        )
+        gemeldet = {zeile[1] for zeile in _ausfuehren(con, "VEN-COMP-001")}
+        assert gemeldet == {"0000004712"}
+
+    def test_der_auslaendische_buchungskreis_wird_nicht_mehr_gemeldet(self, con):
+        """Die inlaendische Pflicht trifft inlaendische Buchungskreise."""
+        con.execute(
+            "CREATE OR REPLACE TABLE T001 AS SELECT * FROM (VALUES "
+            "('100','1000','Inland AG','DE'," + _leer(1) + "),"
+            "('100','2000','Austria GmbH','AT'," + _leer(1) + ")) "
+            "AS t(MANDT,BUKRS,BUTXT,LAND1,STCEG)"
+        )
+        gemeldet = {zeile[1] for zeile in _ausfuehren(con, "ERE-COMP-001")}
+        assert gemeldet == {"1000"}
+
+
+class TestEmpfaengerkennungIstBedingt:
+    """ERE-COMP-003 - BT-48 ist nicht bei jeder Rechnung Pflicht."""
+
+    def test_der_schweregrad_ist_herabgesetzt(self):
+        assert _regel("ERE-COMP-003").severity.value == "high"
+
+    def test_die_beschreibung_nennt_die_bedingung(self):
+        beschreibung = " ".join(_regel("ERE-COMP-003").description.split())
+        assert "Reverse Charge" in beschreibung
+        assert "Readiness" in beschreibung

@@ -533,6 +533,8 @@ input.lang { flex: 1 1 320px; }
 .trichter { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
 .trichter-zeile { display: grid; grid-template-columns: 1fr 90px; gap: 12px; align-items: baseline; }
 .trichter-zeile.abzug { color: var(--text-leise); padding-left: 14px; }
+/* Ein Abzug, der nur den Umsatz mindert und nicht die Pflicht. */
+.trichter-vermerk { font-size: 12px; font-style: italic; opacity: 0.8; }
 .trichter-zeile.summe {
   border-top: 1px solid var(--rand); padding-top: 8px; margin-top: 4px;
   font-weight: 600; font-size: 15px;

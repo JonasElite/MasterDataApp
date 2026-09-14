@@ -38,6 +38,12 @@ AGGREGAT = "_erechnung_belege"
 #: Belege beider Quellen, vor den Ausschlüssen der E-Rechnung.
 ROHBELEGE = "_erechnung_rohbelege"
 
+#: Worauf eine Ausschlussstufe wirkt. Der Pflichtumfang und das
+#: Rechnungsvolumen beantworten verschiedene Fragen; eine Gutschrift faellt
+#: aus dem zweiten, nicht aus dem ersten.
+BEIDES = "pflicht_und_umsatz"
+NUR_UMSATZ = "nur_umsatz"
+
 #: Fakturaarten, die eine Gutschrift oder Stornorechnung sind. Sie zählen
 #: nicht zum Rechnungsvolumen, sondern gegen es.
 GUTSCHRIFTSARTEN = ("G2", "S1", "S2", "RE")
@@ -56,6 +62,8 @@ class Belegausschluss:
     volumen: float = 0.0
     #: Werte zu den Platzhaltern in ``grund``.
     werte: dict[str, Any] = field(default_factory=dict)
+    #: ``pflicht_und_umsatz`` oder ``nur_umsatz`` - siehe die Konstanten oben.
+    wirkung: str = BEIDES
 
     @property
     def text(self) -> str:
@@ -69,6 +77,7 @@ class Belegausschluss:
             "werte": dict(self.werte),
             "belege": self.belege,
             "volumen": round(self.volumen, 2),
+            "wirkung": self.wirkung,
         }
 
 
@@ -79,6 +88,9 @@ class Belegsicht:
     quellen: list[str] = field(default_factory=list)
     belege_gesamt: int = 0
     belege_im_umfang: int = 0
+    #: Belege, die künftig strukturiert auszustellen sind. Schließt die
+    #: Gutschriften ein, die aus dem Volumen herausfallen.
+    belege_pflichtig: int = 0
     volumen: float = 0.0
     waehrungen: list[str] = field(default_factory=list)
     von: str = ""
@@ -90,6 +102,9 @@ class Belegsicht:
     #: Gesetzt, wenn Buchhaltungsbelege geliefert wurden, aber nicht
     #: herangezogen werden konnten - ohne AWTYP zählte der Umsatz doppelt.
     fi_uebergangen: str = ""
+    #: Gesetzt, wenn die steuerfreien Umsätze über den Kategorie-Code
+    #: genähert wurden, statt aus der Zuordnungsdatei zu kommen.
+    steuerfrei_genaehert: str = ""
 
     @property
     def ermittelt(self) -> bool:
@@ -112,6 +127,7 @@ class Belegsicht:
             "quellen": list(self.quellen),
             "belege_gesamt": self.belege_gesamt,
             "belege_im_umfang": self.belege_im_umfang,
+            "belege_pflichtig": self.belege_pflichtig,
             "volumen": round(self.volumen, 2),
             "waehrungen": list(self.waehrungen),
             "von": self.von,
@@ -121,6 +137,7 @@ class Belegsicht:
             "ausschluesse": [a.als_dict() for a in self.ausschluesse],
             "nicht_ermittelbar": self.nicht_ermittelbar,
             "fi_uebergangen": self.fi_uebergangen,
+            "steuerfrei_genaehert": self.steuerfrei_genaehert,
         }
 
 
@@ -260,6 +277,57 @@ def steuerkategorien(
     return {str(kennzeichen): str(kategorie) for kennzeichen, kategorie in zeilen if kategorie}
 
 
+#: Kategorien, aus denen sich hilfsweise auf eine Befreiung von der
+#: Ausstellungspflicht schliessen laesst. Die Ableitung ist grob und steht
+#: nur da, wo die Zuordnungsdatei nichts Besseres sagt - siehe
+#: ``pflichtbefreite_kennzeichen``.
+KATEGORIEN_OHNE_PFLICHT = ("E", "O")
+
+
+def pflichtbefreite_kennzeichen(
+    con: duckdb.DuckDBPyConnection, tabellen: Iterable[str]
+) -> tuple[list[str], str]:
+    """Kennzeichen, deren Umsätze nicht auszustellen sind - und woher das kommt.
+
+    Von der Ausstellungspflicht ausgenommen sind Umsätze nach § 4 Nr. 8 bis
+    29 UStG. Aus dem Kategorie-Code der Norm folgt das **nicht**: Kategorie E
+    heißt nur "steuerfrei" und trägt auch die Ausfuhr und die
+    innergemeinschaftliche Lieferung nach § 4 Nr. 1 - und die bleiben
+    ausstellungspflichtig.
+
+    Die Zuordnungsdatei kann es deshalb ausdrücklich sagen, in der Spalte
+    ``AUSSTELLUNGSPFLICHT`` (ja/nein). Fehlt die Spalte, bleibt die
+    hilfsweise Ableitung über die Kategorie - dann aber mit dem Vermerk,
+    dass sie eine Näherung ist. Der Aufrufer trägt ihn in den Bericht.
+    """
+    vorhanden = set(tabellen)
+    if "STEUERZUORDNUNG" not in vorhanden:
+        return [], ""
+
+    if "AUSSTELLUNGSPFLICHT" in _spalten(con, "STEUERZUORDNUNG"):
+        zeilen = con.execute(
+            "SELECT MWSKZ FROM STEUERZUORDNUNG WHERE MWSKZ IS NOT NULL "
+            "AND lower(trim(COALESCE(AUSSTELLUNGSPFLICHT, ''))) "
+            "IN ('nein', 'no', 'n', 'false', 'x')"
+        ).fetchall()
+        return [str(zeile[0]) for zeile in zeilen], ""
+
+    kennzeichen = [
+        kennzeichen
+        for kennzeichen, kategorie in steuerkategorien(con, vorhanden).items()
+        if kategorie in KATEGORIEN_OHNE_PFLICHT
+    ]
+    hinweis = (
+        "Die steuerfreien Umsätze wurden über den Kategorie-Code abgegrenzt "
+        "(E und O), weil die Zuordnungsdatei keine Spalte AUSSTELLUNGSPFLICHT "
+        "trägt. Das ist eine Näherung: von der Pflicht befreit sind Umsätze "
+        "nach § 4 Nr. 8 bis 29 UStG, während Ausfuhr und innergemeinschaftliche "
+        "Lieferung nach § 4 Nr. 1 steuerfrei, aber weiter auszustellen sind. "
+        "Wer die Spalte pflegt, ersetzt die Näherung durch eine Entscheidung."
+    )
+    return kennzeichen, hinweis
+
+
 def ermittle_belegsicht(
     con: duckdb.DuckDBPyConnection,
     einvoice: EInvoiceConfig,
@@ -334,49 +402,66 @@ def ermittle_belegsicht(
 
     # Die Ausschlüsse werden nacheinander auf dem Rest gebildet - sonst
     # summierten sich Überschneidungen zu mehr Ausschlüssen als Belegen.
-    steuerfrei = [
-        kennzeichen
-        for kennzeichen, kategorie in steuerkategorien(con, vorhanden).items()
-        # E = befreit, Z = Nullsatz, O = nicht steuerbar, AE = Reverse Charge.
-        # Nur E und O sind Umsätze ohne Ausstellungspflicht nach § 4 UStG;
-        # Reverse Charge und Nullsatz bleiben pflichtig.
-        if kategorie in ("E", "O")
-    ]
+    #
+    # Sie dienen zwei verschiedenen Fragen, und die dürfen nicht
+    # durcheinandergeraten:
+    #
+    #   * Welche Belege sind künftig strukturiert auszustellen? Das ist der
+    #     PFLICHTUMFANG. Eine Gutschrift gehört dazu - eine Rechnungs-
+    #     korrektur ist selbst eine E-Rechnung.
+    #   * Welches Rechnungsvolumen steht dahinter? Das ist der Nenner der
+    #     Gewichtung. Dort hat eine Gutschrift mit negativem Betrag nichts
+    #     verloren; sie zöge den Nenner nach unten und könnte bei einem
+    #     einzelnen Kunden sogar ein negatives Volumen ergeben.
+    #
+    # Deshalb trägt jede Stufe, worauf sie wirkt. Vorher galten alle für
+    # beides, und der Pflichtumfang fiel um die Gutschriften zu niedrig aus.
+    steuerfrei, steuerfrei_hinweis = pflichtbefreite_kennzeichen(con, vorhanden)
     stufen = [
-        ("storniert", "Stornierte Belege - kein Umsatz", "storniert", {}),
+        ("storniert", "Stornierte Belege - kein Umsatz", "storniert", {}, BEIDES),
         (
             "gutschrift",
             "Gutschriften und Stornorechnungen - kein Ausgangsumsatz",
             f"belegart IN {_liste(GUTSCHRIFTSARTEN)}",
             {},
+            NUR_UMSATZ,
         ),
         (
             "kleinbetrag",
             "Kleinbetragsrechnungen bis {betrag} Euro brutto",
             f"abs(netto) <= {einvoice.kleinbetrag!r}",
             {"betrag": f"{einvoice.kleinbetrag:.0f}"},
+            BEIDES,
         ),
     ]
     if steuerfrei and "VBRP" in vorhanden and "MWSKZ" in _spalten(con, "VBRP"):
         stufen.append((
             "steuerfrei",
-            "Steuerfreie Umsätze nach § 4 UStG - keine Ausstellungspflicht",
+            "Steuerfreie Umsätze ohne Ausstellungspflicht",
             "beleg IN (SELECT DISTINCT VBELN FROM VBRP WHERE MWSKZ IN "
             + _liste(steuerfrei) + ")",
             {},
+            BEIDES,
         ))
 
     ausschluesse: list[Belegausschluss] = []
     verbleibend = "TRUE"
-    for kennung, grund, ausdruck, werte in stufen:
+    pflichtig = "TRUE"
+    for kennung, grund, ausdruck, werte, wirkung in stufen:
         zeile = con.execute(
             f"SELECT count(*), COALESCE(sum(netto), 0) FROM {ROHBELEGE} "
             f"WHERE {verbleibend} AND ({ausdruck})"
         ).fetchone()
         ausschluesse.append(
-            Belegausschluss(kennung, grund, int(zeile[0]), float(zeile[1]), werte)
+            Belegausschluss(kennung, grund, int(zeile[0]), float(zeile[1]), werte, wirkung)
         )
         verbleibend = f"{verbleibend} AND NOT ({ausdruck})"
+        if wirkung == BEIDES:
+            pflichtig = f"{pflichtig} AND NOT ({ausdruck})"
+
+    belege_pflichtig = int(
+        con.execute(f"SELECT count(*) FROM {ROHBELEGE} WHERE {pflichtig}").fetchone()[0]
+    )
 
     # Der Mandant gehoert in den Schluessel. Ohne ihn verschmelzen Debitor
     # 100 aus Mandant 100 und aus Mandant 200 zu einem Kunden mit der Summe
@@ -407,7 +492,9 @@ def ermittle_belegsicht(
         bis=bis,
         monate=_monate(zeitraum[0], zeitraum[1]),
         ausschluesse=ausschluesse,
+        belege_pflichtig=belege_pflichtig,
         fi_uebergangen=fi_uebergangen,
+        steuerfrei_genaehert=steuerfrei_hinweis,
     )
 
 

@@ -104,10 +104,35 @@ Vier weitere Ausschlüsse, wieder beziffert und nacheinander gebildet:
 | stornierte Belege | `VBRK-FKSTO`, bei FI der Stornobeleg in `BKPF-STBLG` |
 | Gutschriften und Stornorechnungen | Fakturaart `G2`, `S1`, `S2`, `RE` |
 | Kleinbetragsrechnungen | Nettobetrag bis `einvoice.kleinbetrag` (250 Euro) |
-| steuerfreie Umsätze | Kennzeichen mit Kategorie `E` oder `O` in der Steuerzuordnung |
+| steuerfreie Umsätze | Spalte `AUSSTELLUNGSPFLICHT` der Steuerzuordnung, hilfsweise Kategorie `E` oder `O` |
 
 Reverse Charge (`AE`) und Nullsatz (`Z`) sind **nicht** ausgeschlossen: sie
 sind steuerfrei, aber weiter ausstellungspflichtig.
+
+### Zwei Fragen, eine Liste
+
+Die Ausschlüsse beantworten zwei Dinge, die nicht durcheinandergeraten
+dürfen. **Welche Belege künftig strukturiert auszustellen sind** - das ist
+der Pflichtumfang. Und **welches Rechnungsvolumen dahintersteht** - das ist
+der Nenner der Gewichtung.
+
+Eine Gutschrift fällt aus dem zweiten, nicht aus dem ersten: sie mindert den
+Umsatz, ist aber selbst eine E-Rechnung. Jede Stufe trägt deshalb, worauf
+sie wirkt, und der Bericht nennt beide Zahlen. Vorher galten alle Stufen für
+beides, und der Pflichtumfang fiel um die Gutschriften zu niedrig aus.
+
+### Steuerfrei heißt nicht ohne Pflicht
+
+Von der Ausstellungspflicht ausgenommen sind Umsätze nach § 4 Nr. 8 bis 29
+UStG. Aus dem Kategorie-Code der Norm folgt das **nicht**: `E` heißt nur
+"steuerfrei" und trägt auch die Ausfuhr und die innergemeinschaftliche
+Lieferung nach § 4 Nr. 1 - und die bleiben ausstellungspflichtig.
+
+Die Zuordnungsdatei kann es deshalb ausdrücklich sagen, in der Spalte
+`AUSSTELLUNGSPFLICHT` (ja/nein). Fehlt sie, nähert das Werkzeug über die
+Kategorie und **schreibt in den Bericht, dass es das getan hat**. Die Spalte
+zu pflegen ersetzt eine Näherung durch eine Entscheidung; sie gehört wie der
+Kategorie-Code selbst mit dem Steuerreferat abgestimmt.
 
 ## Was die Regeln bewusst nicht verlangen
 
@@ -128,9 +153,17 @@ Kunden eine Pflicht nennt, die es nicht gibt, verliert das Gespräch.
 * **Die USt-IdNr. des Empfängers ist bedingt.** BT-48 wird bei Reverse Charge
   und innergemeinschaftlicher Lieferung gebraucht; für die gewöhnliche
   inländische Rechnung verlangt § 14 Abs. 4 UStG Name und Anschrift.
-  `ERE-COMP-003` steht weiter auf `critical` - als Readiness-Indikator ist
-  der Punkt richtig, die Einstufung ist aber eine fachliche Setzung und keine
-  Ableitung aus dem Gesetz.
+  `ERE-COMP-003` meldet deshalb `high`: ohne Belege lässt sich nicht sagen,
+  welcher Kunde in einen solchen Fall gerät, also wird jeder geprüft - der
+  Befund ist ein Readiness-Hinweis und kein Beleg dafür, dass die Rechnung
+  scheitert.
+* **Die Steuernummer des Rechnungsstellers wird nicht geprüft.** § 14 Abs. 4
+  Nr. 2 UStG lässt USt-IdNr. **oder** Steuernummer genügen (BT-31 bzw.
+  BT-32). `ERE-COMP-001` prüft nur die USt-IdNr., weil die Steuernummer des
+  Buchungskreises nicht in T001 steht. Ein Buchungskreis, der allein eine
+  Steuernummer führt, erscheint zu Unrecht und gehört auf die Ausnahmeliste.
+  Geprüft werden außerdem nur inländische Buchungskreise - die inländische
+  Pflicht trifft keine ausländische Gesellschaft im selben Mandanten.
 
 ### Wo der Bezug einer Gutschrift steht
 

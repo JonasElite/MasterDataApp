@@ -28,13 +28,20 @@ rules:
   - id: ERE-COMP-001
     name: Buchungskreis ohne Umsatzsteuer-Identifikationsnummer
     description: >
-      Die USt-IdNr. oder Steuernummer des Rechnungsstellers ist eine
-      Pflichtangabe der Norm. Fehlt sie im Buchungskreis, lässt sich für
-      diesen Buchungskreis überhaupt keine normkonforme Rechnung erzeugen -
-      unabhängig davon, wie gut die Debitoren gepflegt sind.
+      Der Rechnungssteller muss sich ausweisen - mit USt-IdNr. (BT-31) oder
+      mit Steuernummer (BT-32); § 14 Abs. 4 Nr. 2 UStG lässt beides gelten.
+      Geprüft wird hier nur die USt-IdNr., denn die Steuernummer des
+      Buchungskreises steht nicht in T001, sondern in den zusätzlichen Daten.
+      Ein Buchungskreis, der ausschließlich eine Steuernummer führt,
+      erscheint deshalb zu Unrecht - er gehört auf die Ausnahmeliste, mit
+      der Steuernummer als Begründung.
+
+      Trifft der Befund zu, lässt sich für diesen Buchungskreis überhaupt
+      keine normkonforme Rechnung erzeugen, unabhängig davon, wie gut die
+      Debitoren gepflegt sind.
     category: completeness
     severity: critical
-    version: "1.0.0"
+    version: "1.1.0"
     object_area: einvoice
     object_type: Buchungskreis
     key_columns: [BUKRS]
@@ -44,14 +51,21 @@ rules:
       tables: [T001]
       fields:
         T001: [MANDT, BUKRS, BUTXT, LAND1, STCEG]
-    params: {}
+    params:
+      # Die inlaendische Ausstellungspflicht trifft inlaendische
+      # Buchungskreise. Ohne diesen Filter meldete die Regel in einem
+      # Konzernmandanten auch die auslaendischen Gesellschaften - Befunde
+      # ohne Rechtsgrund, und eine Massnahmenliste, die sie abarbeiten will.
+      inland: [DE]
     remediation: >
       USt-IdNr. des Buchungskreises in den Globalen Einstellungen pflegen
-      (Transaktion OBY6).
+      (Transaktion OBY6). Führt der Buchungskreis nur eine Steuernummer, ist
+      das kein Mangel - dann gehört er auf die Ausnahmeliste.
     sql: |
       SELECT MANDT, BUKRS, BUTXT, LAND1
       FROM T001
-      WHERE STCEG IS NULL OR is_placeholder_text(STCEG)
+      WHERE COALESCE(LAND1, '') IN ${inland}
+        AND (STCEG IS NULL OR is_placeholder_text(STCEG))
 
   - id: ERE-COMP-002
     name: Anschrift des Rechnungsstellers unvollständig
@@ -107,14 +121,18 @@ rules:
   - id: ERE-COMP-003
     name: Empfänger ohne USt-IdNr. und ohne Steuernummer
     description: >
-      Für inländische B2B-Rechnungen ist eine Kennung des Empfängers
-      erforderlich - USt-IdNr. oder ersatzweise Steuernummer. Anders als die
-      allgemeine Stammdatenregel prüft diese nur die Debitoren, die
-      tatsächlich unter die Ausstellungspflicht fallen, und lässt die
-      Steuernummer als Ersatz gelten.
+      Die Norm verlangt die USt-IdNr. des Empfängers (BT-48) nicht bei jeder
+      Rechnung, sondern dort, wo die Steuer davon abhängt: bei Reverse Charge
+      und bei innergemeinschaftlicher Lieferung. Für die gewöhnliche
+      inländische Rechnung genügen nach § 14 Abs. 4 UStG Name und Anschrift.
+
+      Ohne Belege lässt sich nicht sagen, welcher Kunde in einen solchen
+      Fall gerät - deshalb wird jeder Debitor der Grundgesamtheit geprüft
+      und die Steuernummer als Ersatz zugelassen. Der Befund ist damit ein
+      Readiness-Hinweis und kein Beleg dafür, dass die Rechnung scheitert.
     category: completeness
-    severity: critical
-    version: "1.0.0"
+    severity: high
+    version: "1.1.0"
     object_area: einvoice
     object_type: Debitor
     key_columns: [KUNNR]

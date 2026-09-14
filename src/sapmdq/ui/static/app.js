@@ -896,8 +896,18 @@ function belegTrichter(belegsicht) {
     ]),
   ];
   for (const ausschluss of belegsicht.ausschluesse || []) {
+    // Eine Stufe, die nur den Umsatz mindert, nimmt den Beleg nicht aus der
+    // Pflicht. Das gehört danebengeschrieben, sonst liest man den Trichter
+    // als eine Rechnung, die er nicht ist.
+    const nurUmsatz = ausschluss.wirkung === "nur_umsatz";
     zeilen.push(el("div", { class: "trichter-zeile abzug" }, [
-      el("span", { text: t(ausschluss.grund, ausschluss.werte) }),
+      el("span", {}, [
+        el("div", { text: t(ausschluss.grund, ausschluss.werte) }),
+        nurUmsatz
+          ? el("div", { class: "trichter-vermerk",
+                        text: "bleibt ausstellungspflichtig" })
+          : null,
+      ]),
       el("span", { class: "trichter-wert", text: "-" + zahl(ausschluss.belege) }),
     ]));
   }
@@ -909,7 +919,25 @@ function belegTrichter(belegsicht) {
     el("span", { text: "Nettovolumen" }),
     el("span", { class: "trichter-wert", text: betrag(belegsicht.volumen) }),
   ]));
-  setzen($("#er-belege"), [el("div", { class: "trichter" }, zeilen)]);
+
+  const bloecke = [el("div", { class: "trichter" }, zeilen)];
+
+  // Der Pflichtumfang ist die andere Frage: nicht wieviel Umsatz dahinter
+  // steht, sondern wieviele Belege künftig strukturiert auszustellen sind.
+  // Die Gutschriften gehören dazu, obwohl sie aus dem Volumen fallen.
+  if (belegsicht.belege_pflichtig
+      && belegsicht.belege_pflichtig !== belegsicht.belege_im_umfang) {
+    bloecke.push(el("p", { class: "leise" }, [
+      t("Ausstellungspflichtig sind {n} Belege - die Gutschriften mitgezählt. "
+        + "Sie mindern den Umsatz, sind aber selbst als E-Rechnung "
+        + "auszustellen.",
+        { n: zahl(belegsicht.belege_pflichtig) })]));
+  }
+  if (belegsicht.steuerfrei_genaehert) {
+    bloecke.push(el("div", { class: "meldung hinweis" },
+                    [belegsicht.steuerfrei_genaehert]));
+  }
+  setzen($("#er-belege"), bloecke);
 }
 
 function gruppenBlock(gruppe) {

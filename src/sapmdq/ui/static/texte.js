@@ -904,6 +904,12 @@ const EN = {
   "Beleg": "Document",
   "Belegposition": "Document line",
   "Steuerkennzeichen": "Tax code",
+  "Steuerfreie Umsätze ohne Ausstellungspflicht": "Tax-exempt turnover with no issuing obligation",
+  "bleibt ausstellungspflichtig": "still subject to the issuing obligation",
+  "Ausstellungspflichtig sind {n} Belege - die Gutschriften mitgezählt. Sie mindern den Umsatz, sind aber selbst als E-Rechnung auszustellen.":
+    "{n} documents are subject to the issuing obligation - credit notes included. They reduce the turnover but must themselves be issued as e-invoices.",
+  "Die steuerfreien Umsätze wurden über den Kategorie-Code abgegrenzt (E und O), weil die Zuordnungsdatei keine Spalte AUSSTELLUNGSPFLICHT trägt. Das ist eine Näherung: von der Pflicht befreit sind Umsätze nach § 4 Nr. 8 bis 29 UStG, während Ausfuhr und innergemeinschaftliche Lieferung nach § 4 Nr. 1 steuerfrei, aber weiter auszustellen sind. Wer die Spalte pflegt, ersetzt die Näherung durch eine Entscheidung.":
+    "Tax-exempt turnover was delimited by category code (E and O), because the mapping file carries no AUSSTELLUNGSPFLICHT column. That is an approximation: exempt from the obligation are supplies under § 4 nos. 8 to 29 UStG, whereas exports and intra-Community supplies under § 4 no. 1 are tax-exempt but must still be issued. Maintaining the column replaces the approximation with a decision.",
   "Der Umsatz, an dem die Frist hängt, ist der Fakturaumsatz aus den gelieferten Belegen - nicht der Gesamtumsatz im Sinne des Gesetzes. Umsätze, die nicht als Kundenrechnung im System stehen, fehlen darin.":
     "The turnover the deadline depends on is the billed turnover from the delivered documents - not the total turnover as the law defines it. Turnover that does not appear as a customer invoice in the system is missing from it.",
   "Buchhaltungsbelege wurden geliefert, aber nicht herangezogen: ohne das Feld BKPF-AWTYP lassen sich die aus Fakturen erzeugten Belege nicht von den direkt in FI erfassten trennen, und der Umsatz zählte doppelt. Mit AWTYP in der Lieferung fließen sie ein.":

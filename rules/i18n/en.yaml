@@ -14,11 +14,12 @@ rules:
   VEN-COMP-001:
     name: Vendor without VAT registration number
     description: >
-      Vendors based in an EU country need a VAT registration number for
+      Vendors in the rest of the Community need a VAT registration number for
       intra-Community supplies of goods and services. Without it the tax
       treatment cannot be evidenced and the input tax deduction is at risk.
-      Natural persons, one-time accounts and records flagged for deletion are
-      excluded.
+      Domestic vendors are excluded - a tax number suffices on their invoice,
+      and VEN-COMP-004 catches the case where both are missing. Natural persons,
+      one-time accounts and records flagged for deletion stay out too.
     remediation: >
       Obtain the VAT registration number from the vendor, maintain it in field
       STCEG and have it confirmed through the VIES check.
@@ -369,7 +370,9 @@ rules:
     description: >
       For tax-exempt intra-Community supplies the recipient's VAT registration
       number is mandatory. Without it the exemption cannot be evidenced and VAT
-      will, in case of doubt, be assessed retrospectively.
+      will, in case of doubt, be assessed retrospectively. Only customers in the
+      rest of the Community are checked - for a domestic customer the law
+      requires no VAT registration number.
     remediation: >
       Obtain the VAT registration number from the customer, maintain it and
       have it confirmed through VIES.
@@ -788,10 +791,15 @@ rules:
   ERE-COMP-001:
     name: Company code without VAT registration number
     description: >
-      The seller's VAT registration number or tax number is mandatory under the
-      standard. If it is missing on the company code, no compliant invoice can
-      be produced for that company code at all - however well the customers are
-      maintained.
+      The seller must identify itself - with a VAT registration number (BT-31)
+      or a tax number (BT-32); § 14 (4) no. 2 UStG accepts either. Only the VAT
+      registration number is checked here, because the company code's tax number
+      does not sit in T001 but in the additional data. A company code carrying
+      only a tax number therefore appears wrongly - it belongs on the exception
+      list, with the tax number as the reason.
+
+      Where the finding does apply, no compliant invoice can be produced for
+      that company code at all, however well the customers are maintained.
     remediation: >
       Maintain the company code's VAT registration number in the global
       settings (transaction OBY6).
@@ -806,10 +814,15 @@ rules:
   ERE-COMP-003:
     name: Buyer without VAT registration number and without tax number
     description: >
-      Domestic B2B invoices need an identifier for the buyer - a VAT
-      registration number, or a tax number as a substitute. Unlike the general
-      master data rule, this one covers only the customers actually subject to
-      the issuing obligation, and accepts the tax number as a substitute.
+      The standard does not require the buyer's VAT registration number (BT-48)
+      on every invoice, but where the tax depends on it: reverse charge and
+      intra-Community supply. For the ordinary domestic invoice, § 14 (4) UStG
+      asks for name and address.
+
+      Without documents there is no telling which customer ends up in such a
+      case - so every customer in the population is checked, and the tax number
+      is accepted as a substitute. The finding is therefore a readiness
+      indicator, not evidence that the invoice will fail.
     remediation: >
       Obtain the VAT registration number from the customer and maintain it; as
       a substitute, record the tax number in STCD1.
@@ -919,6 +932,15 @@ rules:
     description: >
       A code that appears in a document but is no longer maintained in T007A
       comes from an old configuration. It cannot be resolved for invoicing.
+
+      One limitation worth knowing: the key of T007A is (client, tax procedure,
+      code) - a code is unique only within one procedure. The comparison here
+      runs across all delivered procedures. Where the client runs several, a
+      code counts as present as soon as it appears in any of them, even if it
+      is missing from the one that applies. Which procedure applies would
+      depend on the company code's country, and so on a chain through VBRK,
+      T001 and T005; until that stands, the rule reports too little rather
+      than too much.
     remediation: Maintain the code in customizing or clean up the documents.
   ERE-COMP-008:
     name: Invoice without an invoice date
