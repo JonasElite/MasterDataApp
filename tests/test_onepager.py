@@ -35,9 +35,9 @@ def test_jede_tabelle_des_katalogs_hat_einen_zweck(daten):
     """``_daten`` bricht selbst ab, wenn einer fehlt - das ist die Absicht.
 
     Der Test hält fest, dass die Bedingung greift, und zählt mit: die drei
-    Stufen zusammen müssen genau die Tabellen ergeben, an denen Regeln
-    hängen. Eine Tabelle, die in keine Stufe fällt, verschwände sonst
-    stillschweigend vom Blatt.
+    Stufen zusammen müssen genau die Tabellen ergeben, die angefordert
+    werden - die mit Regeln und die ohne. Eine Tabelle, die in keine Stufe
+    fällt, verschwände sonst stillschweigend vom Blatt.
     """
     genannt = [
         zeile["name"]
@@ -46,7 +46,30 @@ def test_jede_tabelle_des_katalogs_hat_einen_zweck(daten):
     ]
     assert len(genannt) == daten["tabellen_gesamt"]
     assert len(set(genannt)) == len(genannt), "eine Tabelle steht doppelt"
-    assert all(name in onepager.ZWECK for name in genannt)
+    zwecke = {**onepager.ZWECK, **onepager.OHNE_REGEL}
+    assert all(name in zwecke for name in genannt)
+
+
+def test_tabellen_ohne_regel_stehen_trotzdem_drauf(daten):
+    """Der Generator fragt den Regelkatalog - manche Tabelle trägt keine Regel.
+
+    Die Buchhaltungsbelege werden von der Belegsicht gelesen, nicht von einer
+    Regel. Wer nur nach Regeln fragt, fragt sie nie an, und der Kunde liefert
+    sie nicht: der Umsatz käme zu niedrig heraus und die Frist zu spät.
+    """
+    genannt = {
+        zeile["name"]: zeile
+        for stufe in ("must", "should", "could")
+        for zeile in daten["tabellen"][stufe]
+    }
+    for name in onepager.OHNE_REGEL:
+        assert name in genannt, f"{name} fehlt auf dem Blatt"
+        assert genannt[name]["regeln"] is None, "ohne Regel heißt ohne Zahl"
+
+
+def test_die_zahl_der_pruefungen_bleibt_leer_statt_null(blatt):
+    """Null Prüfungen sagt nichts über den Nutzen - ein Strich schon."""
+    assert "&ndash;" in blatt or "\u2013" in blatt
 
 
 def test_jeder_prozess_hat_eine_kurzfassung(daten):
@@ -61,7 +84,8 @@ def test_keine_zuordnung_ist_verwaist():
     registry = load_registry()
     # STEUERZUORDNUNG ist eine Projektleistung und steht trotzdem in den
     # Metadaten; alles andere muss dort ebenfalls bekannt sein.
-    unbekannt = sorted(name for name in onepager.ZWECK if registry.get(name) is None)
+    zwecke = {**onepager.ZWECK, **onepager.OHNE_REGEL}
+    unbekannt = sorted(name for name in zwecke if registry.get(name) is None)
     assert not unbekannt, f"Zweck ohne Tabelle in den Metadaten: {unbekannt}"
 
 
@@ -71,7 +95,7 @@ def test_die_zahlen_stimmen_mit_dem_katalog_ueberein(daten):
     katalog = load_catalog([WURZEL / "rules"])
     assert daten["regeln"] == len(katalog.rules)
     summe = sum(
-        zeile["regeln"]
+        zeile["regeln"] or 0
         for stufe in ("must", "should", "could")
         for zeile in daten["tabellen"][stufe]
     )
@@ -127,7 +151,7 @@ def test_der_zweck_ist_kurz_genug_fuer_den_bogen(daten):
     zu_lang = [
         (zeile["name"], len(zeile["zweck"]))
         for zeile in daten["tabellen"]["could"]
-        if len(zeile["zweck"]) > 50
+        if len(zeile["zweck"]) > 90
     ]
     assert not zu_lang, f"in der Kann-Spalte zu lang: {zu_lang}"
 

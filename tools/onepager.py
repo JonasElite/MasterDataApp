@@ -144,6 +144,17 @@ ZWECK = {
     "STEUERZUORDNUNG": "Steuerkennzeichen je Kategorie-Code.\u2009*",
 }
 
+#: Tabellen, an denen keine Regel hängt und die trotzdem in die Anforderung
+#: gehören. Sie tragen keine Prüfung, sondern eine Auswertung: die
+#: Buchhaltungsbelege liefern die Rechnungen der Häuser, die direkt in FI
+#: fakturieren, und mit ihnen den Umsatz, an dem die Frist der E-Rechnung
+#: hängt. Wer nur nach Regeln fragt, fragt sie nie an - und bekommt dann
+#: einen zu niedrigen Umsatz und eine zu späte Frist.
+OHNE_REGEL = {
+    "BKPF": "Buchhaltungsbelege bei FI-Fakturierung - bitte mit AWTYP.",
+    "BSEG": "Die Belegzeilen dazu: Kunde und Betrag.",
+}
+
 #: Kurzfassung der Prozesse für die Kachel. Der Katalog trägt ausführliche
 #: Schwerpunkte; auf dem Blatt ist Platz für einen Satz.
 PROZESSZEILE = {
@@ -192,21 +203,32 @@ def _daten() -> dict:
             je_tabelle[tabelle] += 1
             bereiche_je_tabelle[tabelle].add(regel.object_area)
 
-    fehlend = sorted(name for name in je_tabelle if name not in ZWECK)
+    zwecke = {**ZWECK, **OHNE_REGEL}
+    fehlend = sorted(name for name in je_tabelle if name not in zwecke)
     if fehlend:
         raise SystemExit(
             "Für diese Tabellen fehlt der Zweck in tools/onepager.py: "
             + ", ".join(fehlend)
         )
+    doppelt = sorted(set(ZWECK) & set(OHNE_REGEL))
+    if doppelt:
+        raise SystemExit(f"In ZWECK und OHNE_REGEL zugleich: {', '.join(doppelt)}")
+
+    # Die Zahl der Prüfungen ordnet die Liste. Tabellen ohne Regel haben
+    # keine und stehen deshalb am Ende ihrer Stufe - mit einem Strich statt
+    # einer Null, weil null Prüfungen hier nichts über den Nutzen sagt.
+    eintraege = list(je_tabelle.most_common()) + [
+        (name, None) for name in OHNE_REGEL if name not in je_tabelle
+    ]
 
     tabellen: dict[str, list[dict]] = {"must": [], "should": [], "could": []}
-    for name, anzahl in je_tabelle.most_common():
+    for name, anzahl in eintraege:
         spezifikation = registry.get(name)
         stufe = spezifikation.tier if spezifikation else "could"
         tabellen[stufe].append({
             "name": name,
             "inhalt": spezifikation.description if spezifikation else "",
-            "zweck": ZWECK[name],
+            "zweck": zwecke[name],
             "regeln": anzahl,
         })
 
@@ -226,7 +248,7 @@ def _daten() -> dict:
         "regeln": len(katalog.rules),
         "prozesse": kacheln,
         "tabellen": tabellen,
-        "tabellen_gesamt": len(je_tabelle),
+        "tabellen_gesamt": sum(len(zeilen) for zeilen in tabellen.values()),
         "version": katalog.version,
     }
 
@@ -251,7 +273,7 @@ def _tabellenblock(stufe: str, zeilen: list[dict]) -> str:
     reihen = "".join(
         f'<tr><td class="ddic">{_e(z["name"])}</td>'
         f'<td class="zweck">{_e(z["zweck"])}</td>'
-        f'<td class="regeln">{z["regeln"]}</td></tr>'
+        f'<td class="regeln">{z["regeln"] if z["regeln"] is not None else "&ndash;"}</td></tr>'
         for z in zeilen
     )
     return (
@@ -601,7 +623,7 @@ h2 small {{
   color: var(--akzent);
   margin: 0 0 1mm;
 }}
-.format p {{ margin: 0; font-size: 7.6pt; line-height: 1.3; color: var(--grau); }}
+.format p {{ margin: 0; font-size: 7.4pt; line-height: 1.28; color: var(--grau); }}
 
 .spalten {{
   display: grid;
@@ -632,11 +654,11 @@ h2 small {{
   font-weight: 500;
 }}
 .erklaerung {{
-  margin: 1mm 0 1.4mm;
-  font-size: 7.4pt;
+  margin: 0.8mm 0 1.2mm;
+  font-size: 7.2pt;
   color: var(--grau);
-  line-height: 1.28;
-  min-height: 6mm;
+  line-height: 1.25;
+  min-height: 5.4mm;
 }}
 table {{ width: 100%; border-collapse: collapse; }}
 thead th {{
@@ -651,18 +673,18 @@ thead th {{
   border-bottom: 1px solid var(--linie);
 }}
 tbody td {{
-  padding: 0.75mm 1.5mm 0.75mm 0;
+  padding: 0.6mm 1.5mm 0.6mm 0;
   border-bottom: 1px solid var(--linie);
-  font-size: 7.2pt;
-  line-height: 1.25;
+  font-size: 7pt;
+  line-height: 1.22;
   vertical-align: top;
 }}
 tbody tr:last-child td {{ border-bottom: 0; }}
 td.ddic {{
   font-family: var(--mono);
-  font-size: 7pt;
+  font-size: 6.8pt;
   white-space: nowrap;
-  width: 18mm;
+  width: 17.5mm;
 }}
 .must td.ddic {{ color: var(--muss); }}
 .should td.ddic {{ color: var(--soll); }}
