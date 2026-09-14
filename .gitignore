@@ -22,3 +22,8 @@ runs/
 *.csv
 !tests/data/**
 !sample/**
+
+# Der One-Pager wird erzeugt (tools/onepager.py). Das Blatt selbst ist
+# eingecheckt, die gedruckte Fassung nicht - sie waere ein zweiter Stand,
+# der still von der ersten abweichen kann.
+docs/onepager.pdf

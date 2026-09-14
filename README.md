@@ -226,7 +226,12 @@ Kopfzeile, keine Excel-Zwischenverarbeitung. Gelesen werden außerdem
 SE16N-Textexporte, Excel und Latin-1- sowie UTF-16-kodierte Dateien.
 
 Welche Tabellen gebraucht werden und was ihre Lieferung freischaltet, steht in
-[docs/datenanforderung.md](docs/datenanforderung.md). Kurz gefasst:
+[docs/datenanforderung.md](docs/datenanforderung.md). Zum Mitgeben an den
+Kunden erzeugt `python tools/onepager.py` daraus ein zweiseitiges Blatt im
+Querformat: Seite eins nennt den Umfang der Prüfung und den Aufwand, Seite
+zwei jede Tabelle mit ihrer Einstufung und einem Satz, wofür sie gebraucht
+wird. Die Zahlen entstehen beim Erzeugen aus dem Katalog und können deshalb
+nicht veralten. Kurz gefasst:
 
 - **Muss:** LFA1/LFB1/LFM1, KNA1/KNB1/KNVV, MARA/MARC/MBEW - beziehungsweise
   BUT000/BUT020/BUT0BK bei S/4HANA

@@ -8,6 +8,11 @@ Die Spalte "Regeln" nennt, an wievielen Regeln die Tabelle beteiligt ist. Eine
 Regel braucht häufig mehrere Tabellen - die Zahlen addieren sich deshalb
 nicht.
 
+> **Für den Kundentermin** gibt es dieselbe Aufstellung als zweiseitigen
+> One-Pager im Querformat: `python tools/onepager.py`. Er wird aus dem
+> Regelkatalog erzeugt und ist damit die verbindliche Fassung der Zahlen -
+> die Tabellen unten sind von Hand gepflegt und können hinterherhinken.
+
 ## Lieferformat
 
 - Bevorzugt **Parquet** oder **CSV mit UTF-8**, Semikolon oder Tabulator als
