@@ -387,6 +387,24 @@ def _erechnung_abschnitt(con: duckdb.DuckDBPyConnection, result: RunResult) -> l
         )
     lines.append("")
 
+    # Die Schwelle gilt je Unternehmer. Aus Stammdaten allein ist nicht zu
+    # erkennen, ob Buchungskreis und Gesellschaft zusammenfallen - der
+    # Vorbehalt steht deshalb immer da und nicht nur im Verdachtsfall.
+    schwelle = result.config.einvoice.revenue_threshold
+    lines.append(
+        f"Der Stichtag folgt der Umsatzschwelle von {schwelle:,.0f} Euro".replace(",", ".")
+        + " und gilt für den Gesamtumsatz des Unternehmers im Vorjahr, nicht "
+        "je Buchungskreis. Gehören mehrere Buchungskreise zu einer Gesellschaft "
+        "oder besteht eine Organschaft, sind ihre Umsätze zusammenzuziehen; die "
+        "Zuordnung unten wäre dann zu günstig. Ein aus Belegen hochgerechneter "
+        "Wert ist zudem der Fakturaumsatz, nicht der Gesamtumsatz im Sinne des "
+        "Gesetzes - die verbindliche Zahl gehört in einvoice.prior_year_revenue."
+    )
+    lines.append("")
+    if belegsicht is not None and belegsicht.fi_uebergangen:
+        lines.append(belegsicht.fi_uebergangen)
+        lines.append("")
+
     lines.append("### Abgrenzung")
     lines.append("")
     lines += _table(

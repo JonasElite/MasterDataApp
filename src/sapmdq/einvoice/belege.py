@@ -35,6 +35,9 @@ logger = get_logger("einvoice.belege")
 #: Name der Tabelle, in der das Aggregat je Debitor abgelegt wird.
 AGGREGAT = "_erechnung_belege"
 
+#: Belege beider Quellen, vor den Ausschlüssen der E-Rechnung.
+ROHBELEGE = "_erechnung_rohbelege"
+
 #: Fakturaarten, die eine Gutschrift oder Stornorechnung sind. Sie zählen
 #: nicht zum Rechnungsvolumen, sondern gegen es.
 GUTSCHRIFTSARTEN = ("G2", "S1", "S2", "RE")
@@ -84,6 +87,9 @@ class Belegsicht:
     ausschluesse: list[Belegausschluss] = field(default_factory=list)
     #: Warum es keine Belegsicht gibt; leer heißt: es gibt eine.
     nicht_ermittelbar: str = ""
+    #: Gesetzt, wenn Buchhaltungsbelege geliefert wurden, aber nicht
+    #: herangezogen werden konnten - ohne AWTYP zählte der Umsatz doppelt.
+    fi_uebergangen: str = ""
 
     @property
     def ermittelt(self) -> bool:
@@ -114,6 +120,7 @@ class Belegsicht:
             "hochrechnungsfaktor": self.hochrechnungsfaktor,
             "ausschluesse": [a.als_dict() for a in self.ausschluesse],
             "nicht_ermittelbar": self.nicht_ermittelbar,
+            "fi_uebergangen": self.fi_uebergangen,
         }
 
 
@@ -144,10 +151,14 @@ def _sd_quelle(con: duckdb.DuckDBPyConnection) -> str | None:
     art = "COALESCE(FKART, '')" if "FKART" in spalten else "''"
     waehrung = "COALESCE(WAERK, '')" if "WAERK" in spalten else "''"
     mandant = "MANDT" if "MANDT" in spalten else "''"
+    # Der Buchungskreis wird mitgeführt, weil der Jahresumsatz je
+    # Buchungskreis daraus entsteht - und mit ihm die Frist.
+    buchungskreis = "COALESCE(BUKRS, '')" if "BUKRS" in spalten else "''"
     return f"""
         SELECT
             'SD' AS quelle,
             {mandant} AS mandant,
+            {buchungskreis} AS bukrs,
             VBELN AS beleg,
             KUNRG AS debitor,
             FKDAT AS datum,
@@ -159,12 +170,21 @@ def _sd_quelle(con: duckdb.DuckDBPyConnection) -> str | None:
     """
 
 
-def _fi_quelle(con: duckdb.DuckDBPyConnection) -> str | None:
+def _fi_quelle(con: duckdb.DuckDBPyConnection, sd_vorhanden: bool = False) -> str | None:
     """Debitorische Buchungszeilen als Fakturaersatz.
 
     Gelesen wird nur die Debitorenzeile (KOART = 'D'); sie trägt den Kunden
     und den Rechnungsbetrag. Die Sachkontenzeilen desselben Belegs würden
     den Betrag ein zweites Mal zählen.
+
+    Der zweite Weg in dieselbe Falle ist die Buchhaltung selbst: jede Faktura
+    erzeugt einen FI-Beleg. Werden VBRK und BKPF zusammen geliefert - der
+    Regelfall - stünde derselbe Umsatz zweimal da. Solche Belege tragen
+    ``AWTYP = 'VBRK'`` und werden dann ausgeschlossen; übrig bleibt, was
+    direkt in FI fakturiert wurde. Fehlt das Feld in der Lieferung, lässt
+    sich die Herkunft nicht feststellen: dann bleibt es bei der führenden
+    Quelle SD, und FI wird gar nicht erst herangezogen (siehe
+    ``ermittle_belegsicht``).
     """
     kopf = _spalten(con, "BKPF")
     zeile = _spalten(con, "BSEG")
@@ -183,6 +203,13 @@ def _fi_quelle(con: duckdb.DuckDBPyConnection) -> str | None:
         else "1"
     )
     mandant = "k.MANDT" if "MANDT" in kopf else "''"
+    # Aus einer Faktura erzeugte Belege gehören der SD-Quelle; sie hier noch
+    # einmal zu zählen verdoppelte den Umsatz.
+    aus_sd = (
+        "AND COALESCE(upper(trim(k.AWTYP)), '') <> 'VBRK'"
+        if sd_vorhanden and "AWTYP" in kopf
+        else ""
+    )
     # Ein Beleg kann mehrere Debitorenzeilen tragen - Teilzahlungen,
     # Splitbuchungen. Sie werden zu einer Zeile je Beleg und Debitor
     # zusammengefasst; sonst zaehlte derselbe Beleg mehrfach als Rechnung.
@@ -190,6 +217,7 @@ def _fi_quelle(con: duckdb.DuckDBPyConnection) -> str | None:
         SELECT
             'FI' AS quelle,
             mandant,
+            bukrs,
             beleg,
             debitor,
             max(datum) AS datum,
@@ -200,6 +228,7 @@ def _fi_quelle(con: duckdb.DuckDBPyConnection) -> str | None:
         FROM (
             SELECT
                 {mandant} AS mandant,
+                k.BUKRS AS bukrs,
                 k.BELNR AS beleg,
                 b.KUNNR AS debitor,
                 k.{datum} AS datum,
@@ -212,8 +241,9 @@ def _fi_quelle(con: duckdb.DuckDBPyConnection) -> str | None:
               ON k.BUKRS = b.BUKRS AND k.BELNR = b.BELNR AND k.GJAHR = b.GJAHR
             WHERE {kontoart}
               AND b.KUNNR IS NOT NULL AND trim(b.KUNNR) <> ''
+              {aus_sd}
         )
-        GROUP BY mandant, beleg, debitor
+        GROUP BY mandant, bukrs, beleg, debitor
     """
 
 
@@ -244,6 +274,7 @@ def ermittle_belegsicht(
     vorhanden = set(tabellen)
     quellen: list[str] = []
     ausdruecke: list[str] = []
+    fi_uebergangen = ""
 
     if "VBRK" in vorhanden:
         ausdruck = _sd_quelle(con)
@@ -251,10 +282,23 @@ def ermittle_belegsicht(
             ausdruecke.append(ausdruck)
             quellen.append("VBRK")
     if {"BKPF", "BSEG"} <= vorhanden:
-        ausdruck = _fi_quelle(con)
-        if ausdruck:
-            ausdruecke.append(ausdruck)
-            quellen.append("BKPF/BSEG")
+        # Jede Faktura erzeugt einen FI-Beleg. Liegt beides vor, müssen die
+        # aus SD stammenden Belege erkennbar sein - sonst steht derselbe
+        # Umsatz zweimal da, und beim Jahresumsatz kippte davon die Frist.
+        # Lieber eine Quelle weniger als eine verdoppelte Zahl.
+        sd_vorhanden = bool(quellen)
+        if sd_vorhanden and "AWTYP" not in _spalten(con, "BKPF"):
+            fi_uebergangen = (
+                "Buchhaltungsbelege wurden geliefert, aber nicht herangezogen: "
+                "ohne das Feld BKPF-AWTYP lassen sich die aus Fakturen erzeugten "
+                "Belege nicht von den direkt in FI erfassten trennen, und der "
+                "Umsatz zählte doppelt. Mit AWTYP in der Lieferung fließen sie ein."
+            )
+        else:
+            ausdruck = _fi_quelle(con, sd_vorhanden)
+            if ausdruck:
+                ausdruecke.append(ausdruck)
+                quellen.append("BKPF/BSEG")
 
     if not ausdruecke:
         con.execute(
@@ -262,6 +306,7 @@ def ermittle_belegsicht(
             "(mandant VARCHAR, debitor VARCHAR, belege BIGINT, volumen DOUBLE)"
         )
         return Belegsicht(
+            fi_uebergangen=fi_uebergangen,
             nicht_ermittelbar=(
                 "Es liegen keine Belege vor. Ohne Fakturen (VBRK/VBRP) oder "
                 "Buchhaltungsbelege (BKPF/BSEG) lassen sich die Mängel nicht "
@@ -271,18 +316,18 @@ def ermittle_belegsicht(
         )
 
     con.execute(
-        "CREATE OR REPLACE TEMP TABLE _erechnung_rohbelege AS "
+        f"CREATE OR REPLACE TEMP TABLE {ROHBELEGE} AS "
         + "\nUNION ALL\n".join(ausdruecke)
     )
 
-    gesamt = int(con.execute("SELECT count(*) FROM _erechnung_rohbelege").fetchone()[0])
+    gesamt = int(con.execute(f"SELECT count(*) FROM {ROHBELEGE}").fetchone()[0])
     zeitraum = con.execute(
-        "SELECT min(datum), max(datum) FROM _erechnung_rohbelege WHERE datum IS NOT NULL"
+        f"SELECT min(datum), max(datum) FROM {ROHBELEGE} WHERE datum IS NOT NULL"
     ).fetchone()
     waehrungen = [
         zeile[0]
         for zeile in con.execute(
-            "SELECT DISTINCT waehrung FROM _erechnung_rohbelege "
+            f"SELECT DISTINCT waehrung FROM {ROHBELEGE} "
             "WHERE waehrung IS NOT NULL AND waehrung <> '' ORDER BY 1"
         ).fetchall()
     ]
@@ -325,7 +370,7 @@ def ermittle_belegsicht(
     verbleibend = "TRUE"
     for kennung, grund, ausdruck, werte in stufen:
         zeile = con.execute(
-            f"SELECT count(*), COALESCE(sum(netto), 0) FROM _erechnung_rohbelege "
+            f"SELECT count(*), COALESCE(sum(netto), 0) FROM {ROHBELEGE} "
             f"WHERE {verbleibend} AND ({ausdruck})"
         ).fetchone()
         ausschluesse.append(
@@ -340,7 +385,7 @@ def ermittle_belegsicht(
         f"CREATE OR REPLACE TABLE {AGGREGAT} AS "
         "SELECT mandant, debitor, count(*) AS belege, "
         "COALESCE(sum(netto), 0) AS volumen "
-        f"FROM _erechnung_rohbelege WHERE {verbleibend} "
+        f"FROM {ROHBELEGE} WHERE {verbleibend} "
         "GROUP BY mandant, debitor"
     )
     im_umfang = con.execute(
@@ -362,6 +407,7 @@ def ermittle_belegsicht(
         bis=bis,
         monate=_monate(zeitraum[0], zeitraum[1]),
         ausschluesse=ausschluesse,
+        fi_uebergangen=fi_uebergangen,
     )
 
 
@@ -390,30 +436,42 @@ def _monate(von: Any, bis: Any) -> float:
 
 
 def jahresumsatz_je_buchungskreis(
-    con: duckdb.DuckDBPyConnection, tabellen: Iterable[str], faktor: float
+    con: duckdb.DuckDBPyConnection, faktor: float
 ) -> dict[str, float]:
     """Umsatz je Buchungskreis aus den Belegen, auf ein Jahr hochgerechnet.
 
-    Damit muss der Vorjahresumsatz für die Fristenzuordnung nicht mehr von
-    Hand hinterlegt werden. Die Hochrechnung ist eine Schätzung und wird als
-    solche ausgewiesen - eine Lieferung über drei Monate sagt nichts über
-    die Saisonalität der übrigen neun.
+    Gelesen wird dieselbe Rohsicht, aus der auch die Belegsicht entsteht -
+    also Fakturen **und** direkt in FI erfasste Rechnungen, jede genau
+    einmal. Vorher zählte nur VBRK; ein Buchungskreis, der über FI
+    fakturiert, kam damit zu niedrig heraus und landete unter der Schwelle,
+    also ein Jahr später in der Pflicht. Das ist die gefährliche Richtung.
+
+    Die Ausschlüsse der E-Rechnung greifen hier ausdrücklich **nicht**.
+    Kleinbetragsrechnungen und steuerfreie Umsätze fallen aus der
+    Ausstellungspflicht, gehören aber in den Umsatz, an dem die Frist hängt.
+
+    Die Hochrechnung ist eine Schätzung und wird als solche ausgewiesen -
+    eine Lieferung über drei Monate sagt nichts über die Saisonalität der
+    übrigen neun. Und der so ermittelte Wert ist der Fakturaumsatz, nicht
+    der Gesamtumsatz im Sinne des Gesetzes; wer die verbindliche Zahl hat,
+    hinterlegt sie unter ``einvoice.prior_year_revenue``.
     """
-    vorhanden = set(tabellen)
-    if "VBRK" not in vorhanden:
+    vorhanden = {
+        zeile[0]
+        for zeile in con.execute(
+            "SELECT table_name FROM information_schema.tables"
+        ).fetchall()
+    }
+    if ROHBELEGE not in vorhanden:
         return {}
-    spalten = _spalten(con, "VBRK")
-    if not {"BUKRS", "NETWR"} <= spalten:
-        return {}
-    storno = "AND COALESCE(FKSTO, '') <> 'X'" if "FKSTO" in spalten else ""
     zeilen = con.execute(
-        f"SELECT BUKRS, COALESCE(sum(CAST(NETWR AS DOUBLE)), 0) FROM VBRK "
-        f"WHERE BUKRS IS NOT NULL {storno} GROUP BY BUKRS"
+        f"SELECT bukrs, COALESCE(sum(netto), 0) FROM {ROHBELEGE} "
+        "WHERE NOT storniert AND bukrs IS NOT NULL AND trim(bukrs) <> '' "
+        "GROUP BY bukrs"
     ).fetchall()
     # Der Buchungskreis ist mandantenübergreifend eindeutig; eine Trennung
     # nach Mandant wäre hier anders als beim Debitor keine Verbesserung.
     return {str(bukrs).upper(): float(summe) * faktor for bukrs, summe in zeilen}
-
 
 def volumen_je_regel(
     con: duckdb.DuckDBPyConnection,

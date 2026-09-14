@@ -187,6 +187,30 @@ def test_die_ausschlussgruende_der_belegsicht_sind_uebersetzt(woerterbuch):
     assert not fehlend, "Ausschlussgrund ohne englische Fassung:\n  " + "\n  ".join(fehlend)
 
 
+def test_die_meldungen_der_erechnung_sind_uebersetzt(woerterbuch):
+    """Sie stehen als fertiger Satz in lauf.json und gehen durch ``t()``.
+
+    Weil die Oberfläche sie als Variable durchreicht, greift der allgemeine
+    Test nicht. Gelesen wird deshalb die Quelle: jeder Satz, der einem
+    Meldungsfeld der E-Rechnungsauswertung zugewiesen wird.
+    """
+    wurzel = Path(__file__).resolve().parents[1] / "src" / "sapmdq" / "einvoice"
+    muster = re.compile(
+        r'(?:nicht_ermittelbar|fi_uebergangen)\s*=\s*\(?\s*((?:"(?:[^"\\]|\\.)*"\s*)+)'
+    )
+    gefunden = set()
+    for datei in ("belege.py", "abgrenzung.py"):
+        text = (wurzel / datei).read_text(encoding="utf-8")
+        for treffer in muster.finditer(text):
+            teile = re.findall(r'"((?:[^"\\]|\\.)*)"', treffer.group(1))
+            satz = _entschluesseln("".join(teile))
+            if satz.strip():
+                gefunden.add(satz)
+    assert len(gefunden) >= 3, f"die Meldungen wurden nicht gelesen: {gefunden}"
+    fehlend = sorted(satz for satz in gefunden if satz not in woerterbuch)
+    assert not fehlend, "Meldung ohne englische Fassung:\n  " + "\n  ".join(fehlend)
+
+
 # ------------------------------------------------------- Bedeutung der Tabellen
 
 

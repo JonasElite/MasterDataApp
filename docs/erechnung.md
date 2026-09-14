@@ -73,11 +73,22 @@ erfunden.
 
 Führende Quelle sind die Fakturen aus dem Vertrieb (`VBRK`/`VBRP`).
 Buchhaltungsbelege (`BKPF`/`BSEG`) kommen additiv dazu, für Häuser, die
-direkt in FI fakturieren. Dort gilt zweierlei: gelesen wird nur die
-Debitorenzeile (`KOART = 'D'`), sonst zählte der Betrag über die
-Sachkontenzeile doppelt; und mehrere Debitorenzeilen desselben Belegs -
-Teilzahlungen, Splitbuchungen - werden zu einer Rechnung zusammengefasst.
-Fehlt beides, sagt die Oberfläche das, statt eine Null zu zeigen.
+direkt in FI fakturieren. Fehlt beides, sagt die Oberfläche das, statt eine
+Null zu zeigen.
+
+Drei Wege führen dabei zur Doppelzählung, und alle drei sind abgeräumt:
+
+* Gelesen wird nur die **Debitorenzeile** (`KOART = 'D'`); über die
+  Sachkontenzeile stünde der Betrag ein zweites Mal da.
+* Mehrere Debitorenzeilen desselben Belegs - Teilzahlungen, Splitbuchungen -
+  werden zu **einer** Rechnung zusammengefasst.
+* Jede Faktura erzeugt einen FI-Beleg. Werden `VBRK` und `BKPF` zusammen
+  geliefert - der Regelfall - stünde derselbe Umsatz zweimal da. Solche
+  Belege tragen `AWTYP = 'VBRK'` und werden dann ausgeschlossen; übrig
+  bleibt, was direkt in FI erfasst wurde. **Fehlt `AWTYP` in der Lieferung,
+  bleibt es bei der führenden Quelle SD**, und die Auswertung sagt, dass sie
+  die Buchhaltungsbelege übergangen hat. Lieber eine Quelle weniger als eine
+  verdoppelte Zahl - beim Jahresumsatz kippte davon die Frist.
 
 Das Aggregat je Debitor trägt den **Mandanten** im Schlüssel. Ohne ihn
 verschmölzen Debitor 100 aus Mandant 100 und aus Mandant 200 zu einem Kunden
@@ -195,6 +206,24 @@ ist keine Bilanzzahl.
 Fehlt beides, bleibt der Stichtag **ausdrücklich unbestimmt** - ein
 geratener Stichtag wäre schlimmer als gar keiner.
 
+### Zwei Vorbehalte, die in jeden Bericht gehören
+
+**Die Schwelle gilt je Unternehmer, nicht je Buchungskreis.** Maßstab ist der
+Gesamtumsatz des Rechnungsausstellers im Vorjahr. Solange Buchungskreis und
+Gesellschaft zusammenfallen - der Regelfall - trägt die Zuordnung. Gehören
+mehrere Buchungskreise zu einer Gesellschaft, oder besteht eine Organschaft,
+sind die Umsätze zusammenzuziehen, und die Zuordnung je Buchungskreis fällt
+zu günstig aus: ein Haus, das über der Schwelle liegt, bekäme ein Jahr
+zugesprochen, das es nicht hat. Aus Stammdaten allein ist das nicht
+erkennbar, deshalb steht der Vorbehalt immer neben den Fristen und nicht
+nur im Verdachtsfall.
+
+**Fakturaumsatz ist nicht Gesamtumsatz.** Der aus den Belegen ermittelte Wert
+umfasst, was als Kundenrechnung im System steht. Umsätze, die dort nicht
+erscheinen, fehlen darin. Die verbindliche Zahl kommt aus der Buchhaltung
+und gehört in `einvoice.prior_year_revenue`; die gerechnete taugt zur
+Plausibilisierung.
+
 ## Die Quote misst die Wirkung, nicht die Befunde
 
 Ein Befund ist nicht dasselbe wie ein betroffener Fall. Bei einer Regel über
@@ -283,7 +312,7 @@ Zusätzlich zu den Tabellen der Stammdatenprüfung:
 | `T005` | ISO-Code je Länderschlüssel | `ERE-REF-001` entfällt |
 | `T052` | Zahlungsbedingungen | Gruppe Zahlungsbedingung entfällt |
 | `VBRK`, `VBRP` | Fakturen - Volumengewichtung, Gruppen Beleg und Belegposition | keine Belegsicht; die Auswertung bleibt bei der Partnerzahl |
-| `BKPF`, `BSEG` | Buchhaltungsbelege bei FI-Direktfakturierung | dieselbe Wirkung, additiv zu VBRK |
+| `BKPF`, `BSEG` | Buchhaltungsbelege bei FI-Direktfakturierung; `BKPF-AWTYP` wird zur Abgrenzung gegen die Fakturen gebraucht | ohne `AWTYP` bleibt es bei VBRK allein |
 | `STEUERZUORDNUNG` | Zuordnung der Steuerkennzeichen (Projektleistung) | Gruppe Steuerkennzeichen entfällt |
 | `T007A` | Steuerkennzeichen im Customizing | `ERE-REF-004` entfällt |
 

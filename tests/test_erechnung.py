@@ -376,16 +376,16 @@ class TestGanzerLauf:
 
 
 # --------------------------------------------------------------- Belegsicht
-def _fakturen(con, zeilen):
+def _fakturen(con, zeilen, bukrs="1000"):
     """Legt VBRK an: (Beleg, Debitor, Datum, Netto, Art, Storno, Waehrung)."""
     werte = ", ".join(
-        f"('100', '{b}', '{k}', DATE '{d}', {n}, '{a}', '{s}', '{w}')"
+        f"('100', '{bukrs}', '{b}', '{k}', DATE '{d}', {n}, '{a}', '{s}', '{w}')"
         for b, k, d, n, a, s, w in zeilen
     )
     con.execute(
         "CREATE OR REPLACE TABLE VBRK AS SELECT * FROM (VALUES "
         + werte
-        + ") AS t(MANDT, VBELN, KUNRG, FKDAT, NETWR, FKART, FKSTO, WAERK)"
+        + ") AS t(MANDT, BUKRS, VBELN, KUNRG, FKDAT, NETWR, FKART, FKSTO, WAERK)"
     )
 
 
@@ -506,12 +506,16 @@ class TestHochrechnung:
         assert self._sicht(con, "2025-07-01", "2025-07-03").hochrechnungsfaktor == 1.0
 
     def test_der_jahresumsatz_traegt_den_faktor(self, con):
-        con.execute(
-            "CREATE TABLE VBRK AS SELECT * FROM (VALUES "
-            "('100', '1', '1000', 5000.0, ''), ('100', '2', '1000', 5000.0, '')) "
-            "AS t(MANDT, VBELN, BUKRS, NETWR, FKSTO)"
-        )
-        assert jahresumsatz_je_buchungskreis(con, ["VBRK"], 2.0) == {"1000": 20000.0}
+        _fakturen(con, [
+            ("1", "100", "2025-07-01", 5000.0, "F2", "", "EUR"),
+            ("2", "100", "2025-08-01", 5000.0, "F2", "", "EUR"),
+        ])
+        ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+        assert jahresumsatz_je_buchungskreis(con, 2.0) == {"1000": 20000.0}
+
+    def test_ohne_belegsicht_gibt_es_keinen_umsatz(self, con):
+        """Ein geratener Umsatz wäre schlimmer als gar keiner - er setzt eine Frist."""
+        assert jahresumsatz_je_buchungskreis(con, 2.0) == {}
 
 
 class TestVolumengewichtung:
@@ -605,8 +609,8 @@ class TestMandantentrennung:
             ("1", "0000000100", "2025-01-01", 1000, "F2", "", "EUR"),
         ])
         con.execute(
-            "INSERT INTO VBRK VALUES ('200', '2', '0000000100', DATE '2025-01-02', "
-            "9000, 'F2', '', 'EUR')"
+            "INSERT INTO VBRK VALUES ('200', '1000', '2', '0000000100', "
+            "DATE '2025-01-02', 9000, 'F2', '', 'EUR')"
         )
         ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
         zeilen = con.execute(
@@ -674,6 +678,116 @@ class TestFiBelege:
     def test_die_habenzeile_geht_negativ_ein(self, con):
         self._fi(con, [("4711", "001", "D", "0000000100", "H", 800.0)])
         assert ermittle_belegsicht(con, EInvoiceConfig(), ["BKPF", "BSEG"]).volumen == -800.0
+
+
+class TestSdUndFiZusammen:
+    """Jede Faktura erzeugt einen FI-Beleg.
+
+    Werden VBRK und BKPF zusammen geliefert - der Regelfall - stünde
+    derselbe Umsatz zweimal da. Das fiele im Volumenanteil kaum auf, kippt
+    beim Jahresumsatz aber die Frist: aus 2028 würde 2027 oder umgekehrt.
+    """
+
+    def _fi(self, con, belege, awtyp=True):
+        """belege: (Belegnummer, Debitor, Betrag, AWTYP)."""
+        spalten = "MANDT,BUKRS,BELNR,GJAHR,BLART,BLDAT,WAERS,STBLG"
+        werte = ", ".join(
+            f"('100','1000','{nr}','2025','RV', DATE '2025-03-0{i}','EUR',''"
+            + (f",'{art}'" if awtyp else "")
+            + ")"
+            for i, (nr, _, _, art) in enumerate(belege, start=1)
+        )
+        con.execute(
+            f"CREATE OR REPLACE TABLE BKPF AS SELECT * FROM (VALUES {werte}) "
+            f"AS t({spalten}{',AWTYP' if awtyp else ''})"
+        )
+        zeilen = ", ".join(
+            f"('100','1000','{nr}','2025','001','D','{debitor}','S',{betrag})"
+            for nr, debitor, betrag, _ in belege
+        )
+        con.execute(
+            f"CREATE OR REPLACE TABLE BSEG AS SELECT * FROM (VALUES {zeilen}) "
+            "AS t(MANDT,BUKRS,BELNR,GJAHR,BUZEI,KOART,KUNNR,SHKZG,WRBTR)"
+        )
+
+    def test_der_fi_beleg_zur_faktura_zaehlt_nicht_zweimal(self, con):
+        _fakturen(con, [("1", "0000000100", "2025-03-01", 5000.0, "F2", "", "EUR")])
+        # 4711 stammt aus der Faktura, 4712 wurde direkt in FI erfasst.
+        self._fi(con, [
+            ("4711", "0000000100", 5000.0, "VBRK"),
+            ("4712", "0000000200", 3000.0, ""),
+        ])
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK", "BKPF", "BSEG"])
+        assert sicht.quellen == ["VBRK", "BKPF/BSEG"]
+        assert sicht.belege_gesamt == 2, "der Faktura-Beleg zaehlt doppelt"
+        assert sicht.volumen == 8000.0
+
+    def test_der_jahresumsatz_umfasst_beide_quellen(self, con):
+        """Der eigentliche Fehler: vorher zaehlte allein VBRK."""
+        _fakturen(con, [("1", "0000000100", "2025-03-01", 5000.0, "F2", "", "EUR")])
+        self._fi(con, [
+            ("4711", "0000000100", 5000.0, "VBRK"),
+            ("4712", "0000000200", 3000.0, ""),
+        ])
+        ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK", "BKPF", "BSEG"])
+        assert jahresumsatz_je_buchungskreis(con, 1.0) == {"1000": 8000.0}
+
+    def test_ohne_awtyp_bleibt_fi_aussen_vor(self, con):
+        """Lieber eine Quelle weniger als eine verdoppelte Zahl."""
+        _fakturen(con, [("1", "0000000100", "2025-03-01", 5000.0, "F2", "", "EUR")])
+        self._fi(con, [("4711", "0000000100", 5000.0, "")], awtyp=False)
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK", "BKPF", "BSEG"])
+        assert sicht.quellen == ["VBRK"]
+        assert sicht.volumen == 5000.0
+        assert "AWTYP" in sicht.fi_uebergangen
+        assert sicht.als_dict()["fi_uebergangen"]
+
+    def test_ohne_sd_wird_fi_ungefiltert_gelesen(self, con):
+        """Liegt keine Faktura vor, ist auch nichts zu entdoppeln."""
+        self._fi(con, [("4711", "0000000100", 5000.0, "VBRK")], awtyp=False)
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["BKPF", "BSEG"])
+        assert sicht.quellen == ["BKPF/BSEG"]
+        assert sicht.volumen == 5000.0
+        assert not sicht.fi_uebergangen
+
+
+class TestUmsatzUndFrist:
+    def test_die_ausschluesse_mindern_den_umsatz_nicht(self, con):
+        """Kleinbetraege fallen aus der Pflicht, nicht aus dem Umsatz.
+
+        Der Umsatz traegt die Frist. Wuerde er um die Kleinbetragsrechnungen
+        gekuerzt, rutschte ein Buchungskreis knapp ueber der Schwelle
+        faelschlich unter sie - und bekaeme ein Jahr mehr, das er nicht hat.
+        """
+        _fakturen(con, [
+            ("1", "0000000100", "2025-03-01", 900_000.0, "F2", "", "EUR"),
+            ("2", "0000000100", "2025-03-02", 100.0, "F2", "", "EUR"),
+            ("3", "0000000100", "2025-03-03", 5000.0, "G2", "", "EUR"),
+        ])
+        sicht = ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+        # Gutschrift und Kleinbetrag sind aus dem Pruefumfang heraus ...
+        assert sicht.belege_im_umfang == 1
+        # ... zaehlen aber weiter zum Umsatz.
+        assert jahresumsatz_je_buchungskreis(con, 1.0) == {"1000": 905_100.0}
+
+    def test_stornierte_belege_zaehlen_nicht_zum_umsatz(self, con):
+        _fakturen(con, [
+            ("1", "0000000100", "2025-03-01", 5000.0, "F2", "", "EUR"),
+            ("2", "0000000100", "2025-03-02", 9000.0, "F2", "X", "EUR"),
+        ])
+        ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+        assert jahresumsatz_je_buchungskreis(con, 1.0) == {"1000": 5000.0}
+
+    def test_je_buchungskreis_getrennt(self, con):
+        _fakturen(con, [("1", "0000000100", "2025-03-01", 5000.0, "F2", "", "EUR")])
+        con.execute(
+            "INSERT INTO VBRK VALUES ('100', '2000', '2', '0000000200', "
+            "DATE '2025-03-02', 7000, 'F2', '', 'EUR')"
+        )
+        ermittle_belegsicht(con, EInvoiceConfig(), ["VBRK"])
+        assert jahresumsatz_je_buchungskreis(con, 1.0) == {
+            "1000": 5000.0, "2000": 7000.0
+        }
 
 
 class TestAusnahmenInDerAmpel:

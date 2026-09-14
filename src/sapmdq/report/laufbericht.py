@@ -389,6 +389,9 @@ def _erechnung(con: duckdb.DuckDBPyConnection, result: RunResult) -> dict[str, A
         "schwelle": einvoice.ampel_schwelle,
         "volumen_schwelle": einvoice.volumen_schwelle,
         "inland": list(einvoice.inland),
+        # Die Umsatzschwelle der Fristenzuordnung. Sie steht im Blatt neben
+        # den Fristen, damit der Leser den Maßstab sieht und nicht raten muss.
+        "umsatzschwelle": einvoice.revenue_threshold,
     }
 
 

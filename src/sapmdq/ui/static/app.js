@@ -762,6 +762,7 @@ function zeigeErechnung() {
         "Es liegen keine Belege vor. Die Zahlen sagen, wieviele Geschäftspartner betroffen sind - nicht, wieviel Umsatz. Wenige sehr aktive Kunden können das Bild in beide Richtungen verschieben.",
       ];
   setzen($("#er-grenzen"), grenzen.concat([
+    "Der Umsatz, an dem die Frist hängt, ist der Fakturaumsatz aus den gelieferten Belegen - nicht der Gesamtumsatz im Sinne des Gesetzes. Umsätze, die nicht als Kundenrechnung im System stehen, fehlen darin.",
     "Fertige XRechnung- oder ZUGFeRD-Dateien werden nicht validiert. Dafür gibt es den KoSIT-Validator.",
     "Die Abgrenzung bildet gesetzliche Tatbestände ab und ersetzt keine Einzelfallwürdigung. Das Ergebnis ist eine Indikation.",
   ]).map((satz) => el("li", { text: satz })));
@@ -799,7 +800,7 @@ function fristKarten(daten) {
     ])]);
     return;
   }
-  setzen($("#er-frist"), [el("div", { class: "fristkarten" }, fristen.map((frist) =>
+  const karten = el("div", { class: "fristkarten" }, fristen.map((frist) =>
     kachel(
       frist.buchungskreis + (frist.name ? " - " + frist.name : ""),
       frist.bestimmt ? frist.stichtag : t("unbestimmt"),
@@ -812,7 +813,26 @@ function fristKarten(daten) {
             { umsatz: betrag(frist.umsatz) })
         : t("Vorjahresumsatz nicht hinterlegt - ohne ihn bleibt der Stichtag offen"),
       frist.bestimmt ? "warnung" : ""
-    )))]);
+    )));
+
+  // Die Schwelle gilt je Unternehmer, nicht je Buchungskreis. Solange beide
+  // zusammenfallen - der Regelfall - stimmt die Zuordnung; sonst nicht, und
+  // dann in die gefährliche Richtung. Der Hinweis steht deshalb immer da,
+  // nicht nur dann, wenn das Werkzeug etwas ahnt: aus den Stammdaten allein
+  // ist die gesellschaftsrechtliche Zuordnung nicht erkennbar.
+  const hinweise = [el("div", { class: "meldung hinweis" }, [
+    t("Die Schwelle von {schwelle} gilt für den Gesamtumsatz des Unternehmers "
+      + "im Vorjahr, nicht je Buchungskreis. Gehören mehrere Buchungskreise zu "
+      + "einer Gesellschaft oder besteht eine Organschaft, sind die Umsätze "
+      + "zusammenzuziehen - die Zuordnung unten wäre dann zu günstig. "
+      + "Die verbindliche Zahl gehört in die Konfiguration.",
+      { schwelle: betrag(daten.umsatzschwelle) })]),
+  ];
+  const belegsicht = daten.belegsicht || {};
+  if (belegsicht.fi_uebergangen) {
+    hinweise.push(el("div", { class: "meldung warnung" }, [belegsicht.fi_uebergangen]));
+  }
+  setzen($("#er-frist"), [karten].concat(hinweise));
 }
 
 function abgrenzungTrichter(abgrenzung) {

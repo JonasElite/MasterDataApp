@@ -1098,6 +1098,12 @@ tables:
       WAERS: {aliases: ["Waehrung", "Belegwaehrung"]}
       XBLNR: {aliases: [Referenz, Referenzbelegnummer]}
       STBLG: {alpha: 10, aliases: [Stornobeleg]}
+      # Herkunft des Belegs. Ein aus einer Faktura erzeugter FI-Beleg traegt
+      # AWTYP = 'VBRK'; daran laesst er sich erkennen und von den direkt in
+      # FI erfassten Rechnungen trennen. Ohne das Feld zaehlte derselbe
+      # Umsatz zweimal, sobald VBRK und BKPF zusammen geliefert werden.
+      AWTYP: {aliases: [Referenzvorgang, "Vorgangsart", Herkunft]}
+      AWKEY: {aliases: [Objektschluessel, "Referenzschluessel"]}
 
   BSEG:
     description: Buchhaltungsbeleg - Segment

@@ -342,9 +342,7 @@ def _erechnung_auswerten(con: duckdb.DuckDBPyConnection, result: RunResult, cata
 
     result.belegsicht = ermittle_belegsicht(con, einvoice, tabellen)
     umsaetze = (
-        jahresumsatz_je_buchungskreis(
-            con, tabellen, result.belegsicht.hochrechnungsfaktor
-        )
+        jahresumsatz_je_buchungskreis(con, result.belegsicht.hochrechnungsfaktor)
         if result.belegsicht.ermittelt
         else {}
     )

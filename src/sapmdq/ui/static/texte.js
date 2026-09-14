@@ -904,6 +904,12 @@ const EN = {
   "Beleg": "Document",
   "Belegposition": "Document line",
   "Steuerkennzeichen": "Tax code",
+  "Der Umsatz, an dem die Frist hängt, ist der Fakturaumsatz aus den gelieferten Belegen - nicht der Gesamtumsatz im Sinne des Gesetzes. Umsätze, die nicht als Kundenrechnung im System stehen, fehlen darin.":
+    "The turnover the deadline depends on is the billed turnover from the delivered documents - not the total turnover as the law defines it. Turnover that does not appear as a customer invoice in the system is missing from it.",
+  "Buchhaltungsbelege wurden geliefert, aber nicht herangezogen: ohne das Feld BKPF-AWTYP lassen sich die aus Fakturen erzeugten Belege nicht von den direkt in FI erfassten trennen, und der Umsatz zählte doppelt. Mit AWTYP in der Lieferung fließen sie ein.":
+    "Accounting documents were delivered but not used: without the field BKPF-AWTYP the documents created from billing documents cannot be told apart from those entered directly in FI, and the turnover would be counted twice. With AWTYP in the delivery they are included.",
+  "Die Schwelle von {schwelle} gilt für den Gesamtumsatz des Unternehmers im Vorjahr, nicht je Buchungskreis. Gehören mehrere Buchungskreise zu einer Gesellschaft oder besteht eine Organschaft, sind die Umsätze zusammenzuziehen - die Zuordnung unten wäre dann zu günstig. Die verbindliche Zahl gehört in die Konfiguration.":
+    "The threshold of {schwelle} applies to the issuer's total turnover in the previous year, not per company code. Where several company codes belong to one legal entity, or a tax group exists, their turnover has to be combined - the assignment below would then be too generous. The binding figure belongs in the configuration.",
 
   // ---------------------------------------------------- Bedeutung der Tabellen
   // Die Kurztexte des Data Dictionary aus ``sap/tables.yaml``. SAP liefert sie
