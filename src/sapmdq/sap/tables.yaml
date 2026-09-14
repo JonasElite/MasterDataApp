@@ -1081,6 +1081,11 @@ tables:
       WAERK: {aliases: ["Belegwaehrung"]}
       MATKL: {aliases: [Warengruppe]}
       WERKS: {aliases: [Werk]}
+      # Der Vorgaengerbeleg der Position. Bei einer mit Bezug angelegten
+      # Gutschrift steht hier der Beleg, auf den sie sich bezieht - und
+      # nicht in VBRK-SFAKN, das allein die Stornierung traegt.
+      VGBEL: {alpha: 10, aliases: [Vorgaengerbeleg, Referenzbeleg, "Bezug"]}
+      VGTYP: {aliases: ["Vorgaengerbelegtyp", "Belegtyp des Vorgaengers"]}
 
   BKPF:
     description: Buchhaltungsbeleg - Kopf

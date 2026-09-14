@@ -57,11 +57,13 @@ rules:
     name: Anschrift des Rechnungsstellers unvollständig
     description: >
       Die Norm verlangt die vollständige Anschrift des Rechnungsstellers
-      einschließlich Ländercode. Fehlt sie in der zugeordneten Adresse, ist
-      die Rechnung formal unvollständig.
+      einschließlich Ländercode. Fehlt sie, ist die Rechnung formal
+      unvollständig. Gemeldet wird auch der Buchungskreis, dem überhaupt
+      keine Adresse zugeordnet ist - das ist der schwerste Fall und nicht
+      etwa keiner.
     category: completeness
     severity: critical
-    version: "1.0.0"
+    version: "1.1.0"
     object_area: einvoice
     object_type: Buchungskreis
     key_columns: [BUKRS]
@@ -75,24 +77,31 @@ rules:
     params: {}
     remediation: Adresse des Buchungskreises vervollständigen.
     sql: |
+      -- Der Join laeuft ueber ADRNR. Ein Buchungskreis ohne Adressnummer
+      -- faellt dabei nicht heraus: der LEFT JOIN liefert eine leere
+      -- Adresszeile, und die WHERE-Bedingung greift ueber a.ADDRNUMBER IS
+      -- NULL. Frueher stand hier zusaetzlich "AND t.ADRNR IS NOT NULL" -
+      -- damit blieb ausgerechnet der schwerste Fall unbemerkt.
       SELECT
           t.MANDT, t.BUKRS, t.BUTXT,
           concat_ws(', ',
-              CASE WHEN a.ADDRNUMBER IS NULL THEN 'Adresse nicht zugeordnet' END,
-              CASE WHEN a.STREET IS NULL OR is_placeholder_text(a.STREET) THEN 'Straße fehlt' END,
-              CASE WHEN a.POST_CODE1 IS NULL OR is_placeholder_text(a.POST_CODE1) THEN 'Postleitzahl fehlt' END,
-              CASE WHEN a.CITY1 IS NULL OR is_placeholder_text(a.CITY1) THEN 'Ort fehlt' END,
-              CASE WHEN a.COUNTRY IS NULL OR is_placeholder_text(a.COUNTRY) THEN 'Land fehlt' END
+              CASE WHEN t.ADRNR IS NULL OR trim(t.ADRNR) = ''
+                   THEN 'Keine Adresse zugeordnet' END,
+              CASE WHEN t.ADRNR IS NOT NULL AND trim(t.ADRNR) <> '' AND a.ADDRNUMBER IS NULL
+                   THEN 'Adressnummer zeigt ins Leere' END,
+              CASE WHEN a.ADDRNUMBER IS NOT NULL AND (a.STREET IS NULL OR is_placeholder_text(a.STREET)) THEN 'Straße fehlt' END,
+              CASE WHEN a.ADDRNUMBER IS NOT NULL AND (a.POST_CODE1 IS NULL OR is_placeholder_text(a.POST_CODE1)) THEN 'Postleitzahl fehlt' END,
+              CASE WHEN a.ADDRNUMBER IS NOT NULL AND (a.CITY1 IS NULL OR is_placeholder_text(a.CITY1)) THEN 'Ort fehlt' END,
+              CASE WHEN a.ADDRNUMBER IS NOT NULL AND (a.COUNTRY IS NULL OR is_placeholder_text(a.COUNTRY)) THEN 'Land fehlt' END
           ) AS befund
       FROM T001 t
       LEFT JOIN (SELECT DISTINCT ADDRNUMBER, STREET, POST_CODE1, CITY1, COUNTRY FROM ADRC) a
              ON t.ADRNR = a.ADDRNUMBER
-      WHERE t.ADRNR IS NOT NULL
-        AND (a.ADDRNUMBER IS NULL
-             OR a.STREET IS NULL OR is_placeholder_text(a.STREET)
-             OR a.POST_CODE1 IS NULL OR is_placeholder_text(a.POST_CODE1)
-             OR a.CITY1 IS NULL OR is_placeholder_text(a.CITY1)
-             OR a.COUNTRY IS NULL OR is_placeholder_text(a.COUNTRY))
+      WHERE a.ADDRNUMBER IS NULL
+         OR a.STREET IS NULL OR is_placeholder_text(a.STREET)
+         OR a.POST_CODE1 IS NULL OR is_placeholder_text(a.POST_CODE1)
+         OR a.CITY1 IS NULL OR is_placeholder_text(a.CITY1)
+         OR a.COUNTRY IS NULL OR is_placeholder_text(a.COUNTRY)
 
   # ================================================= Gruppe B - Empfänger
   - id: ERE-COMP-003
@@ -302,11 +311,15 @@ rules:
     name: Empfänger ohne Zahlungsbedingung im Buchungskreis
     description: >
       Ohne Zahlungsbedingung lässt sich kein Fälligkeitsdatum ableiten. Die
-      Norm verlangt es als Pflichtangabe; im Papierprozess wurde es bisher
-      oft erst beim Mahnen bemerkt.
+      Norm zwingt hier nicht: sie verlangt bei positivem Zahlbetrag
+      entweder ein Fälligkeitsdatum oder die Zahlungsbedingungen als Text,
+      und ein Text lässt sich immer erzeugen. Ohne gepflegte Bedingung
+      bleibt aber nur der Text - für jede Rechnung, ohne maschinell
+      auswertbares Datum, und im Papierprozess fiel das erst beim Mahnen
+      auf. Ein Hindernis ist es nicht, eine Altlast schon.
     category: completeness
-    severity: critical
-    version: "1.0.0"
+    severity: high
+    version: "1.1.0"
     object_area: einvoice
     object_type: Debitor
     key_columns: [KUNNR, BUKRS]
@@ -339,13 +352,16 @@ rules:
   - id: ERE-REF-002
     name: Zahlungsbedingung ohne ableitbares Fälligkeitsdatum
     description: >
-      Aus der Zahlungsbedingung muss sich ein konkretes Datum ergeben. Eine
-      Bedingung ohne Tagesangabe und ohne Fälligkeitsmonat ist nur als
-      Freitext abbildbar - und Freitext ist im strukturierten Teil der
-      Rechnung nicht vorgesehen.
+      Eine Bedingung ohne Tagesangabe und ohne Fälligkeitsmonat lässt kein
+      Datum zu; sie ist nur als Text abbildbar. Die Norm lässt das zu - bei
+      positivem Zahlbetrag genügt entweder das Fälligkeitsdatum oder die
+      Zahlungsbedingungen als Text. Die Rechnung geht also durch. Nur trägt
+      sie dann eine Zahlungsfrist, die der Empfänger lesen, aber sein System
+      nicht verarbeiten kann: keine automatische Fälligkeitsüberwachung,
+      keine Skontoprüfung, und bei Streit kein strukturierter Nachweis.
     category: referential
-    severity: critical
-    version: "1.0.0"
+    severity: high
+    version: "1.1.0"
     object_area: einvoice
     object_type: Zahlungsbedingung
     key_columns: [ZTERM]
@@ -359,7 +375,10 @@ rules:
     params: {}
     remediation: >
       Tagesangabe oder Fälligkeitsmonat in der Zahlungsbedingung hinterlegen
-      (Transaktion OBB8).
+      (Transaktion OBB8). Wo das fachlich nicht geht - etwa bei
+      Ratenzahlung nach Vereinbarung - festlegen, welcher Text in die
+      Rechnung geht, und die Entscheidung im Umstellungskonzept
+      dokumentieren.
     sql: |
       SELECT
           t.MANDT, t.ZTERM,

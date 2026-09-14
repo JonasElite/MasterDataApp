@@ -799,8 +799,9 @@ rules:
     name: Seller address incomplete
     description: >
       The standard requires the seller's complete address including the country
-      code. If it is missing from the assigned address, the invoice is formally
-      incomplete.
+      code. If it is missing, the invoice is formally incomplete. A company code
+      with no address assigned at all is reported too - that is the worst case,
+      not an absent one.
     remediation: Complete the address of the company code.
   ERE-COMP-003:
     name: Buyer without VAT registration number and without tax number
@@ -849,19 +850,28 @@ rules:
   ERE-COMP-006:
     name: Buyer without payment terms in the company code
     description: >
-      Without payment terms no due date can be derived. The standard requires
-      it as a mandatory entry; in the paper process it often only surfaced at
-      the dunning stage.
+      Without payment terms no due date can be derived. The standard does not
+      force the issue here: where the amount due is positive it asks for either
+      a due date or the payment terms as text, and text can always be produced.
+      But without maintained terms only that text remains - for every invoice,
+      with no machine-readable date, and in the paper process it surfaced only
+      at the dunning stage. Not an obstacle, but a legacy worth clearing.
     remediation: Maintain the payment terms in the company code data.
   ERE-REF-002:
     name: Payment terms with no derivable due date
     description: >
-      The payment terms must yield a concrete date. Terms without a day figure
-      and without a due month can only be expressed as free text - and free
-      text has no place in the structured part of the invoice.
+      Terms without a day figure and without a due month yield no date; they can
+      only be expressed as text. The standard allows that - where the amount due
+      is positive, either the due date (BT-9) or the payment terms as text
+      (BT-20) will do. So the invoice goes out. It then carries a payment term
+      the recipient can read but their system cannot process: no automatic due
+      date monitoring, no discount check, and no structured evidence in a
+      dispute.
     remediation: >
       Store a day figure or a due month in the payment terms (transaction
-      OBB8).
+      OBB8). Where that is not possible in business terms - instalments by
+      agreement, say - decide which text goes into the invoice and record the
+      decision in the migration concept.
   ERE-CONS-001:
     name: Multi-level discount schedule
     description: >
@@ -888,10 +898,11 @@ rules:
   ERE-COMP-007:
     name: Tax exemption without a structured exemption reason
     description: >
-      At a tax rate of zero the standard requires a structured exemption
-      reason. A note in the form text is not enough - it sits in the
-      human-readable part, and the structured part is the legally binding
-      one.
+      Where a supply is exempted or the tax liability is shifted, the standard
+      requires a structured exemption reason. A note in the form text is not
+      enough - it sits in the human-readable part, and the structured part is
+      the legally binding one. Zero rating is excluded: the standard provides
+      no reason for it.
     remediation: >
       Record an exemption reason per code, agreed with the tax department.
   ERE-CONS-002:
@@ -934,12 +945,21 @@ rules:
   ERE-CONS-004:
     name: Credit note without a reference to the original document
     description: >
-      An invoice correction must be identifiable as such and name the
-      original document. Without that reference the correction cannot be
-      matched in the receiving system and is left unprocessed.
+      An invoice correction must be identifiable as such and name the original
+      document. Without that reference the correction cannot be matched in the
+      receiving system and is left unprocessed.
+
+      Depending on the transaction the reference sits in one of two places: a
+      cancellation document carries it in the header (VBRK-SFAKN), whereas a
+      credit note created with reference carries it in the item (VBRP-VGBEL).
+      Only documents where both are missing are reported - where no preceding
+      document can be found at all. That is deliberately the cautious reading:
+      which path applies depends on the customer's copy control, and a false
+      alarm on a genuine credit note costs more than a missed single case.
     remediation: >
-      Add the reference to the original document in the billing document;
-      going forward, enforce it through the copy control.
+      Add the reference to the original document - in the header or through
+      the item, depending on the transaction; going forward, enforce it
+      through the copy control.
   ERE-COMP-009:
     name: Line without a description
     description: >

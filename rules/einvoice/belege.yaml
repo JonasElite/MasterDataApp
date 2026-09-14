@@ -64,13 +64,14 @@ rules:
   - id: ERE-COMP-007
     name: Steuerbefreiung ohne strukturierten Befreiungsgrund
     description: >
-      Bei einem Steuersatz von null verlangt die Norm einen strukturierten
-      Befreiungsgrund. Ein Hinweis im Formulartext genügt nicht - er steht
-      im menschenlesbaren Teil, und rechtlich verbindlich ist der
-      strukturierte.
+      Wo ein Umsatz steuerfrei gestellt oder die Steuerschuld verlagert
+      wird, verlangt die Norm einen strukturierten Befreiungsgrund. Ein
+      Hinweis im Formulartext genügt nicht - er steht im menschenlesbaren
+      Teil, und rechtlich verbindlich ist der strukturierte. Der Nullsatz
+      ist ausgenommen: für ihn sieht die Norm keinen Grund vor.
     category: completeness
     severity: critical
-    version: "1.0.0"
+    version: "1.1.0"
     object_area: einvoice
     object_type: Steuerkennzeichen
     key_columns: [MWSKZ]
@@ -80,10 +81,15 @@ rules:
       fields:
         STEUERZUORDNUNG: [MWSKZ, KATEGORIE, SATZ, BEFREIUNGSGRUND]
     params:
-      # Kategorien, die ohne Steuer auskommen und deshalb einen Grund
-      # brauchen: Z = Nullsatz, E = befreit, AE = Reverse Charge,
-      # K = innergemeinschaftliche Lieferung, G = Ausfuhr, O = nicht steuerbar.
-      begruendungspflichtig: [Z, E, AE, K, G, O]
+      # E = befreit, AE = Reverse Charge, K = innergemeinschaftliche
+      # Lieferung, G = Ausfuhr, O = nicht steuerbar.
+      #
+      # Der Nullsatz Z gehoert ausdruecklich NICHT dazu. Er stand hier
+      # einmal, weil "ohne Steuer" nach "braucht eine Begruendung" klingt -
+      # die Norm sieht fuer Z aber keinen Befreiungsgrund vor. Wer ihn
+      # trotzdem pflegt, riskiert, dass das Empfangssystem den Beleg
+      # zurueckweist. Nichts eintragen ist hier richtig.
+      begruendungspflichtig: [E, AE, K, G, O]
     remediation: >
       Befreiungsgrund je Kennzeichen hinterlegen, abgestimmt mit dem
       Steuerreferat.
@@ -268,28 +274,56 @@ rules:
       Eine Rechnungskorrektur muss als solche erkennbar sein und den
       Ursprungsbeleg nennen. Ohne den Bezug ist die Korrektur im
       Empfangssystem nicht zuordenbar und bleibt liegen.
+
+      Der Bezug steht je nach Vorgang an zwei verschiedenen Stellen:
+      eine Stornofaktura trägt ihn im Kopf (VBRK-SFAKN), eine mit Bezug
+      angelegte Gutschrift dagegen in der Position (VBRP-VGBEL). Gemeldet
+      wird nur, wo beides fehlt - wo also überhaupt kein Vorgängerbeleg
+      auffindbar ist. Das ist bewusst die vorsichtige Auslegung: welcher
+      Weg im Haus des Kunden gilt, hängt an seiner Kopiersteuerung, und
+      eine Falschmeldung auf einer echten Gutschrift kostet mehr als ein
+      übersehener Einzelfall.
     category: consistency
     severity: high
-    version: "1.0.0"
+    version: "1.1.0"
     object_area: einvoice
     object_type: Beleg
     key_columns: [VBELN]
     client_column: MANDT
     requirement: "EN 16931 BT-25, BT-26 (E-08)"
     requires:
-      tables: [VBRK]
+      tables: [VBRK, VBRP]
       fields:
         VBRK: [MANDT, VBELN, FKART, SFAKN]
+        VBRP: [MANDT, VBELN, VGBEL, VGTYP]
     params:
+      # Fakturaarten, die eine Korrektur darstellen. Kundenspezifisch -
+      # eigene Arten gehoeren vor dem Lauf hier hinein, sonst bleibt die
+      # Regel stumm.
       gutschriftsarten: [G2, S1, S2, RE]
     remediation: >
-      Bezug zum Ursprungsbeleg im Fakturabeleg nachtragen; künftig über die
-      Kopierbedingungen erzwingen.
+      Bezug zum Ursprungsbeleg nachtragen - je nach Vorgang im Kopf oder
+      über die Position; künftig über die Kopiersteuerung erzwingen.
     sql: |
-      SELECT MANDT, VBELN, FKART
-      FROM VBRK
-      WHERE FKART IN ${gutschriftsarten}
-        AND (SFAKN IS NULL OR trim(SFAKN) = '')
+      -- Zwei Wege zum Vorgaengerbeleg, und es genuegt einer. Frueher stand
+      -- hier allein VBRK-SFAKN: das ist die Nummer der STORNIERTEN Faktura
+      -- und nicht der Bezug einer Gutschrift. Jede mit Bezug angelegte
+      -- Gutschrift wurde damit faelschlich gemeldet.
+      SELECT
+          k.MANDT, k.VBELN, k.FKART,
+          CASE WHEN p.VBELN IS NULL THEN 'keine Position geliefert'
+               ELSE 'weder Stornobezug im Kopf noch Vorgänger in der Position'
+          END AS befund
+      FROM VBRK k
+      LEFT JOIN (
+          SELECT MANDT, VBELN, max(VGTYP) AS VGTYP
+          FROM VBRP
+          WHERE VGBEL IS NOT NULL AND trim(VGBEL) <> ''
+          GROUP BY MANDT, VBELN
+      ) p ON k.MANDT = p.MANDT AND k.VBELN = p.VBELN
+      WHERE k.FKART IN ${gutschriftsarten}
+        AND (k.SFAKN IS NULL OR trim(k.SFAKN) = '')
+        AND p.VBELN IS NULL
 
   - id: ERE-COMP-009
     name: Position ohne Bezeichnung

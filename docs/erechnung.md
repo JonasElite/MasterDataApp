@@ -109,6 +109,39 @@ Vier weitere Ausschlüsse, wieder beziffert und nacheinander gebildet:
 Reverse Charge (`AE`) und Nullsatz (`Z`) sind **nicht** ausgeschlossen: sie
 sind steuerfrei, aber weiter ausstellungspflichtig.
 
+## Was die Regeln bewusst nicht verlangen
+
+Drei Stellen, an denen die Norm weniger fordert, als es auf den ersten Blick
+scheint. Sie stehen hier, weil der umgekehrte Fehler teuer ist: wer dem
+Kunden eine Pflicht nennt, die es nicht gibt, verliert das Gespräch.
+
+* **Das Fälligkeitsdatum ist nicht zwingend.** Bei positivem Zahlbetrag
+  genügt entweder das Datum (BT-9) **oder** die Zahlungsbedingungen als Text
+  (BT-20). `ERE-REF-002` und `ERE-COMP-006` melden deshalb `high` und nicht
+  `critical`: ohne ableitbares Datum geht die Rechnung durch, sie trägt dann
+  aber eine Frist, die der Empfänger lesen, sein System aber nicht
+  verarbeiten kann.
+* **Der Nullsatz braucht keinen Befreiungsgrund.** Einen strukturierten Grund
+  verlangen die Kategorien `E`, `AE`, `K`, `G` und `O`. Für `Z` sieht die
+  Norm keinen vor - er stand einmal im Parameter von `ERE-COMP-007` und ist
+  entfernt worden.
+* **Die USt-IdNr. des Empfängers ist bedingt.** BT-48 wird bei Reverse Charge
+  und innergemeinschaftlicher Lieferung gebraucht; für die gewöhnliche
+  inländische Rechnung verlangt § 14 Abs. 4 UStG Name und Anschrift.
+  `ERE-COMP-003` steht weiter auf `critical` - als Readiness-Indikator ist
+  der Punkt richtig, die Einstufung ist aber eine fachliche Setzung und keine
+  Ableitung aus dem Gesetz.
+
+### Wo der Bezug einer Gutschrift steht
+
+`VBRK-SFAKN` trägt die Nummer der **stornierten** Faktura und nicht den
+Bezug einer Gutschrift; eine mit Bezug angelegte Gutschrift führt ihn in der
+Position (`VBRP-VGBEL`). `ERE-CONS-004` prüft beide Wege und meldet nur, wo
+keiner greift. Welcher Weg im Haus des Kunden gilt, hängt an seiner
+Kopiersteuerung - die vorsichtige Auslegung ist hier die richtige, weil eine
+Falschmeldung auf einer echten Gutschrift mehr kostet als ein übersehener
+Einzelfall.
+
 ### Betrachtungszeitraum und Hochrechnung
 
 Der Zeitraum ergibt sich aus den gelieferten Belegen. Ist er kürzer als

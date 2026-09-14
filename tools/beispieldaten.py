@@ -276,6 +276,12 @@ def fakturen(rng, mandant: str, kna1: list[dict], heute, defekte: list[str],
                 "NETWR": position["NETWR"], "MWSBP": position["MWSBP"],
                 "MWSKZ": position.get("MWSKZ", "A1"),
                 "WAERK": "EUR", "MATKL": "001", "WERKS": "1000",
+                # Der Vorgaengerbeleg der Position. Bei einer Rechnung die
+                # Lieferung, bei einer mit Bezug angelegten Gutschrift die
+                # Ursprungsfaktura - dort, und nicht in VBRK-SFAKN, steht
+                # der Bezug, den ERE-CONS-004 sucht.
+                "VGBEL": position.get("VGBEL", f"8{vbeln}"),
+                "VGTYP": position.get("VGTYP", "J"),
             })
         return satz
 
@@ -335,10 +341,25 @@ def fakturen(rng, mandant: str, kna1: list[dict], heute, defekte: list[str],
         "ergeben | betroffen: " + ", ".join(b["VBELN"] for b in schief)
     )
 
-    gutschriften = [beleg(k, [position(-450)], FKART="G2") for k in maengelkunden(2)]
+    # Ohne Vorgaenger in der Position und ohne Stornobezug im Kopf: der
+    # Beleg nennt seinen Ursprung nirgends.
+    gutschriften = [
+        beleg(k, [position(-450, VGBEL="", VGTYP="")], FKART="G2")
+        for k in maengelkunden(2)
+    ]
     defekte.append(
         "ERE-CONS-004: 2 Gutschriften ohne Bezug zum Ursprungsbeleg | "
         "betroffen: " + ", ".join(b["VBELN"] for b in gutschriften)
+    )
+
+    # Und eine Gutschrift, die NICHT gemeldet werden darf: sie traegt ihren
+    # Bezug in der Position. Bis die Regel beide Wege kannte, meldete sie
+    # auch diese - sie prueft jetzt VBRP-VGBEL und nicht mehr allein das
+    # Stornofeld VBRK-SFAKN.
+    sauber = beleg(maengelkunden(1)[0], [position(-300)], FKART="G2")
+    defekte.append(
+        "ERE-CONS-004 (Gegenprobe): 1 Gutschrift MIT Bezug in der Position, "
+        "die nicht gemeldet werden darf | betroffen: " + sauber["VBELN"]
     )
 
     ohne_text = [beleg(k, [position(700, ARKTX=""), position(800)])

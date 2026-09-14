@@ -909,3 +909,171 @@ class TestAmpelImGanzenLauf:
             if regel["pruefbar"] and regel["befunde"] and regel["quote"] is None
         ]
         assert not ohne, f"Regeln ohne Bezugsgröße: {ohne}"
+
+
+# ---------------------------------------------------- Rechtliche Nachprüfung
+#
+# Vier Regeln waren rechtlich falsch gesetzt: eine uebersah den schwersten
+# Fall, zwei verlangten mehr als die Norm, eine prüfte das falsche Feld. Die
+# Tests laufen gegen das ausgelieferte SQL des Katalogs, nicht gegen eine
+# Nachbildung - sonst belegten sie nur, dass die Nachbildung stimmt.
+
+
+def _regel(kennung: str):
+    from pathlib import Path
+
+    from sapmdq.rules.catalog import load_catalog
+
+    wurzel = Path(__file__).resolve().parents[1]
+    katalog = load_catalog([wurzel / "rules"])
+    return {regel.id: regel for regel in katalog.rules}[kennung]
+
+
+def _ausfuehren(con, kennung: str):
+    """Führt das SQL einer Katalogregel aus, wie der Lauf es täte."""
+    from sapmdq.rules.model import render_params
+    from sapmdq.rules.udf import register_udfs
+
+    regel = _regel(kennung)
+    register_udfs(con)
+    return con.execute(render_params(regel.sql, regel.params, regel.id)).fetchall()
+
+
+class TestAnschriftDesRechnungsstellers:
+    """ERE-COMP-002 - der Buchungskreis ohne jede Adresse."""
+
+    def _stammdaten(self, con):
+        con.execute(
+            "CREATE OR REPLACE TABLE T001 AS SELECT * FROM (VALUES "
+            "('100','1000','Vollstaendig','DE','0001'),"
+            "('100','2000','Ohne Adressnummer','DE',NULL),"
+            "('100','3000','Nummer zeigt ins Leere','DE','9999'),"
+            "('100','4000','Ort fehlt','DE','0002')) "
+            "AS t(MANDT,BUKRS,BUTXT,LAND1,ADRNR)"
+        )
+        con.execute(
+            "CREATE OR REPLACE TABLE ADRC AS SELECT * FROM (VALUES "
+            "('0001','Hauptstr 1','10115','Berlin','DE'),"
+            "('0002','Nebenstr 2','20095',NULL,'DE')) "
+            "AS t(ADDRNUMBER,STREET,POST_CODE1,CITY1,COUNTRY)"
+        )
+
+    def test_ohne_adressnummer_wird_gemeldet(self, con):
+        """Der schwerste Fall, und genau der fiel vorher heraus.
+
+        Die Abfrage endete auf ``AND t.ADRNR IS NOT NULL``. Ein
+        Buchungskreis ohne Adresse kann keine normkonforme Rechnung
+        erzeugen - und bekam gruenes Licht.
+        """
+        self._stammdaten(con)
+        gemeldet = {zeile[1]: zeile[3] for zeile in _ausfuehren(con, "ERE-COMP-002")}
+        assert "2000" in gemeldet
+        assert "Keine Adresse" in gemeldet["2000"]
+
+    def test_die_uebrigen_faelle_bleiben_wie_sie_waren(self, con):
+        self._stammdaten(con)
+        gemeldet = {zeile[1]: zeile[3] for zeile in _ausfuehren(con, "ERE-COMP-002")}
+        assert "1000" not in gemeldet, "vollstaendige Anschrift ist kein Befund"
+        assert "ins Leere" in gemeldet["3000"]
+        assert gemeldet["4000"] == "Ort fehlt"
+
+
+class TestBefreiungsgrund:
+    """ERE-COMP-007 - der Nullsatz braucht keinen."""
+
+    def test_der_nullsatz_verlangt_keinen_grund(self, con):
+        """Die Norm sieht fuer Z keinen Befreiungsgrund vor.
+
+        Wer ihn auf unsere Empfehlung hin pflegt, riskiert, dass das
+        Empfangssystem den Beleg zurueckweist.
+        """
+        con.execute(
+            "CREATE OR REPLACE TABLE STEUERZUORDNUNG AS SELECT * FROM (VALUES "
+            "('A0','Z',0.0,NULL),"
+            "('AE','AE',0.0,NULL),"
+            "('A4','E',0.0,NULL),"
+            "('A5','E',0.0,'Steuerfrei nach § 4 Nr. 21 UStG')) "
+            "AS t(MWSKZ,KATEGORIE,SATZ,BEFREIUNGSGRUND)"
+        )
+        gemeldet = {zeile[0] for zeile in _ausfuehren(con, "ERE-COMP-007")}
+        assert "A0" not in gemeldet, "Kategorie Z verlangt keinen Befreiungsgrund"
+        assert gemeldet == {"AE", "A4"}
+
+    def test_die_kategorie_steht_nicht_mehr_im_parameter(self):
+        regel = _regel("ERE-COMP-007")
+        assert "Z" not in regel.params["begruendungspflichtig"]
+        assert set(regel.params["begruendungspflichtig"]) == {"E", "AE", "K", "G", "O"}
+
+
+class TestGutschriftsbezug:
+    """ERE-CONS-004 - der Bezug steht an zwei Stellen."""
+
+    def _belege(self, con, koepfe, positionen):
+        # Der Typ muss stehen: bestuende eine Spalte nur aus NULL, machte
+        # DuckDB daraus INTEGER, und trim() fiele ueber den Typ statt ueber
+        # den Inhalt. Aus der Ingestion kommen die Felder als VARCHAR.
+        werte = ", ".join(
+            f"('100','{nr}','{art}',"
+            + (f"'{storno}'" if storno else "CAST(NULL AS VARCHAR)") + ")"
+            for nr, art, storno in koepfe
+        )
+        con.execute(
+            f"CREATE OR REPLACE TABLE VBRK AS SELECT * FROM (VALUES {werte}) "
+            "AS t(MANDT,VBELN,FKART,SFAKN)"
+        )
+        zeilen = ", ".join(
+            f"('100','{nr}','000010',"
+            + (f"'{vorgaenger}','M'" if vorgaenger
+               else "CAST(NULL AS VARCHAR),CAST(NULL AS VARCHAR)") + ")"
+            for nr, vorgaenger in positionen
+        )
+        con.execute(
+            f"CREATE OR REPLACE TABLE VBRP AS SELECT * FROM (VALUES {zeilen}) "
+            "AS t(MANDT,VBELN,POSNR,VGBEL,VGTYP)"
+        )
+
+    def test_die_gutschrift_mit_vorgaenger_ist_kein_befund(self, con):
+        """Der haeufigste Fall - und vorher ein systematischer Fehlalarm.
+
+        Geprueft wurde allein VBRK-SFAKN: das traegt die Nummer der
+        stornierten Faktura und bleibt bei einer Gutschrift leer.
+        """
+        self._belege(con, [("90001", "G2", None)], [("90001", "80001")])
+        assert _ausfuehren(con, "ERE-CONS-004") == []
+
+    def test_die_stornofaktura_mit_kopfbezug_ist_kein_befund(self, con):
+        self._belege(con, [("90002", "S1", "80002")], [("90002", None)])
+        assert _ausfuehren(con, "ERE-CONS-004") == []
+
+    def test_ohne_jeden_bezug_wird_gemeldet(self, con):
+        self._belege(con, [("90003", "G2", None)], [("90003", None)])
+        gemeldet = _ausfuehren(con, "ERE-CONS-004")
+        assert [zeile[1] for zeile in gemeldet] == ["90003"]
+
+    def test_die_gewoehnliche_rechnung_bleibt_aussen_vor(self, con):
+        self._belege(con, [("90004", "F2", None)], [("90004", None)])
+        assert _ausfuehren(con, "ERE-CONS-004") == []
+
+
+class TestFaelligkeitIstKeinAusschlusskriterium:
+    """ERE-REF-002 und ERE-COMP-006 - die Norm laesst den Textweg zu."""
+
+    def test_die_schweregrade_sind_herabgesetzt(self):
+        """Kritisch heisst: ohne das geht keine Rechnung raus. Hier geht sie.
+
+        EN 16931 verlangt bei positivem Zahlbetrag entweder ein
+        Faelligkeitsdatum (BT-9) oder die Zahlungsbedingungen als Text
+        (BT-20). Der Punkt bleibt fachlich richtig, ist aber kein
+        Hindernis.
+        """
+        for kennung in ("ERE-REF-002", "ERE-COMP-006"):
+            assert _regel(kennung).severity.value == "high", kennung
+
+    def test_die_beschreibung_behauptet_nichts_falsches_mehr(self):
+        """Dort stand, Freitext sei im strukturierten Teil nicht vorgesehen.
+
+        BT-20 ist genau dieses Freitextfeld.
+        """
+        beschreibung = " ".join(_regel("ERE-REF-002").description.split())
+        assert "nicht vorgesehen" not in beschreibung
+        assert "Text" in beschreibung
